@@ -123,12 +123,32 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
   )
 }
 
+type RecipeType = "all" | "one-pot" | "protein" | "vegetables" | "quick" | "meal-prep"
+
+const recipeFilters: { value: RecipeType; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "one-pot", label: "One-Pot" },
+  { value: "protein", label: "Protein" },
+  { value: "vegetables", label: "Vegetables" },
+  { value: "quick", label: "Quick" },
+  { value: "meal-prep", label: "Meal Prep" },
+]
+
+const allRecipes = [
+  { name: "Chicken Stir Fry", calories: 450, time: "25 min", types: ["one-pot", "protein"] as RecipeType[] },
+  { name: "Greek Salad", calories: 280, time: "10 min", types: ["vegetables", "quick"] as RecipeType[] },
+  { name: "Protein Oatmeal", calories: 380, time: "5 min", types: ["protein", "quick"] as RecipeType[] },
+  { name: "Veggie Curry", calories: 320, time: "30 min", types: ["one-pot", "vegetables", "meal-prep"] as RecipeType[] },
+  { name: "Grilled Salmon", calories: 520, time: "20 min", types: ["protein"] as RecipeType[] },
+  { name: "Buddha Bowl", calories: 410, time: "15 min", types: ["vegetables", "meal-prep"] as RecipeType[] },
+]
+
 function RecipesView() {
-  const recipes = [
-    { name: "Chicken Stir Fry", calories: 450, time: "25 min" },
-    { name: "Greek Salad", calories: 280, time: "10 min" },
-    { name: "Protein Oatmeal", calories: 380, time: "5 min" },
-  ]
+  const [activeFilter, setActiveFilter] = useState<RecipeType>("all")
+
+  const filteredRecipes = activeFilter === "all" 
+    ? allRecipes 
+    : allRecipes.filter(recipe => recipe.types.includes(activeFilter))
 
   return (
     <div className="flex flex-col gap-4">
@@ -146,23 +166,56 @@ function RecipesView() {
         </button>
       </div>
 
-      <div className="flex flex-col gap-3">
-        {recipes.map((recipe, i) => (
+      {/* Recipe Type Filters */}
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+        {recipeFilters.map((filter) => (
           <button
-            key={i}
-            className="bg-card rounded-2xl p-4 border border-border flex items-center gap-4 text-left active:scale-[0.98] transition-transform"
+            key={filter.value}
+            onClick={() => setActiveFilter(filter.value)}
+            className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+              activeFilter === filter.value
+                ? "bg-primary text-primary-foreground"
+                : "bg-card border border-border text-muted-foreground hover:text-foreground"
+            }`}
           >
-            <div className="size-14 rounded-xl bg-secondary flex items-center justify-center">
-              <span className="text-2xl">🍽️</span>
-            </div>
-            <div className="flex-1">
-              <h4 className="font-medium text-foreground">{recipe.name}</h4>
-              <p className="text-sm text-muted-foreground">
-                {recipe.calories} kcal · {recipe.time}
-              </p>
-            </div>
+            {filter.label}
           </button>
         ))}
+      </div>
+
+      <div className="flex flex-col gap-3">
+        {filteredRecipes.length === 0 ? (
+          <div className="bg-card rounded-2xl p-8 border border-border text-center">
+            <p className="text-muted-foreground">No recipes found for this filter</p>
+          </div>
+        ) : (
+          filteredRecipes.map((recipe, i) => (
+            <button
+              key={i}
+              className="bg-card rounded-2xl p-4 border border-border flex items-center gap-4 text-left active:scale-[0.98] transition-transform"
+            >
+              <div className="size-14 rounded-xl bg-secondary flex items-center justify-center">
+                <BookOpen className="size-6 text-muted-foreground" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-medium text-foreground">{recipe.name}</h4>
+                <p className="text-sm text-muted-foreground">
+                  {recipe.calories} kcal · {recipe.time}
+                </p>
+                <div className="flex gap-1.5 mt-1.5 flex-wrap">
+                  {recipe.types.map((type) => (
+                    <span
+                      key={type}
+                      className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground"
+                    >
+                      {recipeFilters.find(f => f.value === type)?.label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </button>
+          ))
+        )}
       </div>
     </div>
   )
