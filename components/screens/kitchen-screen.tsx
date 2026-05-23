@@ -127,7 +127,6 @@ export function KitchenScreen() {
 }
 
 function CalculatorView({ activeUser }: { activeUser: string }) {
-  const [splitPercentage, setSplitPercentage] = useState(50)
   const [ingredients, setIngredients] = useState<Ingredient[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [grams, setGrams] = useState("")
