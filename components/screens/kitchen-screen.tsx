@@ -2,9 +2,9 @@
 
 import { useState } from "react"
 import { useUser } from "@/lib/user-context"
-import { Calculator, BookOpen, Search, Plus, Trash2, Save, Apple, Upload, ChefHat } from "lucide-react"
+import { Calculator, BookOpen, Search, Plus, Trash2, Save, Apple, Upload, ChefHat, UtensilsCrossed } from "lucide-react"
 
-type SubTab = "calculator" | "recipes" | "ingredients"
+type SubTab = "calculator" | "ingredients" | "recipes" | "meals"
 
 type ElementType = "ingredient" | "recipe"
 
@@ -102,13 +102,26 @@ export function KitchenScreen() {
           }`}
         >
           <BookOpen className="size-4" />
-          Recipes
+          <span className="hidden xs:inline">Recipes</span>
+          <span className="xs:hidden">Rec.</span>
+        </button>
+        <button
+          onClick={() => setSubTab("meals")}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
+            subTab === "meals"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground"
+          }`}
+        >
+          <UtensilsCrossed className="size-4" />
+          Meals
         </button>
       </div>
 
       {subTab === "calculator" && <CalculatorView activeUser={activeUser} />}
       {subTab === "ingredients" && <IngredientsView />}
       {subTab === "recipes" && <RecipesView />}
+      {subTab === "meals" && <MealsView />}
     </div>
   )
 }
@@ -120,6 +133,7 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
   const [grams, setGrams] = useState("")
   const [recipeName, setRecipeName] = useState("")
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [saveType, setSaveType] = useState<"recipe" | "meal">("recipe")
 
   const suggestions = Object.keys(ingredientDatabase).filter(
     (name) => name.toLowerCase().includes(searchTerm.toLowerCase()) && searchTerm.length > 0
@@ -164,7 +178,8 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
   const handleSaveRecipe = () => {
     if (ingredients.length > 0 && recipeName.trim()) {
       // In a real app, this would save to a database
-      alert(`Recipe "${recipeName}" saved with ${ingredients.length} ingredients!`)
+      const typeLabel = saveType === "recipe" ? "Recipe" : "Meal"
+      alert(`${typeLabel} "${recipeName}" saved with ${ingredients.length} ingredients!`)
       setRecipeName("")
     }
   }
@@ -321,14 +336,41 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
         </div>
       )}
 
-      {/* Save to Recipe Library */}
+      {/* Save to Library */}
       {ingredients.length > 0 && (
         <div className="bg-card rounded-2xl p-5 border border-border">
-          <h3 className="text-base font-semibold mb-3">Save to Recipe Library</h3>
+          <h3 className="text-base font-semibold mb-3">Save to Library</h3>
+          
+          {/* Save Type Toggle */}
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => setSaveType("recipe")}
+              className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                saveType === "recipe"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-muted-foreground"
+              }`}
+            >
+              <ChefHat className="size-4" />
+              Recipe
+            </button>
+            <button
+              onClick={() => setSaveType("meal")}
+              className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                saveType === "meal"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-muted-foreground"
+              }`}
+            >
+              <UtensilsCrossed className="size-4" />
+              Meal
+            </button>
+          </div>
+
           <div className="flex items-center gap-3">
             <input
               type="text"
-              placeholder="Recipe name..."
+              placeholder={saveType === "recipe" ? "Recipe name..." : "Meal name..."}
               value={recipeName}
               onChange={(e) => setRecipeName(e.target.value)}
               className="flex-1 bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -344,6 +386,11 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
           </div>
           <p className="text-xs text-muted-foreground mt-3">
             {ingredients.length} ingredient{ingredients.length !== 1 ? "s" : ""} · {Math.round(totals.calories)} kcal total
+          </p>
+          <p className="text-xs text-muted-foreground/70 mt-1">
+            {saveType === "recipe" 
+              ? "Recipes can be used as ingredients in meals" 
+              : "Meals are complete combinations ready to log"}
           </p>
         </div>
       )}
@@ -685,6 +732,135 @@ function RecipesView() {
                 </div>
               </div>
             </button>
+          ))
+        )}
+      </div>
+    </div>
+  )
+}
+
+// Sample meals data
+const initialMeals = [
+  { 
+    id: "m1", 
+    name: "Power Breakfast", 
+    elements: ["Scrambled Eggs", "Oats", "Banana"],
+    totalCalories: 520,
+    totalProtein: 28,
+    totalCarbs: 62,
+    totalFats: 18,
+  },
+  { 
+    id: "m2", 
+    name: "Lunch Bowl", 
+    elements: ["Chicken Stir Fry", "Rice", "Broccoli"],
+    totalCalories: 680,
+    totalProtein: 45,
+    totalCarbs: 72,
+    totalFats: 12,
+  },
+  { 
+    id: "m3", 
+    name: "Evening Snack", 
+    elements: ["Greek Yogurt", "Almonds", "Banana"],
+    totalCalories: 380,
+    totalProtein: 18,
+    totalCarbs: 42,
+    totalFats: 16,
+  },
+]
+
+function MealsView() {
+  const [meals, setMeals] = useState(initialMeals)
+  const [searchTerm, setSearchTerm] = useState("")
+
+  const filteredMeals = meals.filter((meal) =>
+    meal.name.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  const handleDeleteMeal = (id: string) => {
+    setMeals(meals.filter((m) => m.id !== id))
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Search */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1 relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search meals..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-card rounded-xl pl-11 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+          />
+        </div>
+      </div>
+
+      {/* Info Card */}
+      <div className="bg-primary/10 rounded-2xl p-4 border border-primary/30">
+        <p className="text-sm text-foreground">
+          Meals are saved combinations of ingredients and recipes. Create new meals in the Calculator tab.
+        </p>
+      </div>
+
+      {/* Meals List */}
+      <div className="flex flex-col gap-3">
+        {filteredMeals.length === 0 ? (
+          <div className="bg-card rounded-2xl p-8 border border-border text-center">
+            <UtensilsCrossed className="size-10 text-muted-foreground mx-auto mb-3" />
+            <p className="text-muted-foreground">No meals saved yet</p>
+            <p className="text-xs text-muted-foreground/70 mt-1">
+              Use the Calculator to create and save meals
+            </p>
+          </div>
+        ) : (
+          filteredMeals.map((meal) => (
+            <div
+              key={meal.id}
+              className="bg-card rounded-2xl p-4 border border-border"
+            >
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <h4 className="font-medium text-foreground">{meal.name}</h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {meal.elements.join(" + ")}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleDeleteMeal(meal.id)}
+                  className="size-8 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center shrink-0 active:scale-95 transition-transform"
+                >
+                  <Trash2 className="size-4" />
+                </button>
+              </div>
+              
+              {/* Macros */}
+              <div className="flex items-center gap-2">
+                <div className="flex-1 bg-secondary rounded-lg px-2 py-2 text-center">
+                  <p className="text-xs text-muted-foreground">kcal</p>
+                  <p className="text-sm font-semibold text-foreground">{meal.totalCalories}</p>
+                </div>
+                <div className="flex-1 bg-secondary rounded-lg px-2 py-2 text-center">
+                  <p className="text-xs text-muted-foreground">P</p>
+                  <p className="text-sm font-semibold text-primary">{meal.totalProtein}g</p>
+                </div>
+                <div className="flex-1 bg-secondary rounded-lg px-2 py-2 text-center">
+                  <p className="text-xs text-muted-foreground">C</p>
+                  <p className="text-sm font-semibold text-amber-500">{meal.totalCarbs}g</p>
+                </div>
+                <div className="flex-1 bg-secondary rounded-lg px-2 py-2 text-center">
+                  <p className="text-xs text-muted-foreground">F</p>
+                  <p className="text-sm font-semibold text-rose-400">{meal.totalFats}g</p>
+                </div>
+              </div>
+
+              {/* Quick Log Button */}
+              <button className="w-full mt-3 py-2.5 rounded-xl bg-primary/10 text-primary text-sm font-medium active:scale-[0.98] transition-transform">
+                Quick Log This Meal
+              </button>
+            </div>
           ))
         )}
       </div>
