@@ -252,56 +252,71 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
         </div>
       </div>
 
-      {/* Ingredients Table */}
+      {/* Ingredients List */}
       {ingredients.length > 0 && (
-        <div className="bg-card rounded-2xl border border-border overflow-hidden">
-          <div className="p-4 border-b border-border">
-            <h3 className="text-base font-semibold">Meal Breakdown</h3>
-          </div>
+        <div className="flex flex-col gap-3">
+          <h3 className="text-base font-semibold">Meal Breakdown</h3>
           
-          {/* Table Header */}
-          <div className="grid grid-cols-[1fr,auto,auto,auto,auto,auto] gap-2 px-4 py-3 bg-secondary/50 text-xs font-medium text-muted-foreground">
-            <span>Ingredient</span>
-            <span className="text-right w-12">g</span>
-            <span className="text-right w-12">kcal</span>
-            <span className="text-right w-10">P</span>
-            <span className="text-right w-10">C</span>
-            <span className="text-right w-10">F</span>
-          </div>
-          
-          {/* Table Rows */}
-          <div className="divide-y divide-border">
-            {ingredients.map((ing) => (
-              <div
-                key={ing.id}
-                className="grid grid-cols-[1fr,auto,auto,auto,auto,auto] gap-2 px-4 py-3 items-center text-sm"
-              >
-                <div className="flex items-center gap-2 min-w-0">
+          {/* Ingredient Cards */}
+          {ingredients.map((ing) => (
+            <div
+              key={ing.id}
+              className="bg-card rounded-2xl p-4 border border-border"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-foreground font-medium capitalize">{ing.name}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">{ing.grams}g</span>
                   <button
                     onClick={() => removeIngredient(ing.id)}
-                    className="size-6 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center shrink-0 active:scale-95 transition-transform"
+                    className="size-7 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center shrink-0 active:scale-95 transition-transform"
                   >
-                    <Trash2 className="size-3" />
+                    <Trash2 className="size-3.5" />
                   </button>
-                  <span className="text-foreground capitalize truncate">{ing.name}</span>
                 </div>
-                <span className="text-right text-muted-foreground w-12">{ing.grams}</span>
-                <span className="text-right text-foreground font-medium w-12">{ing.calories}</span>
-                <span className="text-right text-primary w-10">{ing.protein}</span>
-                <span className="text-right text-amber-500 w-10">{ing.carbs}</span>
-                <span className="text-right text-rose-400 w-10">{ing.fats}</span>
               </div>
-            ))}
-          </div>
+              <div className="flex items-center gap-3">
+                <div className="flex-1 bg-secondary rounded-lg px-3 py-2 text-center">
+                  <p className="text-xs text-muted-foreground">kcal</p>
+                  <p className="text-sm font-semibold text-foreground">{ing.calories}</p>
+                </div>
+                <div className="flex-1 bg-secondary rounded-lg px-3 py-2 text-center">
+                  <p className="text-xs text-muted-foreground">Protein</p>
+                  <p className="text-sm font-semibold text-primary">{ing.protein}g</p>
+                </div>
+                <div className="flex-1 bg-secondary rounded-lg px-3 py-2 text-center">
+                  <p className="text-xs text-muted-foreground">Carbs</p>
+                  <p className="text-sm font-semibold text-amber-500">{ing.carbs}g</p>
+                </div>
+                <div className="flex-1 bg-secondary rounded-lg px-3 py-2 text-center">
+                  <p className="text-xs text-muted-foreground">Fats</p>
+                  <p className="text-sm font-semibold text-rose-400">{ing.fats}g</p>
+                </div>
+              </div>
+            </div>
+          ))}
           
-          {/* Totals Row */}
-          <div className="grid grid-cols-[1fr,auto,auto,auto,auto,auto] gap-2 px-4 py-4 bg-primary/10 border-t border-border items-center text-sm font-semibold">
-            <span className="text-foreground">Total</span>
-            <span className="text-right text-muted-foreground w-12">-</span>
-            <span className="text-right text-foreground w-12">{Math.round(totals.calories)}</span>
-            <span className="text-right text-primary w-10">{Math.round(totals.protein * 10) / 10}</span>
-            <span className="text-right text-amber-500 w-10">{Math.round(totals.carbs * 10) / 10}</span>
-            <span className="text-right text-rose-400 w-10">{Math.round(totals.fats * 10) / 10}</span>
+          {/* Totals Card */}
+          <div className="bg-primary/10 rounded-2xl p-4 border border-primary/30">
+            <p className="text-sm font-semibold text-foreground mb-3">Total</p>
+            <div className="flex items-center gap-3">
+              <div className="flex-1 bg-background/50 rounded-lg px-3 py-2 text-center">
+                <p className="text-xs text-muted-foreground">kcal</p>
+                <p className="text-sm font-bold text-foreground">{Math.round(totals.calories)}</p>
+              </div>
+              <div className="flex-1 bg-background/50 rounded-lg px-3 py-2 text-center">
+                <p className="text-xs text-muted-foreground">Protein</p>
+                <p className="text-sm font-bold text-primary">{Math.round(totals.protein * 10) / 10}g</p>
+              </div>
+              <div className="flex-1 bg-background/50 rounded-lg px-3 py-2 text-center">
+                <p className="text-xs text-muted-foreground">Carbs</p>
+                <p className="text-sm font-bold text-amber-500">{Math.round(totals.carbs * 10) / 10}g</p>
+              </div>
+              <div className="flex-1 bg-background/50 rounded-lg px-3 py-2 text-center">
+                <p className="text-xs text-muted-foreground">Fats</p>
+                <p className="text-sm font-bold text-rose-400">{Math.round(totals.fats * 10) / 10}g</p>
+              </div>
+            </div>
           </div>
         </div>
       )}
