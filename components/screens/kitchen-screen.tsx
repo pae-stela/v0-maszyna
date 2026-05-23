@@ -2,9 +2,33 @@
 
 import { useState } from "react"
 import { useUser } from "@/lib/user-context"
-import { Calculator, BookOpen, Search, Plus } from "lucide-react"
+import { Calculator, BookOpen, Search, Plus, Trash2, Save } from "lucide-react"
 
 type SubTab = "calculator" | "recipes"
+
+interface Ingredient {
+  id: string
+  name: string
+  grams: number
+  calories: number
+  protein: number
+  carbs: number
+  fats: number
+}
+
+// Mock ingredient database (per 100g)
+const ingredientDatabase: Record<string, { calories: number; protein: number; carbs: number; fats: number }> = {
+  "chicken breast": { calories: 165, protein: 31, carbs: 0, fats: 3.6 },
+  "rice": { calories: 130, protein: 2.7, carbs: 28, fats: 0.3 },
+  "broccoli": { calories: 34, protein: 2.8, carbs: 7, fats: 0.4 },
+  "olive oil": { calories: 884, protein: 0, carbs: 0, fats: 100 },
+  "eggs": { calories: 155, protein: 13, carbs: 1.1, fats: 11 },
+  "salmon": { calories: 208, protein: 20, carbs: 0, fats: 13 },
+  "oats": { calories: 389, protein: 17, carbs: 66, fats: 7 },
+  "banana": { calories: 89, protein: 1.1, carbs: 23, fats: 0.3 },
+  "greek yogurt": { calories: 59, protein: 10, carbs: 3.6, fats: 0.7 },
+  "almonds": { calories: 579, protein: 21, carbs: 22, fats: 50 },
+}
 
 export function KitchenScreen() {
   const [subTab, setSubTab] = useState<SubTab>("calculator")
@@ -48,9 +72,63 @@ export function KitchenScreen() {
 
 function CalculatorView({ activeUser }: { activeUser: string }) {
   const [splitPercentage, setSplitPercentage] = useState(50)
+  const [ingredients, setIngredients] = useState<Ingredient[]>([])
+  const [searchTerm, setSearchTerm] = useState("")
+  const [grams, setGrams] = useState("")
+  const [recipeName, setRecipeName] = useState("")
+  const [showSuggestions, setShowSuggestions] = useState(false)
+
+  const suggestions = Object.keys(ingredientDatabase).filter(
+    (name) => name.toLowerCase().includes(searchTerm.toLowerCase()) && searchTerm.length > 0
+  )
+
+  const addIngredient = (ingredientName: string) => {
+    const gramsNum = parseFloat(grams) || 100
+    const baseNutrition = ingredientDatabase[ingredientName.toLowerCase()]
+    
+    if (baseNutrition) {
+      const multiplier = gramsNum / 100
+      const newIngredient: Ingredient = {
+        id: Date.now().toString(),
+        name: ingredientName,
+        grams: gramsNum,
+        calories: Math.round(baseNutrition.calories * multiplier),
+        protein: Math.round(baseNutrition.protein * multiplier * 10) / 10,
+        carbs: Math.round(baseNutrition.carbs * multiplier * 10) / 10,
+        fats: Math.round(baseNutrition.fats * multiplier * 10) / 10,
+      }
+      setIngredients([...ingredients, newIngredient])
+      setSearchTerm("")
+      setGrams("")
+      setShowSuggestions(false)
+    }
+  }
+
+  const removeIngredient = (id: string) => {
+    setIngredients(ingredients.filter((i) => i.id !== id))
+  }
+
+  const totals = ingredients.reduce(
+    (acc, ing) => ({
+      calories: acc.calories + ing.calories,
+      protein: acc.protein + ing.protein,
+      carbs: acc.carbs + ing.carbs,
+      fats: acc.fats + ing.fats,
+    }),
+    { calories: 0, protein: 0, carbs: 0, fats: 0 }
+  )
+
+  const handleSaveRecipe = () => {
+    if (ingredients.length > 0 && recipeName.trim()) {
+      // In a real app, this would save to a database
+      alert(`Recipe "${recipeName}" saved with ${ingredients.length} ingredients!`)
+      setRecipeName("")
+    }
+  }
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Smart Splitter */}
       <div className="bg-card rounded-2xl p-5 border border-border">
         <h3 className="text-base font-semibold mb-4">Smart Splitter</h3>
         <p className="text-sm text-muted-foreground mb-6">
@@ -87,38 +165,130 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
         </div>
       </div>
 
+      {/* Add Ingredients */}
       <div className="bg-card rounded-2xl p-5 border border-border">
-        <h3 className="text-base font-semibold mb-4">Quick Calculate</h3>
+        <h3 className="text-base font-semibold mb-4">Add Ingredients</h3>
         <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-3">
-            <input
-              type="text"
-              placeholder="Search ingredient..."
-              className="flex-1 bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-            />
-            <button className="size-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center active:scale-95 transition-transform">
-              <Search className="size-5" />
-            </button>
-          </div>
-          <div className="flex items-center gap-3">
-            <input
-              type="number"
-              placeholder="Amount (g)"
-              className="flex-1 bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-            />
-            <button className="px-6 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:scale-95 transition-transform">
-              Calculate
-            </button>
+          <div className="relative">
+            <div className="flex items-center gap-3">
+              <input
+                type="text"
+                placeholder="Search ingredient..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value)
+                  setShowSuggestions(true)
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                className="flex-1 bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+              <input
+                type="number"
+                placeholder="g"
+                value={grams}
+                onChange={(e) => setGrams(e.target.value)}
+                className="w-20 bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+            </div>
+            
+            {/* Suggestions dropdown */}
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="absolute top-full left-0 right-20 mt-2 bg-card border border-border rounded-xl overflow-hidden z-10 shadow-lg">
+                {suggestions.map((name) => (
+                  <button
+                    key={name}
+                    onClick={() => addIngredient(name)}
+                    className="w-full px-4 py-3 text-left text-sm text-foreground hover:bg-secondary transition-colors capitalize"
+                  >
+                    {name}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="bg-card rounded-2xl p-5 border border-border">
-        <h3 className="text-base font-semibold mb-2">Result Preview</h3>
-        <p className="text-sm text-muted-foreground">
-          Calculate an ingredient to see nutritional breakdown here
-        </p>
-      </div>
+      {/* Ingredients Table */}
+      {ingredients.length > 0 && (
+        <div className="bg-card rounded-2xl border border-border overflow-hidden">
+          <div className="p-4 border-b border-border">
+            <h3 className="text-base font-semibold">Meal Breakdown</h3>
+          </div>
+          
+          {/* Table Header */}
+          <div className="grid grid-cols-[1fr,auto,auto,auto,auto,auto] gap-2 px-4 py-3 bg-secondary/50 text-xs font-medium text-muted-foreground">
+            <span>Ingredient</span>
+            <span className="text-right w-12">g</span>
+            <span className="text-right w-12">kcal</span>
+            <span className="text-right w-10">P</span>
+            <span className="text-right w-10">C</span>
+            <span className="text-right w-10">F</span>
+          </div>
+          
+          {/* Table Rows */}
+          <div className="divide-y divide-border">
+            {ingredients.map((ing) => (
+              <div
+                key={ing.id}
+                className="grid grid-cols-[1fr,auto,auto,auto,auto,auto] gap-2 px-4 py-3 items-center text-sm"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <button
+                    onClick={() => removeIngredient(ing.id)}
+                    className="size-6 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center shrink-0 active:scale-95 transition-transform"
+                  >
+                    <Trash2 className="size-3" />
+                  </button>
+                  <span className="text-foreground capitalize truncate">{ing.name}</span>
+                </div>
+                <span className="text-right text-muted-foreground w-12">{ing.grams}</span>
+                <span className="text-right text-foreground font-medium w-12">{ing.calories}</span>
+                <span className="text-right text-primary w-10">{ing.protein}</span>
+                <span className="text-right text-amber-500 w-10">{ing.carbs}</span>
+                <span className="text-right text-rose-400 w-10">{ing.fats}</span>
+              </div>
+            ))}
+          </div>
+          
+          {/* Totals Row */}
+          <div className="grid grid-cols-[1fr,auto,auto,auto,auto,auto] gap-2 px-4 py-4 bg-primary/10 border-t border-border items-center text-sm font-semibold">
+            <span className="text-foreground">Total</span>
+            <span className="text-right text-muted-foreground w-12">-</span>
+            <span className="text-right text-foreground w-12">{Math.round(totals.calories)}</span>
+            <span className="text-right text-primary w-10">{Math.round(totals.protein * 10) / 10}</span>
+            <span className="text-right text-amber-500 w-10">{Math.round(totals.carbs * 10) / 10}</span>
+            <span className="text-right text-rose-400 w-10">{Math.round(totals.fats * 10) / 10}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Save to Recipe Library */}
+      {ingredients.length > 0 && (
+        <div className="bg-card rounded-2xl p-5 border border-border">
+          <h3 className="text-base font-semibold mb-3">Save to Recipe Library</h3>
+          <div className="flex items-center gap-3">
+            <input
+              type="text"
+              placeholder="Recipe name..."
+              value={recipeName}
+              onChange={(e) => setRecipeName(e.target.value)}
+              className="flex-1 bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+            <button
+              onClick={handleSaveRecipe}
+              disabled={!recipeName.trim()}
+              className="px-5 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center gap-2 active:scale-95 transition-transform disabled:opacity-50 disabled:active:scale-100"
+            >
+              <Save className="size-4" />
+              Save
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-3">
+            {ingredients.length} ingredient{ingredients.length !== 1 ? "s" : ""} · {Math.round(totals.calories)} kcal total
+          </p>
+        </div>
+      )}
     </div>
   )
 }
