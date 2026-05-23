@@ -2,9 +2,22 @@
 
 import { useState } from "react"
 import { useUser } from "@/lib/user-context"
-import { Calculator, BookOpen, Search, Plus, Trash2, Save } from "lucide-react"
+import { Calculator, BookOpen, Search, Plus, Trash2, Save, Apple, Upload, ChefHat } from "lucide-react"
 
-type SubTab = "calculator" | "recipes"
+type SubTab = "calculator" | "recipes" | "ingredients"
+
+type ElementType = "ingredient" | "recipe"
+
+interface FoodElement {
+  id: string
+  name: string
+  type: ElementType
+  caloriesPer100g: number
+  proteinPer100g: number
+  carbsPer100g: number
+  fatsPer100g: number
+  category?: string
+}
 
 interface Ingredient {
   id: string
@@ -30,27 +43,59 @@ const ingredientDatabase: Record<string, { calories: number; protein: number; ca
   "almonds": { calories: 579, protein: 21, carbs: 22, fats: 50 },
 }
 
+// Initial food elements (ingredients + recipes that can be used as meal components)
+const initialFoodElements: FoodElement[] = [
+  // Base ingredients
+  { id: "1", name: "Chicken Breast", type: "ingredient", caloriesPer100g: 165, proteinPer100g: 31, carbsPer100g: 0, fatsPer100g: 3.6, category: "Protein" },
+  { id: "2", name: "Rice", type: "ingredient", caloriesPer100g: 130, proteinPer100g: 2.7, carbsPer100g: 28, fatsPer100g: 0.3, category: "Carbs" },
+  { id: "3", name: "Broccoli", type: "ingredient", caloriesPer100g: 34, proteinPer100g: 2.8, carbsPer100g: 7, fatsPer100g: 0.4, category: "Vegetables" },
+  { id: "4", name: "Olive Oil", type: "ingredient", caloriesPer100g: 884, proteinPer100g: 0, carbsPer100g: 0, fatsPer100g: 100, category: "Fats" },
+  { id: "5", name: "Eggs", type: "ingredient", caloriesPer100g: 155, proteinPer100g: 13, carbsPer100g: 1.1, fatsPer100g: 11, category: "Protein" },
+  { id: "6", name: "Salmon", type: "ingredient", caloriesPer100g: 208, proteinPer100g: 20, carbsPer100g: 0, fatsPer100g: 13, category: "Protein" },
+  { id: "7", name: "Oats", type: "ingredient", caloriesPer100g: 389, proteinPer100g: 17, carbsPer100g: 66, fatsPer100g: 7, category: "Carbs" },
+  { id: "8", name: "Banana", type: "ingredient", caloriesPer100g: 89, proteinPer100g: 1.1, carbsPer100g: 23, fatsPer100g: 0.3, category: "Fruits" },
+  { id: "9", name: "Greek Yogurt", type: "ingredient", caloriesPer100g: 59, proteinPer100g: 10, carbsPer100g: 3.6, fatsPer100g: 0.7, category: "Dairy" },
+  { id: "10", name: "Almonds", type: "ingredient", caloriesPer100g: 579, proteinPer100g: 21, carbsPer100g: 22, fatsPer100g: 50, category: "Nuts" },
+  // Recipes as elements (can be used in meals)
+  { id: "r1", name: "Scrambled Eggs", type: "recipe", caloriesPer100g: 148, proteinPer100g: 10, carbsPer100g: 1.6, fatsPer100g: 11, category: "Breakfast" },
+  { id: "r2", name: "Chicken Stir Fry", type: "recipe", caloriesPer100g: 120, proteinPer100g: 14, carbsPer100g: 8, fatsPer100g: 4, category: "Main" },
+  { id: "r3", name: "Protein Oatmeal", type: "recipe", caloriesPer100g: 145, proteinPer100g: 12, carbsPer100g: 18, fatsPer100g: 4, category: "Breakfast" },
+]
+
 export function KitchenScreen() {
   const [subTab, setSubTab] = useState<SubTab>("calculator")
   const { activeUser } = useUser()
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex gap-2 p-1 bg-secondary rounded-xl">
+      <div className="flex gap-1 p-1 bg-secondary rounded-xl">
         <button
           onClick={() => setSubTab("calculator")}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
             subTab === "calculator"
               ? "bg-card text-foreground shadow-sm"
               : "text-muted-foreground"
           }`}
         >
           <Calculator className="size-4" />
-          Calculator
+          <span className="hidden xs:inline">Calculator</span>
+          <span className="xs:hidden">Calc</span>
+        </button>
+        <button
+          onClick={() => setSubTab("ingredients")}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
+            subTab === "ingredients"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground"
+          }`}
+        >
+          <Apple className="size-4" />
+          <span className="hidden xs:inline">Ingredients</span>
+          <span className="xs:hidden">Ingr.</span>
         </button>
         <button
           onClick={() => setSubTab("recipes")}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
             subTab === "recipes"
               ? "bg-card text-foreground shadow-sm"
               : "text-muted-foreground"
@@ -61,11 +106,9 @@ export function KitchenScreen() {
         </button>
       </div>
 
-      {subTab === "calculator" ? (
-        <CalculatorView activeUser={activeUser} />
-      ) : (
-        <RecipesView />
-      )}
+      {subTab === "calculator" && <CalculatorView activeUser={activeUser} />}
+      {subTab === "ingredients" && <IngredientsView />}
+      {subTab === "recipes" && <RecipesView />}
     </div>
   )
 }
@@ -294,6 +337,249 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
 }
 
 type RecipeType = "all" | "one-pot" | "protein" | "vegetables" | "quick" | "meal-prep"
+
+type ElementFilter = "all" | "ingredient" | "recipe"
+
+const elementCategories = ["All", "Protein", "Carbs", "Vegetables", "Fruits", "Dairy", "Fats", "Nuts", "Breakfast", "Main"]
+
+function IngredientsView() {
+  const [foodElements, setFoodElements] = useState<FoodElement[]>(initialFoodElements)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [typeFilter, setTypeFilter] = useState<ElementFilter>("all")
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [newElement, setNewElement] = useState({
+    name: "",
+    type: "ingredient" as ElementType,
+    caloriesPer100g: "",
+    proteinPer100g: "",
+    carbsPer100g: "",
+    fatsPer100g: "",
+    category: "Protein",
+  })
+
+  const filteredElements = foodElements.filter((el) => {
+    const matchesSearch = el.name.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesType = typeFilter === "all" || el.type === typeFilter
+    return matchesSearch && matchesType
+  })
+
+  const handleAddElement = () => {
+    if (newElement.name.trim()) {
+      const element: FoodElement = {
+        id: Date.now().toString(),
+        name: newElement.name,
+        type: newElement.type,
+        caloriesPer100g: parseFloat(newElement.caloriesPer100g) || 0,
+        proteinPer100g: parseFloat(newElement.proteinPer100g) || 0,
+        carbsPer100g: parseFloat(newElement.carbsPer100g) || 0,
+        fatsPer100g: parseFloat(newElement.fatsPer100g) || 0,
+        category: newElement.category,
+      }
+      setFoodElements([...foodElements, element])
+      setNewElement({
+        name: "",
+        type: "ingredient",
+        caloriesPer100g: "",
+        proteinPer100g: "",
+        carbsPer100g: "",
+        fatsPer100g: "",
+        category: "Protein",
+      })
+      setShowAddForm(false)
+    }
+  }
+
+  const handleDeleteElement = (id: string) => {
+    setFoodElements(foodElements.filter((el) => el.id !== id))
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Search and Actions */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1 relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search ingredients & recipes..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-card rounded-xl pl-11 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+          />
+        </div>
+        <button
+          onClick={() => setShowAddForm(!showAddForm)}
+          className="size-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center active:scale-95 transition-transform"
+        >
+          <Plus className="size-5" />
+        </button>
+      </div>
+
+      {/* Import from Excel */}
+      <button className="bg-card rounded-2xl p-4 border border-border border-dashed flex items-center justify-center gap-3 text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors active:scale-[0.98]">
+        <Upload className="size-5" />
+        <span className="text-sm font-medium">Import from Excel</span>
+      </button>
+
+      {/* Type Filter */}
+      <div className="flex gap-2">
+        {(["all", "ingredient", "recipe"] as ElementFilter[]).map((filter) => (
+          <button
+            key={filter}
+            onClick={() => setTypeFilter(filter)}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+              typeFilter === filter
+                ? "bg-primary text-primary-foreground"
+                : "bg-card border border-border text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {filter === "all" ? "All" : filter === "ingredient" ? "Ingredients" : "Recipes"}
+          </button>
+        ))}
+      </div>
+
+      {/* Add New Element Form */}
+      {showAddForm && (
+        <div className="bg-card rounded-2xl p-5 border border-primary/50">
+          <h3 className="text-base font-semibold mb-4">Add New Element</h3>
+          <div className="flex flex-col gap-3">
+            <input
+              type="text"
+              placeholder="Name"
+              value={newElement.name}
+              onChange={(e) => setNewElement({ ...newElement, name: e.target.value })}
+              className="bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+            
+            <div className="flex gap-2">
+              <button
+                onClick={() => setNewElement({ ...newElement, type: "ingredient" })}
+                className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                  newElement.type === "ingredient"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-muted-foreground"
+                }`}
+              >
+                <Apple className="size-4" />
+                Ingredient
+              </button>
+              <button
+                onClick={() => setNewElement({ ...newElement, type: "recipe" })}
+                className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                  newElement.type === "recipe"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-muted-foreground"
+                }`}
+              >
+                <ChefHat className="size-4" />
+                Recipe
+              </button>
+            </div>
+
+            <select
+              value={newElement.category}
+              onChange={(e) => setNewElement({ ...newElement, category: e.target.value })}
+              className="bg-secondary rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+            >
+              {elementCategories.slice(1).map((cat) => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+
+            <p className="text-xs text-muted-foreground mt-1">Macros per 100g</p>
+            <div className="grid grid-cols-4 gap-2">
+              <input
+                type="number"
+                placeholder="kcal"
+                value={newElement.caloriesPer100g}
+                onChange={(e) => setNewElement({ ...newElement, caloriesPer100g: e.target.value })}
+                className="bg-secondary rounded-xl px-3 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+              <input
+                type="number"
+                placeholder="P"
+                value={newElement.proteinPer100g}
+                onChange={(e) => setNewElement({ ...newElement, proteinPer100g: e.target.value })}
+                className="bg-secondary rounded-xl px-3 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+              <input
+                type="number"
+                placeholder="C"
+                value={newElement.carbsPer100g}
+                onChange={(e) => setNewElement({ ...newElement, carbsPer100g: e.target.value })}
+                className="bg-secondary rounded-xl px-3 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+              <input
+                type="number"
+                placeholder="F"
+                value={newElement.fatsPer100g}
+                onChange={(e) => setNewElement({ ...newElement, fatsPer100g: e.target.value })}
+                className="bg-secondary rounded-xl px-3 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+            </div>
+
+            <button
+              onClick={handleAddElement}
+              disabled={!newElement.name.trim()}
+              className="mt-2 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-50"
+            >
+              <Save className="size-4" />
+              Save Element
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Elements List */}
+      <div className="flex flex-col gap-2">
+        {filteredElements.length === 0 ? (
+          <div className="bg-card rounded-2xl p-8 border border-border text-center">
+            <p className="text-muted-foreground">No elements found</p>
+          </div>
+        ) : (
+          filteredElements.map((element) => (
+            <div
+              key={element.id}
+              className="bg-card rounded-2xl p-4 border border-border flex items-center gap-3"
+            >
+              <div className={`size-10 rounded-xl flex items-center justify-center shrink-0 ${
+                element.type === "recipe" ? "bg-primary/20" : "bg-secondary"
+              }`}>
+                {element.type === "recipe" ? (
+                  <ChefHat className="size-5 text-primary" />
+                ) : (
+                  <Apple className="size-5 text-muted-foreground" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <h4 className="font-medium text-foreground truncate">{element.name}</h4>
+                  {element.type === "recipe" && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary shrink-0">
+                      Recipe
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {element.caloriesPer100g} kcal · P {element.proteinPer100g}g · C {element.carbsPer100g}g · F {element.fatsPer100g}g
+                </p>
+                {element.category && (
+                  <span className="text-xs text-muted-foreground/70">{element.category}</span>
+                )}
+              </div>
+              <button
+                onClick={() => handleDeleteElement(element.id)}
+                className="size-8 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center shrink-0 active:scale-95 transition-transform"
+              >
+                <Trash2 className="size-4" />
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  )
+}
 
 const recipeFilters: { value: RecipeType; label: string }[] = [
   { value: "all", label: "All" },
