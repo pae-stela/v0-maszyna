@@ -697,13 +697,15 @@ function IngredientsView() {
           filteredIngredients.map((ingredient) => (
             <div
               key={ingredient.id}
-              className="bg-card rounded-2xl border border-border overflow-hidden"
+              className={`bg-card rounded-2xl border border-border overflow-hidden ${ingredient.isComponent ? "cursor-pointer" : ""}`}
+              onClick={() => {
+                if (ingredient.isComponent) {
+                  setExpandedId(expandedId === ingredient.id ? null : ingredient.id)
+                }
+              }}
             >
               {/* Main row */}
-              <div 
-                className={`p-4 flex items-center gap-3 ${ingredient.isComponent ? "cursor-pointer" : ""}`}
-                onClick={() => ingredient.isComponent ? setExpandedId(expandedId === ingredient.id ? null : ingredient.id) : null}
-              >
+              <div className={`p-4 flex items-center gap-3 ${ingredient.isComponent ? "active:bg-secondary/50" : ""}`}>
                 <div className={`size-10 rounded-xl flex items-center justify-center shrink-0 ${
                   ingredient.isComponent 
                     ? "bg-primary/20" 
