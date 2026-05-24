@@ -1,7 +1,8 @@
 "use client"
 
+import { useState } from "react"
 import { useUser } from "@/lib/user-context"
-import { Droplets, Pill, Plus, Utensils } from "lucide-react"
+import { Droplets, Dumbbell, Pill, Check, ChevronRight, Calculator } from "lucide-react"
 
 function ProgressRing({ 
   value, 
@@ -9,7 +10,7 @@ function ProgressRing({
   color, 
   label, 
   unit,
-  size = 80 
+  size = 64 
 }: { 
   value: number
   max: number
@@ -18,13 +19,13 @@ function ProgressRing({
   unit: string
   size?: number
 }) {
-  const radius = (size - 8) / 2
+  const radius = (size - 6) / 2
   const circumference = 2 * Math.PI * radius
   const progress = Math.min(value / max, 1)
   const strokeDashoffset = circumference * (1 - progress)
 
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className="flex flex-col items-center gap-1">
       <div className="relative" style={{ width: size, height: size }}>
         <svg className="transform -rotate-90" width={size} height={size}>
           <circle
@@ -33,7 +34,7 @@ function ProgressRing({
             r={radius}
             fill="none"
             stroke="currentColor"
-            strokeWidth="6"
+            strokeWidth="5"
             className="text-secondary"
           />
           <circle
@@ -42,7 +43,7 @@ function ProgressRing({
             r={radius}
             fill="none"
             stroke={color}
-            strokeWidth="6"
+            strokeWidth="5"
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={strokeDashoffset}
@@ -50,11 +51,10 @@ function ProgressRing({
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-sm font-semibold text-foreground">{value}</span>
-          <span className="text-[9px] text-muted-foreground">{unit}</span>
+          <span className="text-xs font-semibold text-foreground">{value}</span>
         </div>
       </div>
-      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      <span className="text-[10px] font-medium text-muted-foreground">{label}</span>
     </div>
   )
 }
@@ -65,11 +65,18 @@ const userData = {
     protein: { current: 85, target: 120 },
     carbs: { current: 140, target: 180 },
     fats: { current: 45, target: 60 },
+    fiber: { current: 18, target: 25 },
     water: 1500,
-    supplements: [
-      { name: "Vitamin D", taken: true },
-      { name: "Omega-3", taken: false },
-      { name: "Magnesium", taken: true },
+    waterTarget: 2000,
+    dayPlan: [
+      { id: "1", time: "07:30", type: "meal" as const, name: "Power Breakfast", calories: 520, logged: false },
+      { id: "2", time: "08:00", type: "supplement" as const, name: "Vitamin D + Omega-3", logged: true },
+      { id: "3", time: "10:00", type: "meal" as const, name: "Morning Snack", calories: 180, logged: false },
+      { id: "4", time: "12:30", type: "meal" as const, name: "Lunch Bowl", calories: 680, logged: true },
+      { id: "5", time: "15:00", type: "training" as const, name: "Upper Body Workout", logged: false },
+      { id: "6", time: "16:00", type: "meal" as const, name: "Post-Workout Shake", calories: 320, logged: false },
+      { id: "7", time: "19:00", type: "meal" as const, name: "Dinner", calories: 550, logged: false },
+      { id: "8", time: "21:00", type: "supplement" as const, name: "Magnesium", logged: false },
     ],
   },
   marcin: {
@@ -77,11 +84,18 @@ const userData = {
     protein: { current: 145, target: 180 },
     carbs: { current: 220, target: 280 },
     fats: { current: 70, target: 90 },
+    fiber: { current: 22, target: 30 },
     water: 2000,
-    supplements: [
-      { name: "Creatine", taken: true },
-      { name: "Vitamin D", taken: true },
-      { name: "Zinc", taken: false },
+    waterTarget: 3000,
+    dayPlan: [
+      { id: "1", time: "06:30", type: "meal" as const, name: "Protein Oatmeal", calories: 480, logged: true },
+      { id: "2", time: "07:00", type: "supplement" as const, name: "Creatine + Vitamin D", logged: true },
+      { id: "3", time: "09:30", type: "training" as const, name: "Leg Day", logged: false },
+      { id: "4", time: "11:00", type: "meal" as const, name: "Post-Workout Meal", calories: 720, logged: false },
+      { id: "5", time: "14:00", type: "meal" as const, name: "Lunch", calories: 650, logged: false },
+      { id: "6", time: "17:00", type: "meal" as const, name: "Afternoon Snack", calories: 350, logged: false },
+      { id: "7", time: "20:00", type: "meal" as const, name: "Dinner", calories: 700, logged: false },
+      { id: "8", time: "22:00", type: "supplement" as const, name: "Zinc + Magnesium", logged: false },
     ],
   },
 }
@@ -89,117 +103,186 @@ const userData = {
 export function DashboardScreen() {
   const { activeUser } = useUser()
   const data = userData[activeUser]
+  const [dayPlan, setDayPlan] = useState(data.dayPlan)
+  const [water, setWater] = useState(data.water)
+
+  const toggleItem = (id: string) => {
+    setDayPlan(dayPlan.map((item) => 
+      item.id === id ? { ...item, logged: !item.logged } : item
+    ))
+  }
+
+  const addWater = (amount: number) => {
+    setWater((prev) => Math.min(prev + amount, data.waterTarget + 1000))
+  }
 
   return (
-    <div className="flex flex-col gap-6 pb-4">
-      <div>
-        <h2 className="text-lg font-semibold mb-4">Daily Progress</h2>
-        <div className="bg-card rounded-2xl p-5 border border-border">
-          <div className="grid grid-cols-4 gap-4">
-            <ProgressRing
-              value={data.calories.current}
-              max={data.calories.target}
-              color="oklch(0.75 0.18 145)"
-              label="Calories"
-              unit="kcal"
-            />
-            <ProgressRing
-              value={data.protein.current}
-              max={data.protein.target}
-              color="oklch(0.65 0.15 200)"
-              label="Protein"
-              unit="g"
-            />
-            <ProgressRing
-              value={data.carbs.current}
-              max={data.carbs.target}
-              color="oklch(0.70 0.20 50)"
-              label="Carbs"
-              unit="g"
-            />
-            <ProgressRing
-              value={data.fats.current}
-              max={data.fats.target}
-              color="oklch(0.60 0.18 280)"
-              label="Fats"
-              unit="g"
-            />
+    <div className="flex flex-col gap-5 pb-4">
+      {/* Macro Circles */}
+      <div className="bg-card rounded-2xl p-4 border border-border">
+        <div className="flex items-center justify-between">
+          <ProgressRing
+            value={data.calories.current}
+            max={data.calories.target}
+            color="oklch(0.75 0.18 145)"
+            label="kcal"
+            unit="kcal"
+          />
+          <ProgressRing
+            value={data.protein.current}
+            max={data.protein.target}
+            color="oklch(0.65 0.15 200)"
+            label="Protein"
+            unit="g"
+          />
+          <ProgressRing
+            value={data.carbs.current}
+            max={data.carbs.target}
+            color="oklch(0.70 0.20 50)"
+            label="Carbs"
+            unit="g"
+          />
+          <ProgressRing
+            value={data.fats.current}
+            max={data.fats.target}
+            color="oklch(0.65 0.18 0)"
+            label="Fats"
+            unit="g"
+          />
+          <ProgressRing
+            value={data.fiber.current}
+            max={data.fiber.target}
+            color="oklch(0.70 0.18 160)"
+            label="Fiber"
+            unit="g"
+          />
+        </div>
+      </div>
+
+      {/* Water Intake */}
+      <div className="bg-card rounded-2xl p-4 border border-border">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Droplets className="size-5 text-blue-400" />
+            <span className="text-sm font-semibold text-foreground">Water</span>
           </div>
+          <span className="text-sm text-muted-foreground">
+            {water}ml / {data.waterTarget}ml
+          </span>
+        </div>
+        <div className="h-2 bg-secondary rounded-full overflow-hidden mb-3">
+          <div 
+            className="h-full bg-blue-400 rounded-full transition-all duration-500"
+            style={{ width: `${Math.min((water / data.waterTarget) * 100, 100)}%` }}
+          />
+        </div>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => addWater(300)}
+            className="flex-1 py-2.5 rounded-xl bg-blue-500/10 text-blue-400 text-sm font-medium active:scale-[0.98] transition-transform"
+          >
+            +300ml
+          </button>
+          <button 
+            onClick={() => addWater(500)}
+            className="flex-1 py-2.5 rounded-xl bg-blue-500/10 text-blue-400 text-sm font-medium active:scale-[0.98] transition-transform"
+          >
+            +500ml
+          </button>
+          <button 
+            onClick={() => addWater(1000)}
+            className="flex-1 py-2.5 rounded-xl bg-blue-500/10 text-blue-400 text-sm font-medium active:scale-[0.98] transition-transform"
+          >
+            +1L
+          </button>
         </div>
       </div>
 
+      {/* My Day Timeline */}
       <div>
-        <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-3 gap-3">
-          <button className="flex flex-col items-center gap-2 bg-card rounded-2xl p-4 border border-border active:scale-95 transition-transform">
-            <div className="size-12 rounded-full bg-blue-500/20 flex items-center justify-center">
-              <Droplets className="size-6 text-blue-400" />
-            </div>
-            <span className="text-xs font-medium text-foreground">Water</span>
-            <span className="text-[10px] text-muted-foreground">+250ml</span>
-          </button>
+        <h2 className="text-base font-semibold mb-3">My Day</h2>
+        <div className="flex flex-col gap-2">
+          {dayPlan.map((item) => (
+            <div
+              key={item.id}
+              className={`bg-card rounded-2xl p-4 border transition-colors ${
+                item.logged ? "border-primary/30 bg-primary/5" : "border-border"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                {/* Time */}
+                <span className="text-xs font-medium text-muted-foreground w-12 shrink-0">
+                  {item.time}
+                </span>
 
-          <button className="flex flex-col items-center gap-2 bg-card rounded-2xl p-4 border border-border active:scale-95 transition-transform">
-            <div className="size-12 rounded-full bg-primary/20 flex items-center justify-center">
-              <Utensils className="size-6 text-primary" />
-            </div>
-            <span className="text-xs font-medium text-foreground">Log Meal</span>
-            <span className="text-[10px] text-muted-foreground">Add entry</span>
-          </button>
-
-          <button className="flex flex-col items-center gap-2 bg-card rounded-2xl p-4 border border-border active:scale-95 transition-transform">
-            <div className="size-12 rounded-full bg-orange-500/20 flex items-center justify-center">
-              <Pill className="size-6 text-orange-400" />
-            </div>
-            <span className="text-xs font-medium text-foreground">Supps</span>
-            <span className="text-[10px] text-muted-foreground">Check off</span>
-          </button>
-        </div>
-      </div>
-
-      <div>
-        <h2 className="text-lg font-semibold mb-4">Supplements</h2>
-        <div className="bg-card rounded-2xl p-4 border border-border">
-          <div className="flex flex-col gap-3">
-            {data.supplements.map((supp, i) => (
-              <label key={i} className="flex items-center gap-3 cursor-pointer">
-                <div className={`size-5 rounded-md border-2 flex items-center justify-center transition-colors ${
-                  supp.taken 
-                    ? "bg-primary border-primary" 
-                    : "border-muted-foreground"
+                {/* Icon */}
+                <div className={`size-9 rounded-xl flex items-center justify-center shrink-0 ${
+                  item.type === "meal" 
+                    ? "bg-primary/20" 
+                    : item.type === "training"
+                    ? "bg-orange-500/20"
+                    : "bg-purple-500/20"
                 }`}>
-                  {supp.taken && (
-                    <svg className="size-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
+                  {item.type === "meal" ? (
+                    <div className="size-4 rounded-full bg-primary" />
+                  ) : item.type === "training" ? (
+                    <Dumbbell className="size-4 text-orange-400" />
+                  ) : (
+                    <Pill className="size-4 text-purple-400" />
                   )}
                 </div>
-                <span className={`text-sm ${supp.taken ? "text-muted-foreground line-through" : "text-foreground"}`}>
-                  {supp.name}
-                </span>
-              </label>
-            ))}
-          </div>
-        </div>
-      </div>
 
-      <div>
-        <h2 className="text-lg font-semibold mb-4">Water Intake</h2>
-        <div className="bg-card rounded-2xl p-4 border border-border">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-2xl font-bold text-foreground">{data.water}ml</span>
-            <span className="text-sm text-muted-foreground">/ {activeUser === "patrycja" ? "2000" : "3000"}ml</span>
-          </div>
-          <div className="h-3 bg-secondary rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-blue-400 rounded-full transition-all duration-500"
-              style={{ width: `${(data.water / (activeUser === "patrycja" ? 2000 : 3000)) * 100}%` }}
-            />
-          </div>
-          <button className="w-full mt-4 py-3 rounded-xl bg-secondary text-foreground font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform">
-            <Plus className="size-4" />
-            Add 250ml
-          </button>
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm font-medium truncate ${
+                    item.logged ? "text-muted-foreground" : "text-foreground"
+                  }`}>
+                    {item.name}
+                  </p>
+                  {item.type === "meal" && (
+                    <p className="text-xs text-muted-foreground">{item.calories} kcal</p>
+                  )}
+                </div>
+
+                {/* Actions */}
+                {item.type === "meal" ? (
+                  <div className="flex items-center gap-1">
+                    {!item.logged && (
+                      <>
+                        <button 
+                          onClick={() => toggleItem(item.id)}
+                          className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium active:scale-95 transition-transform"
+                        >
+                          Log
+                        </button>
+                        <button className="size-8 rounded-lg bg-secondary flex items-center justify-center active:scale-95 transition-transform">
+                          <Calculator className="size-4 text-muted-foreground" />
+                        </button>
+                      </>
+                    )}
+                    {item.logged && (
+                      <div className="size-7 rounded-full bg-primary flex items-center justify-center">
+                        <Check className="size-4 text-primary-foreground" />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => toggleItem(item.id)}
+                    className={`size-6 rounded-md border-2 flex items-center justify-center transition-colors ${
+                      item.logged 
+                        ? "bg-primary border-primary" 
+                        : "border-muted-foreground"
+                    }`}
+                  >
+                    {item.logged && (
+                      <Check className="size-3.5 text-primary-foreground" />
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

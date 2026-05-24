@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useUser } from "@/lib/user-context"
-import { Calculator, BookOpen, Search, Plus, Trash2, Save, Apple, Upload, ChefHat, UtensilsCrossed } from "lucide-react"
+import { Calculator, BookOpen, Search, Plus, Trash2, Apple, Upload, ChefHat, UtensilsCrossed } from "lucide-react"
 
 type SubTab = "calculator" | "ingredients" | "recipes" | "meals"
 
@@ -16,6 +16,7 @@ interface FoodElement {
   proteinPer100g: number
   carbsPer100g: number
   fatsPer100g: number
+  fiberPer100g: number
   category?: string
 }
 
@@ -27,39 +28,41 @@ interface Ingredient {
   protein: number
   carbs: number
   fats: number
+  fiber: number
+  selected?: boolean
 }
 
 // Mock ingredient database (per 100g)
-const ingredientDatabase: Record<string, { calories: number; protein: number; carbs: number; fats: number }> = {
-  "chicken breast": { calories: 165, protein: 31, carbs: 0, fats: 3.6 },
-  "rice": { calories: 130, protein: 2.7, carbs: 28, fats: 0.3 },
-  "broccoli": { calories: 34, protein: 2.8, carbs: 7, fats: 0.4 },
-  "olive oil": { calories: 884, protein: 0, carbs: 0, fats: 100 },
-  "eggs": { calories: 155, protein: 13, carbs: 1.1, fats: 11 },
-  "salmon": { calories: 208, protein: 20, carbs: 0, fats: 13 },
-  "oats": { calories: 389, protein: 17, carbs: 66, fats: 7 },
-  "banana": { calories: 89, protein: 1.1, carbs: 23, fats: 0.3 },
-  "greek yogurt": { calories: 59, protein: 10, carbs: 3.6, fats: 0.7 },
-  "almonds": { calories: 579, protein: 21, carbs: 22, fats: 50 },
+const ingredientDatabase: Record<string, { calories: number; protein: number; carbs: number; fats: number; fiber: number }> = {
+  "chicken breast": { calories: 165, protein: 31, carbs: 0, fats: 3.6, fiber: 0 },
+  "rice": { calories: 130, protein: 2.7, carbs: 28, fats: 0.3, fiber: 0.4 },
+  "broccoli": { calories: 34, protein: 2.8, carbs: 7, fats: 0.4, fiber: 2.6 },
+  "olive oil": { calories: 884, protein: 0, carbs: 0, fats: 100, fiber: 0 },
+  "eggs": { calories: 155, protein: 13, carbs: 1.1, fats: 11, fiber: 0 },
+  "salmon": { calories: 208, protein: 20, carbs: 0, fats: 13, fiber: 0 },
+  "oats": { calories: 389, protein: 17, carbs: 66, fats: 7, fiber: 10.6 },
+  "banana": { calories: 89, protein: 1.1, carbs: 23, fats: 0.3, fiber: 2.6 },
+  "greek yogurt": { calories: 59, protein: 10, carbs: 3.6, fats: 0.7, fiber: 0 },
+  "almonds": { calories: 579, protein: 21, carbs: 22, fats: 50, fiber: 12.5 },
 }
 
 // Initial food elements (ingredients + recipes that can be used as meal components)
 const initialFoodElements: FoodElement[] = [
   // Base ingredients
-  { id: "1", name: "Chicken Breast", type: "ingredient", caloriesPer100g: 165, proteinPer100g: 31, carbsPer100g: 0, fatsPer100g: 3.6, category: "Protein" },
-  { id: "2", name: "Rice", type: "ingredient", caloriesPer100g: 130, proteinPer100g: 2.7, carbsPer100g: 28, fatsPer100g: 0.3, category: "Carbs" },
-  { id: "3", name: "Broccoli", type: "ingredient", caloriesPer100g: 34, proteinPer100g: 2.8, carbsPer100g: 7, fatsPer100g: 0.4, category: "Vegetables" },
-  { id: "4", name: "Olive Oil", type: "ingredient", caloriesPer100g: 884, proteinPer100g: 0, carbsPer100g: 0, fatsPer100g: 100, category: "Fats" },
-  { id: "5", name: "Eggs", type: "ingredient", caloriesPer100g: 155, proteinPer100g: 13, carbsPer100g: 1.1, fatsPer100g: 11, category: "Protein" },
-  { id: "6", name: "Salmon", type: "ingredient", caloriesPer100g: 208, proteinPer100g: 20, carbsPer100g: 0, fatsPer100g: 13, category: "Protein" },
-  { id: "7", name: "Oats", type: "ingredient", caloriesPer100g: 389, proteinPer100g: 17, carbsPer100g: 66, fatsPer100g: 7, category: "Carbs" },
-  { id: "8", name: "Banana", type: "ingredient", caloriesPer100g: 89, proteinPer100g: 1.1, carbsPer100g: 23, fatsPer100g: 0.3, category: "Fruits" },
-  { id: "9", name: "Greek Yogurt", type: "ingredient", caloriesPer100g: 59, proteinPer100g: 10, carbsPer100g: 3.6, fatsPer100g: 0.7, category: "Dairy" },
-  { id: "10", name: "Almonds", type: "ingredient", caloriesPer100g: 579, proteinPer100g: 21, carbsPer100g: 22, fatsPer100g: 50, category: "Nuts" },
+  { id: "1", name: "Chicken Breast", type: "ingredient", caloriesPer100g: 165, proteinPer100g: 31, carbsPer100g: 0, fatsPer100g: 3.6, fiberPer100g: 0, category: "Protein" },
+  { id: "2", name: "Rice", type: "ingredient", caloriesPer100g: 130, proteinPer100g: 2.7, carbsPer100g: 28, fatsPer100g: 0.3, fiberPer100g: 0.4, category: "Carbs" },
+  { id: "3", name: "Broccoli", type: "ingredient", caloriesPer100g: 34, proteinPer100g: 2.8, carbsPer100g: 7, fatsPer100g: 0.4, fiberPer100g: 2.6, category: "Vegetables" },
+  { id: "4", name: "Olive Oil", type: "ingredient", caloriesPer100g: 884, proteinPer100g: 0, carbsPer100g: 0, fatsPer100g: 100, fiberPer100g: 0, category: "Fats" },
+  { id: "5", name: "Eggs", type: "ingredient", caloriesPer100g: 155, proteinPer100g: 13, carbsPer100g: 1.1, fatsPer100g: 11, fiberPer100g: 0, category: "Protein" },
+  { id: "6", name: "Salmon", type: "ingredient", caloriesPer100g: 208, proteinPer100g: 20, carbsPer100g: 0, fatsPer100g: 13, fiberPer100g: 0, category: "Protein" },
+  { id: "7", name: "Oats", type: "ingredient", caloriesPer100g: 389, proteinPer100g: 17, carbsPer100g: 66, fatsPer100g: 7, fiberPer100g: 10.6, category: "Carbs" },
+  { id: "8", name: "Banana", type: "ingredient", caloriesPer100g: 89, proteinPer100g: 1.1, carbsPer100g: 23, fatsPer100g: 0.3, fiberPer100g: 2.6, category: "Fruits" },
+  { id: "9", name: "Greek Yogurt", type: "ingredient", caloriesPer100g: 59, proteinPer100g: 10, carbsPer100g: 3.6, fatsPer100g: 0.7, fiberPer100g: 0, category: "Dairy" },
+  { id: "10", name: "Almonds", type: "ingredient", caloriesPer100g: 579, proteinPer100g: 21, carbsPer100g: 22, fatsPer100g: 50, fiberPer100g: 12.5, category: "Nuts" },
   // Recipes as elements (can be used in meals)
-  { id: "r1", name: "Scrambled Eggs", type: "recipe", caloriesPer100g: 148, proteinPer100g: 10, carbsPer100g: 1.6, fatsPer100g: 11, category: "Breakfast" },
-  { id: "r2", name: "Chicken Stir Fry", type: "recipe", caloriesPer100g: 120, proteinPer100g: 14, carbsPer100g: 8, fatsPer100g: 4, category: "Main" },
-  { id: "r3", name: "Protein Oatmeal", type: "recipe", caloriesPer100g: 145, proteinPer100g: 12, carbsPer100g: 18, fatsPer100g: 4, category: "Breakfast" },
+  { id: "r1", name: "Scrambled Eggs", type: "recipe", caloriesPer100g: 148, proteinPer100g: 10, carbsPer100g: 1.6, fatsPer100g: 11, fiberPer100g: 0, category: "Breakfast" },
+  { id: "r2", name: "Chicken Stir Fry", type: "recipe", caloriesPer100g: 120, proteinPer100g: 14, carbsPer100g: 8, fatsPer100g: 4, fiberPer100g: 1.2, category: "Main" },
+  { id: "r3", name: "Protein Oatmeal", type: "recipe", caloriesPer100g: 145, proteinPer100g: 12, carbsPer100g: 18, fatsPer100g: 4, fiberPer100g: 3.5, category: "Breakfast" },
 ]
 
 export function KitchenScreen() {
@@ -130,9 +133,8 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
   const [ingredients, setIngredients] = useState<Ingredient[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [grams, setGrams] = useState("")
-  const [recipeName, setRecipeName] = useState("")
+  const [saveName, setSaveName] = useState("")
   const [showSuggestions, setShowSuggestions] = useState(false)
-  const [saveType, setSaveType] = useState<"recipe" | "meal">("recipe")
 
   const suggestions = Object.keys(ingredientDatabase).filter(
     (name) => name.toLowerCase().includes(searchTerm.toLowerCase()) && searchTerm.length > 0
@@ -152,6 +154,8 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
         protein: Math.round(baseNutrition.protein * multiplier * 10) / 10,
         carbs: Math.round(baseNutrition.carbs * multiplier * 10) / 10,
         fats: Math.round(baseNutrition.fats * multiplier * 10) / 10,
+        fiber: Math.round(baseNutrition.fiber * multiplier * 10) / 10,
+        selected: false,
       }
       setIngredients([...ingredients, newIngredient])
       setSearchTerm("")
@@ -164,22 +168,48 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
     setIngredients(ingredients.filter((i) => i.id !== id))
   }
 
+  const toggleIngredientSelection = (id: string) => {
+    setIngredients(ingredients.map((i) => 
+      i.id === id ? { ...i, selected: !i.selected } : i
+    ))
+  }
+
+  const selectedIngredients = ingredients.filter((i) => i.selected)
+
   const totals = ingredients.reduce(
     (acc, ing) => ({
       calories: acc.calories + ing.calories,
       protein: acc.protein + ing.protein,
       carbs: acc.carbs + ing.carbs,
       fats: acc.fats + ing.fats,
+      fiber: acc.fiber + ing.fiber,
     }),
-    { calories: 0, protein: 0, carbs: 0, fats: 0 }
+    { calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0 }
   )
 
-  const handleSaveRecipe = () => {
-    if (ingredients.length > 0 && recipeName.trim()) {
-      // In a real app, this would save to a database
-      const typeLabel = saveType === "recipe" ? "Recipe" : "Meal"
-      alert(`${typeLabel} "${recipeName}" saved with ${ingredients.length} ingredients!`)
-      setRecipeName("")
+  const selectedTotals = selectedIngredients.reduce(
+    (acc, ing) => ({
+      calories: acc.calories + ing.calories,
+      protein: acc.protein + ing.protein,
+      carbs: acc.carbs + ing.carbs,
+      fats: acc.fats + ing.fats,
+      fiber: acc.fiber + ing.fiber,
+    }),
+    { calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0 }
+  )
+
+  const handleSaveMealPart = () => {
+    if (selectedIngredients.length > 0 && saveName.trim()) {
+      alert(`Meal Part "${saveName}" saved with ${selectedIngredients.length} ingredients!`)
+      setSaveName("")
+      setIngredients(ingredients.map((i) => ({ ...i, selected: false })))
+    }
+  }
+
+  const handleSaveMeal = () => {
+    if (ingredients.length > 0 && saveName.trim()) {
+      alert(`Meal "${saveName}" saved with ${ingredients.length} ingredients!`)
+      setSaveName("")
     }
   }
 
@@ -238,10 +268,28 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
           {ingredients.map((ing) => (
             <div
               key={ing.id}
-              className="bg-card rounded-2xl p-4 border border-border"
+              className={`bg-card rounded-2xl p-4 border transition-colors ${
+                ing.selected ? "border-primary" : "border-border"
+              }`}
             >
               <div className="flex items-center justify-between mb-3">
-                <span className="text-foreground font-medium capitalize">{ing.name}</span>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => toggleIngredientSelection(ing.id)}
+                    className={`size-5 rounded-md border-2 flex items-center justify-center transition-colors ${
+                      ing.selected 
+                        ? "bg-primary border-primary" 
+                        : "border-muted-foreground"
+                    }`}
+                  >
+                    {ing.selected && (
+                      <svg className="size-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </button>
+                  <span className="text-foreground font-medium capitalize">{ing.name}</span>
+                </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">{ing.grams}g</span>
                   <button
@@ -252,22 +300,26 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
                   </button>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="flex-1 bg-secondary rounded-lg px-3 py-2 text-center">
-                  <p className="text-xs text-muted-foreground">kcal</p>
+              <div className="grid grid-cols-5 gap-2">
+                <div className="bg-secondary rounded-lg px-2 py-2 text-center">
+                  <p className="text-[10px] text-muted-foreground">kcal</p>
                   <p className="text-sm font-semibold text-foreground">{ing.calories}</p>
                 </div>
-                <div className="flex-1 bg-secondary rounded-lg px-3 py-2 text-center">
-                  <p className="text-xs text-muted-foreground">Protein</p>
+                <div className="bg-secondary rounded-lg px-2 py-2 text-center">
+                  <p className="text-[10px] text-muted-foreground">P</p>
                   <p className="text-sm font-semibold text-primary">{ing.protein}g</p>
                 </div>
-                <div className="flex-1 bg-secondary rounded-lg px-3 py-2 text-center">
-                  <p className="text-xs text-muted-foreground">Carbs</p>
+                <div className="bg-secondary rounded-lg px-2 py-2 text-center">
+                  <p className="text-[10px] text-muted-foreground">C</p>
                   <p className="text-sm font-semibold text-amber-500">{ing.carbs}g</p>
                 </div>
-                <div className="flex-1 bg-secondary rounded-lg px-3 py-2 text-center">
-                  <p className="text-xs text-muted-foreground">Fats</p>
+                <div className="bg-secondary rounded-lg px-2 py-2 text-center">
+                  <p className="text-[10px] text-muted-foreground">F</p>
                   <p className="text-sm font-semibold text-rose-400">{ing.fats}g</p>
+                </div>
+                <div className="bg-secondary rounded-lg px-2 py-2 text-center">
+                  <p className="text-[10px] text-muted-foreground">Fib</p>
+                  <p className="text-sm font-semibold text-emerald-400">{ing.fiber}g</p>
                 </div>
               </div>
             </div>
@@ -276,84 +328,74 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
           {/* Totals Card */}
           <div className="bg-primary/10 rounded-2xl p-4 border border-primary/30">
             <p className="text-sm font-semibold text-foreground mb-3">Total</p>
-            <div className="flex items-center gap-3">
-              <div className="flex-1 bg-background/50 rounded-lg px-3 py-2 text-center">
-                <p className="text-xs text-muted-foreground">kcal</p>
+            <div className="grid grid-cols-5 gap-2">
+              <div className="bg-background/50 rounded-lg px-2 py-2 text-center">
+                <p className="text-[10px] text-muted-foreground">kcal</p>
                 <p className="text-sm font-bold text-foreground">{Math.round(totals.calories)}</p>
               </div>
-              <div className="flex-1 bg-background/50 rounded-lg px-3 py-2 text-center">
-                <p className="text-xs text-muted-foreground">Protein</p>
+              <div className="bg-background/50 rounded-lg px-2 py-2 text-center">
+                <p className="text-[10px] text-muted-foreground">P</p>
                 <p className="text-sm font-bold text-primary">{Math.round(totals.protein * 10) / 10}g</p>
               </div>
-              <div className="flex-1 bg-background/50 rounded-lg px-3 py-2 text-center">
-                <p className="text-xs text-muted-foreground">Carbs</p>
+              <div className="bg-background/50 rounded-lg px-2 py-2 text-center">
+                <p className="text-[10px] text-muted-foreground">C</p>
                 <p className="text-sm font-bold text-amber-500">{Math.round(totals.carbs * 10) / 10}g</p>
               </div>
-              <div className="flex-1 bg-background/50 rounded-lg px-3 py-2 text-center">
-                <p className="text-xs text-muted-foreground">Fats</p>
+              <div className="bg-background/50 rounded-lg px-2 py-2 text-center">
+                <p className="text-[10px] text-muted-foreground">F</p>
                 <p className="text-sm font-bold text-rose-400">{Math.round(totals.fats * 10) / 10}g</p>
+              </div>
+              <div className="bg-background/50 rounded-lg px-2 py-2 text-center">
+                <p className="text-[10px] text-muted-foreground">Fib</p>
+                <p className="text-sm font-bold text-emerald-400">{Math.round(totals.fiber * 10) / 10}g</p>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Save to Library */}
+      {/* Save Options */}
       {ingredients.length > 0 && (
         <div className="bg-card rounded-2xl p-5 border border-border">
-          <h3 className="text-base font-semibold mb-3">Save to Library</h3>
+          <h3 className="text-base font-semibold mb-4">Save Options</h3>
           
-          {/* Save Type Toggle */}
-          <div className="flex gap-2 mb-4">
+          <input
+            type="text"
+            placeholder="Name..."
+            value={saveName}
+            onChange={(e) => setSaveName(e.target.value)}
+            className="w-full bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 mb-4"
+          />
+
+          <div className="flex flex-col gap-3">
+            {/* Save Selected as Meal Part */}
             <button
-              onClick={() => setSaveType("recipe")}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                saveType === "recipe"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-muted-foreground"
-              }`}
+              onClick={handleSaveMealPart}
+              disabled={selectedIngredients.length === 0 || !saveName.trim()}
+              className="w-full py-3 rounded-xl bg-secondary text-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-50 disabled:active:scale-100"
             >
               <ChefHat className="size-4" />
-              Recipe
+              Save Selected as Meal Part ({selectedIngredients.length})
             </button>
+            <p className="text-xs text-muted-foreground -mt-1 mb-1">
+              {selectedIngredients.length > 0 
+                ? `${Math.round(selectedTotals.calories)} kcal selected - can be used as recipe ingredient`
+                : "Select ingredients above to create a meal part"}
+            </p>
+
+            {/* Save All as Meal */}
             <button
-              onClick={() => setSaveType("meal")}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                saveType === "meal"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-muted-foreground"
-              }`}
+              onClick={handleSaveMeal}
+              disabled={!saveName.trim()}
+              className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-50 disabled:active:scale-100"
             >
               <UtensilsCrossed className="size-4" />
-              Meal
+              Save All as Meal
             </button>
+            <p className="text-xs text-muted-foreground -mt-1">
+              {Math.round(totals.calories)} kcal total - complete meal ready to log
+            </p>
           </div>
-
-          <div className="flex items-center gap-3">
-            <input
-              type="text"
-              placeholder={saveType === "recipe" ? "Recipe name..." : "Meal name..."}
-              value={recipeName}
-              onChange={(e) => setRecipeName(e.target.value)}
-              className="flex-1 bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-            />
-            <button
-              onClick={handleSaveRecipe}
-              disabled={!recipeName.trim()}
-              className="px-5 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center gap-2 active:scale-95 transition-transform disabled:opacity-50 disabled:active:scale-100"
-            >
-              <Save className="size-4" />
-              Save
-            </button>
-          </div>
-          <p className="text-xs text-muted-foreground mt-3">
-            {ingredients.length} ingredient{ingredients.length !== 1 ? "s" : ""} · {Math.round(totals.calories)} kcal total
-          </p>
-          <p className="text-xs text-muted-foreground/70 mt-1">
-            {saveType === "recipe" 
-              ? "Recipes can be used as ingredients in meals" 
-              : "Meals are complete combinations ready to log"}
-          </p>
         </div>
       )}
     </div>
@@ -378,6 +420,7 @@ function IngredientsView() {
     proteinPer100g: "",
     carbsPer100g: "",
     fatsPer100g: "",
+    fiberPer100g: "",
     category: "Protein",
   })
 
@@ -397,6 +440,7 @@ function IngredientsView() {
         proteinPer100g: parseFloat(newElement.proteinPer100g) || 0,
         carbsPer100g: parseFloat(newElement.carbsPer100g) || 0,
         fatsPer100g: parseFloat(newElement.fatsPer100g) || 0,
+        fiberPer100g: parseFloat(newElement.fiberPer100g) || 0,
         category: newElement.category,
       }
       setFoodElements([...foodElements, element])
@@ -407,6 +451,7 @@ function IngredientsView() {
         proteinPer100g: "",
         carbsPer100g: "",
         fatsPer100g: "",
+        fiberPer100g: "",
         category: "Protein",
       })
       setShowAddForm(false)
@@ -511,34 +556,41 @@ function IngredientsView() {
             </select>
 
             <p className="text-xs text-muted-foreground mt-1">Macros per 100g</p>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-5 gap-2">
               <input
                 type="number"
                 placeholder="kcal"
                 value={newElement.caloriesPer100g}
                 onChange={(e) => setNewElement({ ...newElement, caloriesPer100g: e.target.value })}
-                className="bg-secondary rounded-xl px-3 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="bg-secondary rounded-xl px-2 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
               <input
                 type="number"
                 placeholder="P"
                 value={newElement.proteinPer100g}
                 onChange={(e) => setNewElement({ ...newElement, proteinPer100g: e.target.value })}
-                className="bg-secondary rounded-xl px-3 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="bg-secondary rounded-xl px-2 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
               <input
                 type="number"
                 placeholder="C"
                 value={newElement.carbsPer100g}
                 onChange={(e) => setNewElement({ ...newElement, carbsPer100g: e.target.value })}
-                className="bg-secondary rounded-xl px-3 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="bg-secondary rounded-xl px-2 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
               <input
                 type="number"
                 placeholder="F"
                 value={newElement.fatsPer100g}
                 onChange={(e) => setNewElement({ ...newElement, fatsPer100g: e.target.value })}
-                className="bg-secondary rounded-xl px-3 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="bg-secondary rounded-xl px-2 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+              <input
+                type="number"
+                placeholder="Fib"
+                value={newElement.fiberPer100g}
+                onChange={(e) => setNewElement({ ...newElement, fiberPer100g: e.target.value })}
+                className="bg-secondary rounded-xl px-2 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
 
@@ -585,7 +637,7 @@ function IngredientsView() {
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {element.caloriesPer100g} kcal · P {element.proteinPer100g}g · C {element.carbsPer100g}g · F {element.fatsPer100g}g
+                  {element.caloriesPer100g} kcal · P {element.proteinPer100g}g · C {element.carbsPer100g}g · F {element.fatsPer100g}g · Fib {element.fiberPer100g}g
                 </p>
                 {element.category && (
                   <span className="text-xs text-muted-foreground/70">{element.category}</span>
@@ -711,6 +763,7 @@ const initialMeals = [
     totalProtein: 28,
     totalCarbs: 62,
     totalFats: 18,
+    totalFiber: 8,
   },
   { 
     id: "m2", 
@@ -720,6 +773,7 @@ const initialMeals = [
     totalProtein: 45,
     totalCarbs: 72,
     totalFats: 12,
+    totalFiber: 5,
   },
   { 
     id: "m3", 
@@ -729,6 +783,7 @@ const initialMeals = [
     totalProtein: 18,
     totalCarbs: 42,
     totalFats: 16,
+    totalFiber: 6,
   },
 ]
 
@@ -799,22 +854,26 @@ function MealsView() {
               </div>
               
               {/* Macros */}
-              <div className="flex items-center gap-2">
-                <div className="flex-1 bg-secondary rounded-lg px-2 py-2 text-center">
-                  <p className="text-xs text-muted-foreground">kcal</p>
+              <div className="grid grid-cols-5 gap-2">
+                <div className="bg-secondary rounded-lg px-2 py-2 text-center">
+                  <p className="text-[10px] text-muted-foreground">kcal</p>
                   <p className="text-sm font-semibold text-foreground">{meal.totalCalories}</p>
                 </div>
-                <div className="flex-1 bg-secondary rounded-lg px-2 py-2 text-center">
-                  <p className="text-xs text-muted-foreground">P</p>
+                <div className="bg-secondary rounded-lg px-2 py-2 text-center">
+                  <p className="text-[10px] text-muted-foreground">P</p>
                   <p className="text-sm font-semibold text-primary">{meal.totalProtein}g</p>
                 </div>
-                <div className="flex-1 bg-secondary rounded-lg px-2 py-2 text-center">
-                  <p className="text-xs text-muted-foreground">C</p>
+                <div className="bg-secondary rounded-lg px-2 py-2 text-center">
+                  <p className="text-[10px] text-muted-foreground">C</p>
                   <p className="text-sm font-semibold text-amber-500">{meal.totalCarbs}g</p>
                 </div>
-                <div className="flex-1 bg-secondary rounded-lg px-2 py-2 text-center">
-                  <p className="text-xs text-muted-foreground">F</p>
+                <div className="bg-secondary rounded-lg px-2 py-2 text-center">
+                  <p className="text-[10px] text-muted-foreground">F</p>
                   <p className="text-sm font-semibold text-rose-400">{meal.totalFats}g</p>
+                </div>
+                <div className="bg-secondary rounded-lg px-2 py-2 text-center">
+                  <p className="text-[10px] text-muted-foreground">Fib</p>
+                  <p className="text-sm font-semibold text-emerald-400">{meal.totalFiber}g</p>
                 </div>
               </div>
 
