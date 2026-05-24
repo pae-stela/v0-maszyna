@@ -51,21 +51,21 @@ interface CalculatorIngredient {
   selected?: boolean
 }
 
-// Mock ingredient database (per 100g)
-const ingredientDatabase: Record<string, { calories: number; protein: number; carbs: number; fats: number; fiber: number }> = {
-  "chicken breast": { calories: 165, protein: 31, carbs: 0, fats: 3.6, fiber: 0 },
+// Mock ingredient database (per 100g) - gramsPerUnit is optional for countable items
+const ingredientDatabase: Record<string, { calories: number; protein: number; carbs: number; fats: number; fiber: number; gramsPerUnit?: number }> = {
+  "chicken breast": { calories: 165, protein: 31, carbs: 0, fats: 3.6, fiber: 0, gramsPerUnit: 170 },
   "rice": { calories: 130, protein: 2.7, carbs: 28, fats: 0.3, fiber: 0.4 },
   "broccoli": { calories: 34, protein: 2.8, carbs: 7, fats: 0.4, fiber: 2.6 },
   "olive oil": { calories: 884, protein: 0, carbs: 0, fats: 100, fiber: 0 },
-  "eggs": { calories: 155, protein: 13, carbs: 1.1, fats: 11, fiber: 0 },
-  "salmon": { calories: 208, protein: 20, carbs: 0, fats: 13, fiber: 0 },
+  "eggs": { calories: 155, protein: 13, carbs: 1.1, fats: 11, fiber: 0, gramsPerUnit: 50 },
+  "salmon": { calories: 208, protein: 20, carbs: 0, fats: 13, fiber: 0, gramsPerUnit: 150 },
   "oats": { calories: 389, protein: 17, carbs: 66, fats: 7, fiber: 10.6 },
-  "banana": { calories: 89, protein: 1.1, carbs: 23, fats: 0.3, fiber: 2.6 },
+  "banana": { calories: 89, protein: 1.1, carbs: 23, fats: 0.3, fiber: 2.6, gramsPerUnit: 120 },
   "greek yogurt": { calories: 59, protein: 10, carbs: 3.6, fats: 0.7, fiber: 0 },
   "almonds": { calories: 579, protein: 21, carbs: 22, fats: 50, fiber: 12.5 },
-  "avocado": { calories: 160, protein: 2, carbs: 9, fats: 15, fiber: 7 },
-  "tomato": { calories: 18, protein: 0.9, carbs: 3.9, fats: 0.2, fiber: 1.2 },
-  "onion": { calories: 40, protein: 1.1, carbs: 9, fats: 0.1, fiber: 1.7 },
+  "avocado": { calories: 160, protein: 2, carbs: 9, fats: 15, fiber: 7, gramsPerUnit: 200 },
+  "tomato": { calories: 18, protein: 0.9, carbs: 3.9, fats: 0.2, fiber: 1.2, gramsPerUnit: 120 },
+  "onion": { calories: 40, protein: 1.1, carbs: 9, fats: 0.1, fiber: 1.7, gramsPerUnit: 150 },
   "lime juice": { calories: 25, protein: 0.4, carbs: 8, fats: 0, fiber: 0.4 },
 }
 
@@ -223,31 +223,60 @@ export function KitchenScreen() {
 function CalculatorView({ activeUser }: { activeUser: string }) {
   const [ingredients, setIngredients] = useState<CalculatorIngredient[]>([])
   const [searchTerm, setSearchTerm] = useState("")
-  const [grams, setGrams] = useState("")
-  const [saveName, setSaveName] = useState("")
+  const [selectedIngredient, setSelectedIngredient] = useState<string | null>(null)
+  const [amount, setAmount] = useState("")
+  const [useUnits, setUseUnits] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [saveName, setSaveName] = useState("")
 
   const suggestions = Object.keys(ingredientDatabase).filter(
     (name) => name.toLowerCase().includes(searchTerm.toLowerCase()) && searchTerm.length > 0
   )
 
-  const addIngredient = (ingredientName: string) => {
-    const gramsNum = parseFloat(grams) || 100
-    const baseNutrition = ingredientDatabase[ingredientName.toLowerCase()]
+  const selectedIngredientData = selectedIngredient ? ingredientDatabase[selectedIngredient.toLowerCase()] : null
+  const hasUnits = selectedIngredientData?.gramsPerUnit !== undefined
+
+  const selectIngredient = (ingredientName: string) => {
+    setSelectedIngredient(ingredientName)
+    setSearchTerm(ingredientName)
+    setShowSuggestions(false)
+    setAmount("")
+    setUseUnits(false)
+  }
+
+  const addIngredient = () => {
+    if (!selectedIngredient) return
     
-    if (baseNutrition) {
-      const multiplier = gramsNum / 100
-      const newIngredient: CalculatorIngredient = {
-        id: Date.now().toString(),
-        name: ingredientName,
-        grams: gramsNum,
-        calories: Math.round(baseNutrition.calories * multiplier),
-        protein: Math.round(baseNutrition.protein * multiplier * 10) / 10,
-        carbs: Math.round(baseNutrition.carbs * multiplier * 10) / 10,
-        fats: Math.round(baseNutrition.fats * multiplier * 10) / 10,
-        fiber: Math.round(baseNutrition.fiber * multiplier * 10) / 10,
-        selected: false,
-      }
+    const baseNutrition = ingredientDatabase[selectedIngredient.toLowerCase()]
+    if (!baseNutrition) return
+
+    let gramsNum: number
+    if (useUnits && baseNutrition.gramsPerUnit) {
+      const units = parseFloat(amount) || 1
+      gramsNum = units * baseNutrition.gramsPerUnit
+    } else {
+      gramsNum = parseFloat(amount) || 100
+    }
+    
+    const multiplier = gramsNum / 100
+    const newIngredient: CalculatorIngredient = {
+      id: Date.now().toString(),
+      name: selectedIngredient,
+      grams: gramsNum,
+      calories: Math.round(baseNutrition.calories * multiplier),
+      protein: Math.round(baseNutrition.protein * multiplier * 10) / 10,
+      carbs: Math.round(baseNutrition.carbs * multiplier * 10) / 10,
+      fats: Math.round(baseNutrition.fats * multiplier * 10) / 10,
+      fiber: Math.round(baseNutrition.fiber * multiplier * 10) / 10,
+      selected: false,
+    }
+    setIngredients([...ingredients, newIngredient])
+    setSearchTerm("")
+    setSelectedIngredient(null)
+    setAmount("")
+    setUseUnits(false)
+    setShowSuggestions(false)
+  }
       setIngredients([...ingredients, newIngredient])
       setSearchTerm("")
       setGrams("")
@@ -311,34 +340,68 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
         <h3 className="text-base font-semibold mb-4">Add Ingredients</h3>
         <div className="flex flex-col gap-3">
           <div className="relative">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <input
                 type="text"
                 placeholder="Search ingredient..."
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value)
+                  setSelectedIngredient(null)
                   setShowSuggestions(true)
                 }}
                 onFocus={() => setShowSuggestions(true)}
-                className="flex-1 bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="flex-1 bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 capitalize"
               />
               <input
                 type="number"
-                placeholder="g"
-                value={grams}
-                onChange={(e) => setGrams(e.target.value)}
+                placeholder={useUnits ? "units" : "g"}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
                 className="w-20 bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
+              <button
+                onClick={addIngredient}
+                disabled={!selectedIngredient}
+                className="size-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-transform"
+              >
+                <Plus className="size-5" />
+              </button>
             </div>
             
+            {/* Unit toggle - only show for ingredients with gramsPerUnit */}
+            {selectedIngredient && hasUnits && (
+              <div className="flex items-center gap-2 mt-2">
+                <button
+                  onClick={() => setUseUnits(false)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    !useUnits 
+                      ? "bg-primary text-primary-foreground" 
+                      : "bg-secondary text-muted-foreground"
+                  }`}
+                >
+                  Grams
+                </button>
+                <button
+                  onClick={() => setUseUnits(true)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    useUnits 
+                      ? "bg-primary text-primary-foreground" 
+                      : "bg-secondary text-muted-foreground"
+                  }`}
+                >
+                  Units ({selectedIngredientData?.gramsPerUnit}g each)
+                </button>
+              </div>
+            )}
+            
             {/* Suggestions dropdown */}
-            {showSuggestions && suggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-20 mt-2 bg-card border border-border rounded-xl overflow-hidden z-10 shadow-lg">
-                {suggestions.map((name) => (
+            {showSuggestions && suggestions.length > 0 && !selectedIngredient && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-xl overflow-hidden z-10 shadow-lg">
+                {suggestions.slice(0, 6).map((name) => (
                   <button
                     key={name}
-                    onClick={() => addIngredient(name)}
+                    onClick={() => selectIngredient(name)}
                     className="w-full px-4 py-3 text-left text-sm text-foreground hover:bg-secondary transition-colors capitalize"
                   >
                     {name}
