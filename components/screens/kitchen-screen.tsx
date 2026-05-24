@@ -34,7 +34,16 @@ interface DishItem {
   totalCarbs: number
   totalFats: number
   totalFiber: number
-  category?: string
+  mainCategory: "Large" | "Light" | "Snacks" | "Drinks"
+  subCategory: string
+}
+
+// Category structure for dishes
+const dishCategories: Record<string, string[]> = {
+  "Large": ["Pasta & Rice", "Traditional", "Pancakes & Tortillas", "Salads & Veggies", "Fakeaways"],
+  "Light": ["Eggs", "Sandwiches & Wraps", "Soups", "Sweet Bakes & Desserts", "Oats & Granola"],
+  "Snacks": ["Savoury", "Sweet"],
+  "Drinks": ["Shakes & Smoothies", "Cocktails & Mocktails", "Hot drinks", "Cold drinks"],
 }
 
 // LoggedMeals would be in the planner/dashboard - dishes assigned to user, date, meal time
@@ -149,7 +158,8 @@ const initialDishes: DishItem[] = [
     totalCarbs: 62,
     totalFats: 20,
     totalFiber: 8,
-    category: "Breakfast"
+    mainCategory: "Light",
+    subCategory: "Oats & Granola"
   },
   {
     id: "d2",
@@ -165,7 +175,39 @@ const initialDishes: DishItem[] = [
     totalCarbs: 52,
     totalFats: 14,
     totalFiber: 6,
-    category: "Lunch"
+    mainCategory: "Large",
+    subCategory: "Salads & Veggies"
+  },
+  {
+    id: "d3",
+    name: "Protein Shake",
+    elements: [
+      { type: "ingredient", id: "8", name: "Banana", grams: 120 },
+      { type: "ingredient", id: "9", name: "Greek Yogurt", grams: 150 },
+      { type: "ingredient", id: "10", name: "Almonds", grams: 20 },
+    ],
+    totalCalories: 310,
+    totalProtein: 19,
+    totalCarbs: 38,
+    totalFats: 12,
+    totalFiber: 5,
+    mainCategory: "Drinks",
+    subCategory: "Shakes & Smoothies"
+  },
+  {
+    id: "d4",
+    name: "Trail Mix Bites",
+    elements: [
+      { type: "ingredient", id: "10", name: "Almonds", grams: 30 },
+      { type: "ingredient", id: "7", name: "Oats", grams: 20 },
+    ],
+    totalCalories: 250,
+    totalProtein: 8,
+    totalCarbs: 18,
+    totalFats: 16,
+    totalFiber: 4,
+    mainCategory: "Snacks",
+    subCategory: "Sweet"
   },
 ]
 
@@ -851,10 +893,20 @@ function DishesView() {
   const [dishes, setDishes] = useState<DishItem[]>(initialDishes)
   const [searchTerm, setSearchTerm] = useState("")
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [mainCategoryFilter, setMainCategoryFilter] = useState<string>("All")
+  const [subCategoryFilter, setSubCategoryFilter] = useState<string>("All")
 
-  const filteredDishes = dishes.filter((dish) =>
-    dish.name.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const mainCategories = ["All", "Large", "Light", "Snacks", "Drinks"]
+  const subCategories = mainCategoryFilter === "All" 
+    ? ["All"] 
+    : ["All", ...(dishCategories[mainCategoryFilter] || [])]
+
+  const filteredDishes = dishes.filter((dish) => {
+    const matchesSearch = dish.name.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesMain = mainCategoryFilter === "All" || dish.mainCategory === mainCategoryFilter
+    const matchesSub = subCategoryFilter === "All" || dish.subCategory === subCategoryFilter
+    return matchesSearch && matchesMain && matchesSub
+  })
 
   const handleDeleteDish = (id: string) => {
     setDishes(dishes.filter((d) => d.id !== id))
@@ -875,6 +927,45 @@ function DishesView() {
           />
         </div>
       </div>
+
+      {/* Main Category Filter */}
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+        {mainCategories.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => {
+              setMainCategoryFilter(cat)
+              setSubCategoryFilter("All")
+            }}
+            className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+              mainCategoryFilter === cat
+                ? "bg-primary text-primary-foreground"
+                : "bg-card border border-border text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
+      {/* Sub Category Filter */}
+      {mainCategoryFilter !== "All" && (
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+          {subCategories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setSubCategoryFilter(cat)}
+              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                subCategoryFilter === cat
+                  ? "bg-secondary text-foreground border border-primary/50"
+                  : "bg-secondary/50 border border-border text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Info Card */}
       <div className="bg-primary/10 rounded-2xl p-4 border border-primary/30">
@@ -912,9 +1003,7 @@ function DishesView() {
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {dish.elements.length} elements · {dish.totalCalories} kcal
                     </p>
-                    {dish.category && (
-                      <span className="text-xs text-muted-foreground/70">{dish.category}</span>
-                    )}
+                    <span className="text-xs text-muted-foreground/70">{dish.mainCategory} · {dish.subCategory}</span>
                   </div>
                 </div>
               </button>
