@@ -509,6 +509,7 @@ function IngredientsView() {
     fatsPer100g: "",
     fiberPer100g: "",
     category: "Protein",
+    instructions: "",
   })
 
   const filteredIngredients = ingredientsList.filter((el) => {
@@ -519,6 +520,7 @@ function IngredientsView() {
 
   const handleAddIngredient = () => {
     if (newIngredient.name.trim()) {
+      const isComponent = newIngredient.category === "Component"
       const ingredient: IngredientItem = {
         id: Date.now().toString(),
         name: newIngredient.name,
@@ -528,6 +530,10 @@ function IngredientsView() {
         fatsPer100g: parseFloat(newIngredient.fatsPer100g) || 0,
         fiberPer100g: parseFloat(newIngredient.fiberPer100g) || 0,
         category: newIngredient.category,
+        ...(isComponent && {
+          isComponent: true,
+          recipeSteps: newIngredient.instructions.split('\n').filter(s => s.trim()),
+        }),
       }
       setIngredientsList([...ingredientsList, ingredient])
       setNewIngredient({
@@ -538,6 +544,7 @@ function IngredientsView() {
         fatsPer100g: "",
         fiberPer100g: "",
         category: "Protein",
+        instructions: "",
       })
       setShowAddForm(false)
     }
@@ -615,6 +622,20 @@ function IngredientsView() {
               ))}
             </select>
 
+            {/* Instructions field for Components */}
+            {newIngredient.category === "Component" && (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs text-muted-foreground">Instructions (one step per line)</label>
+                <textarea
+                  placeholder="Step 1...&#10;Step 2...&#10;Step 3..."
+                  value={newIngredient.instructions}
+                  onChange={(e) => setNewIngredient({ ...newIngredient, instructions: e.target.value })}
+                  rows={4}
+                  className="bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                />
+              </div>
+            )}
+
             <p className="text-xs text-muted-foreground mt-1">Macros per 100g</p>
             <div className="grid grid-cols-5 gap-2">
               <input
@@ -678,25 +699,23 @@ function IngredientsView() {
               key={ingredient.id}
               className="bg-card rounded-2xl border border-border overflow-hidden"
             >
-              <div className="p-4 flex items-center gap-3">
-                <button
-                  onClick={() => ingredient.isComponent ? setExpandedId(expandedId === ingredient.id ? null : ingredient.id) : null}
-                  className={`size-10 rounded-xl flex items-center justify-center shrink-0 ${
-                    ingredient.isComponent 
-                      ? "bg-primary/20 cursor-pointer" 
-                      : "bg-secondary cursor-default"
-                  }`}
-                >
+              {/* Main row */}
+              <div 
+                className={`p-4 flex items-center gap-3 ${ingredient.isComponent ? "cursor-pointer" : ""}`}
+                onClick={() => ingredient.isComponent ? setExpandedId(expandedId === ingredient.id ? null : ingredient.id) : null}
+              >
+                <div className={`size-10 rounded-xl flex items-center justify-center shrink-0 ${
+                  ingredient.isComponent 
+                    ? "bg-primary/20" 
+                    : "bg-secondary"
+                }`}>
                   {ingredient.isComponent ? (
                     <ChefHat className="size-5 text-primary" />
                   ) : (
                     <Apple className="size-5 text-muted-foreground" />
                   )}
-                </button>
-                <div 
-                  className="flex-1 min-w-0 cursor-pointer"
-                  onClick={() => ingredient.isComponent ? setExpandedId(expandedId === ingredient.id ? null : ingredient.id) : null}
-                >
+                </div>
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h4 className="font-medium text-foreground truncate">{ingredient.name}</h4>
                     {ingredient.isComponent && (
@@ -708,19 +727,25 @@ function IngredientsView() {
                   </p>
                   <span className="text-xs text-muted-foreground/70">{ingredient.category}</span>
                 </div>
-                <button
-                  onClick={() => handleDeleteIngredient(ingredient.id)}
-                  className="size-8 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center shrink-0 active:scale-95 transition-transform"
-                >
-                  <Trash2 className="size-4" />
-                </button>
+                {/* Only show inline delete for regular ingredients */}
+                {!ingredient.isComponent && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDeleteIngredient(ingredient.id)
+                    }}
+                    className="size-8 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center shrink-0 active:scale-95 transition-transform"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                )}
               </div>
 
-              {/* Expanded Component Details */}
+              {/* Expanded Component Details with Actions */}
               {ingredient.isComponent && expandedId === ingredient.id && (
                 <div className="px-4 pb-4 border-t border-border pt-3">
                   {/* Sub-ingredients */}
-                  {ingredient.subIngredients && (
+                  {ingredient.subIngredients && ingredient.subIngredients.length > 0 && (
                     <div className="mb-4">
                       <p className="text-xs font-medium text-muted-foreground mb-2">Ingredients</p>
                       <div className="flex flex-wrap gap-1.5">
@@ -733,10 +758,10 @@ function IngredientsView() {
                     </div>
                   )}
 
-                  {/* Recipe Steps */}
-                  {ingredient.recipeSteps && (
-                    <div className="mb-2">
-                      <p className="text-xs font-medium text-muted-foreground mb-2">Recipe Steps</p>
+                  {/* Recipe Steps / Instructions */}
+                  {ingredient.recipeSteps && ingredient.recipeSteps.length > 0 && (
+                    <div className="mb-4">
+                      <p className="text-xs font-medium text-muted-foreground mb-2">Instructions</p>
                       <ol className="list-decimal list-inside space-y-1.5">
                         {ingredient.recipeSteps.map((step, i) => (
                           <li key={i} className="text-sm text-foreground">{step}</li>
@@ -746,10 +771,27 @@ function IngredientsView() {
                   )}
 
                   {ingredient.yieldGrams && (
-                    <p className="text-xs text-muted-foreground mt-3">
+                    <p className="text-xs text-muted-foreground mb-4">
                       Yields approximately {ingredient.yieldGrams}g
                     </p>
                   )}
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => alert("Edit functionality coming soon")}
+                      className="flex-1 py-2.5 rounded-xl bg-secondary text-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeleteIngredient(ingredient.id)}
+                      className="flex-1 py-2.5 rounded-xl bg-destructive/10 text-destructive text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                    >
+                      <Trash2 className="size-4" />
+                      Delete
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
