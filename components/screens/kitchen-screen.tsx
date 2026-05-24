@@ -127,7 +127,6 @@ export function KitchenScreen() {
 }
 
 function CalculatorView({ activeUser }: { activeUser: string }) {
-  const [splitPercentage, setSplitPercentage] = useState(50)
   const [ingredients, setIngredients] = useState<Ingredient[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [grams, setGrams] = useState("")
@@ -186,43 +185,6 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Smart Splitter */}
-      <div className="bg-card rounded-2xl p-5 border border-border">
-        <h3 className="text-base font-semibold mb-4">Smart Splitter</h3>
-        <p className="text-sm text-muted-foreground mb-6">
-          Split meal portions between Patrycja & Marcin
-        </p>
-        
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex flex-col items-center">
-            <div className="size-10 rounded-full bg-primary/20 flex items-center justify-center mb-2">
-              <span className="text-xs font-bold text-primary">P</span>
-            </div>
-            <span className="text-2xl font-bold text-foreground">{splitPercentage}%</span>
-            <span className="text-xs text-muted-foreground">Patrycja</span>
-          </div>
-          
-          <div className="flex-1 mx-6">
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={splitPercentage}
-              onChange={(e) => setSplitPercentage(Number(e.target.value))}
-              className="w-full h-2 bg-secondary rounded-full appearance-none cursor-pointer accent-primary"
-            />
-          </div>
-          
-          <div className="flex flex-col items-center">
-            <div className="size-10 rounded-full bg-secondary flex items-center justify-center mb-2">
-              <span className="text-xs font-bold text-foreground">M</span>
-            </div>
-            <span className="text-2xl font-bold text-foreground">{100 - splitPercentage}%</span>
-            <span className="text-xs text-muted-foreground">Marcin</span>
-          </div>
-        </div>
-      </div>
-
       {/* Add Ingredients */}
       <div className="bg-card rounded-2xl p-5 border border-border">
         <h3 className="text-base font-semibold mb-4">Add Ingredients</h3>
