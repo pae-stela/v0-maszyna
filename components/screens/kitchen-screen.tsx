@@ -2,16 +2,14 @@
 
 import { useState } from "react"
 import { useUser } from "@/lib/user-context"
-import { Calculator, BookOpen, Search, Plus, Trash2, Apple, Upload, ChefHat, UtensilsCrossed } from "lucide-react"
+import { Calculator, Search, Plus, Trash2, Apple, Upload, ChefHat, UtensilsCrossed, FileText } from "lucide-react"
 
-type SubTab = "calculator" | "ingredients" | "recipes" | "meals"
+type SubTab = "calculator" | "ingredients" | "components" | "dishes"
 
-type ElementType = "ingredient" | "recipe"
-
-interface FoodElement {
+// Level 1: Raw ingredients with macros per 100g
+interface IngredientItem {
   id: string
   name: string
-  type: ElementType
   caloriesPer100g: number
   proteinPer100g: number
   carbsPer100g: number
@@ -20,7 +18,37 @@ interface FoodElement {
   category?: string
 }
 
-interface Ingredient {
+// Level 2: Components - multi-ingredient bulk preparations with recipe steps
+interface ComponentItem {
+  id: string
+  name: string
+  ingredients: { ingredientId: string; name: string; grams: number }[]
+  recipeSteps: string[]
+  totalCalories: number
+  totalProtein: number
+  totalCarbs: number
+  totalFats: number
+  totalFiber: number
+  yieldGrams: number // Total weight after cooking
+  category?: string
+}
+
+// Level 3: Dishes - composed of ingredients and/or components
+interface DishItem {
+  id: string
+  name: string
+  elements: { type: "ingredient" | "component"; id: string; name: string; grams: number }[]
+  totalCalories: number
+  totalProtein: number
+  totalCarbs: number
+  totalFats: number
+  totalFiber: number
+  category?: string
+}
+
+// Level 4: LoggedMeals would be in the planner/dashboard - dishes assigned to user, date, meal time
+
+interface CalculatorIngredient {
   id: string
   name: string
   grams: number
@@ -44,25 +72,110 @@ const ingredientDatabase: Record<string, { calories: number; protein: number; ca
   "banana": { calories: 89, protein: 1.1, carbs: 23, fats: 0.3, fiber: 2.6 },
   "greek yogurt": { calories: 59, protein: 10, carbs: 3.6, fats: 0.7, fiber: 0 },
   "almonds": { calories: 579, protein: 21, carbs: 22, fats: 50, fiber: 12.5 },
+  "avocado": { calories: 160, protein: 2, carbs: 9, fats: 15, fiber: 7 },
+  "tomato": { calories: 18, protein: 0.9, carbs: 3.9, fats: 0.2, fiber: 1.2 },
+  "onion": { calories: 40, protein: 1.1, carbs: 9, fats: 0.1, fiber: 1.7 },
+  "lime juice": { calories: 25, protein: 0.4, carbs: 8, fats: 0, fiber: 0.4 },
 }
 
-// Initial food elements (ingredients + recipes that can be used as meal components)
-const initialFoodElements: FoodElement[] = [
-  // Base ingredients
-  { id: "1", name: "Chicken Breast", type: "ingredient", caloriesPer100g: 165, proteinPer100g: 31, carbsPer100g: 0, fatsPer100g: 3.6, fiberPer100g: 0, category: "Protein" },
-  { id: "2", name: "Rice", type: "ingredient", caloriesPer100g: 130, proteinPer100g: 2.7, carbsPer100g: 28, fatsPer100g: 0.3, fiberPer100g: 0.4, category: "Carbs" },
-  { id: "3", name: "Broccoli", type: "ingredient", caloriesPer100g: 34, proteinPer100g: 2.8, carbsPer100g: 7, fatsPer100g: 0.4, fiberPer100g: 2.6, category: "Vegetables" },
-  { id: "4", name: "Olive Oil", type: "ingredient", caloriesPer100g: 884, proteinPer100g: 0, carbsPer100g: 0, fatsPer100g: 100, fiberPer100g: 0, category: "Fats" },
-  { id: "5", name: "Eggs", type: "ingredient", caloriesPer100g: 155, proteinPer100g: 13, carbsPer100g: 1.1, fatsPer100g: 11, fiberPer100g: 0, category: "Protein" },
-  { id: "6", name: "Salmon", type: "ingredient", caloriesPer100g: 208, proteinPer100g: 20, carbsPer100g: 0, fatsPer100g: 13, fiberPer100g: 0, category: "Protein" },
-  { id: "7", name: "Oats", type: "ingredient", caloriesPer100g: 389, proteinPer100g: 17, carbsPer100g: 66, fatsPer100g: 7, fiberPer100g: 10.6, category: "Carbs" },
-  { id: "8", name: "Banana", type: "ingredient", caloriesPer100g: 89, proteinPer100g: 1.1, carbsPer100g: 23, fatsPer100g: 0.3, fiberPer100g: 2.6, category: "Fruits" },
-  { id: "9", name: "Greek Yogurt", type: "ingredient", caloriesPer100g: 59, proteinPer100g: 10, carbsPer100g: 3.6, fatsPer100g: 0.7, fiberPer100g: 0, category: "Dairy" },
-  { id: "10", name: "Almonds", type: "ingredient", caloriesPer100g: 579, proteinPer100g: 21, carbsPer100g: 22, fatsPer100g: 50, fiberPer100g: 12.5, category: "Nuts" },
-  // Recipes as elements (can be used in meals)
-  { id: "r1", name: "Scrambled Eggs", type: "recipe", caloriesPer100g: 148, proteinPer100g: 10, carbsPer100g: 1.6, fatsPer100g: 11, fiberPer100g: 0, category: "Breakfast" },
-  { id: "r2", name: "Chicken Stir Fry", type: "recipe", caloriesPer100g: 120, proteinPer100g: 14, carbsPer100g: 8, fatsPer100g: 4, fiberPer100g: 1.2, category: "Main" },
-  { id: "r3", name: "Protein Oatmeal", type: "recipe", caloriesPer100g: 145, proteinPer100g: 12, carbsPer100g: 18, fatsPer100g: 4, fiberPer100g: 3.5, category: "Breakfast" },
+// Initial ingredients list
+const initialIngredients: IngredientItem[] = [
+  { id: "1", name: "Chicken Breast", caloriesPer100g: 165, proteinPer100g: 31, carbsPer100g: 0, fatsPer100g: 3.6, fiberPer100g: 0, category: "Protein" },
+  { id: "2", name: "Rice", caloriesPer100g: 130, proteinPer100g: 2.7, carbsPer100g: 28, fatsPer100g: 0.3, fiberPer100g: 0.4, category: "Carbs" },
+  { id: "3", name: "Broccoli", caloriesPer100g: 34, proteinPer100g: 2.8, carbsPer100g: 7, fatsPer100g: 0.4, fiberPer100g: 2.6, category: "Vegetables" },
+  { id: "4", name: "Olive Oil", caloriesPer100g: 884, proteinPer100g: 0, carbsPer100g: 0, fatsPer100g: 100, fiberPer100g: 0, category: "Fats" },
+  { id: "5", name: "Eggs", caloriesPer100g: 155, proteinPer100g: 13, carbsPer100g: 1.1, fatsPer100g: 11, fiberPer100g: 0, category: "Protein" },
+  { id: "6", name: "Salmon", caloriesPer100g: 208, proteinPer100g: 20, carbsPer100g: 0, fatsPer100g: 13, fiberPer100g: 0, category: "Protein" },
+  { id: "7", name: "Oats", caloriesPer100g: 389, proteinPer100g: 17, carbsPer100g: 66, fatsPer100g: 7, fiberPer100g: 10.6, category: "Carbs" },
+  { id: "8", name: "Banana", caloriesPer100g: 89, proteinPer100g: 1.1, carbsPer100g: 23, fatsPer100g: 0.3, fiberPer100g: 2.6, category: "Fruits" },
+  { id: "9", name: "Greek Yogurt", caloriesPer100g: 59, proteinPer100g: 10, carbsPer100g: 3.6, fatsPer100g: 0.7, fiberPer100g: 0, category: "Dairy" },
+  { id: "10", name: "Almonds", caloriesPer100g: 579, proteinPer100g: 21, carbsPer100g: 22, fatsPer100g: 50, fiberPer100g: 12.5, category: "Nuts" },
+  { id: "11", name: "Avocado", caloriesPer100g: 160, proteinPer100g: 2, carbsPer100g: 9, fatsPer100g: 15, fiberPer100g: 7, category: "Vegetables" },
+  { id: "12", name: "Tomato", caloriesPer100g: 18, proteinPer100g: 0.9, carbsPer100g: 3.9, fatsPer100g: 0.2, fiberPer100g: 1.2, category: "Vegetables" },
+]
+
+// Initial components (bulk preparations with recipe steps)
+const initialComponents: ComponentItem[] = [
+  {
+    id: "c1",
+    name: "Guacamole",
+    ingredients: [
+      { ingredientId: "11", name: "Avocado", grams: 200 },
+      { ingredientId: "12", name: "Tomato", grams: 50 },
+      { ingredientId: "onion", name: "Onion", grams: 30 },
+      { ingredientId: "lime", name: "Lime juice", grams: 15 },
+    ],
+    recipeSteps: [
+      "Mash avocados in a bowl until desired consistency",
+      "Dice tomato and onion finely",
+      "Mix vegetables into avocado",
+      "Add lime juice and salt to taste",
+      "Refrigerate for 30 min before serving"
+    ],
+    totalCalories: 380,
+    totalProtein: 5,
+    totalCarbs: 24,
+    totalFats: 32,
+    totalFiber: 16,
+    yieldGrams: 295,
+    category: "Sides"
+  },
+  {
+    id: "c2",
+    name: "Scrambled Eggs",
+    ingredients: [
+      { ingredientId: "5", name: "Eggs", grams: 150 },
+      { ingredientId: "4", name: "Olive Oil", grams: 10 },
+    ],
+    recipeSteps: [
+      "Crack eggs into a bowl and whisk",
+      "Heat olive oil in a non-stick pan over medium heat",
+      "Pour eggs into pan and stir gently",
+      "Remove from heat while still slightly wet"
+    ],
+    totalCalories: 320,
+    totalProtein: 20,
+    totalCarbs: 2,
+    totalFats: 26,
+    totalFiber: 0,
+    yieldGrams: 160,
+    category: "Breakfast"
+  },
+]
+
+// Initial dishes (composed of ingredients and/or components)
+const initialDishes: DishItem[] = [
+  {
+    id: "d1",
+    name: "Power Breakfast",
+    elements: [
+      { type: "component", id: "c2", name: "Scrambled Eggs", grams: 160 },
+      { type: "ingredient", id: "7", name: "Oats", grams: 50 },
+      { type: "ingredient", id: "8", name: "Banana", grams: 100 },
+    ],
+    totalCalories: 560,
+    totalProtein: 30,
+    totalCarbs: 62,
+    totalFats: 20,
+    totalFiber: 8,
+    category: "Breakfast"
+  },
+  {
+    id: "d2",
+    name: "Lunch Bowl",
+    elements: [
+      { type: "ingredient", id: "1", name: "Chicken Breast", grams: 150 },
+      { type: "ingredient", id: "2", name: "Rice", grams: 150 },
+      { type: "ingredient", id: "3", name: "Broccoli", grams: 100 },
+      { type: "component", id: "c1", name: "Guacamole", grams: 50 },
+    ],
+    totalCalories: 580,
+    totalProtein: 55,
+    totalCarbs: 52,
+    totalFats: 14,
+    totalFiber: 6,
+    category: "Lunch"
+  },
 ]
 
 export function KitchenScreen() {
@@ -97,40 +210,40 @@ export function KitchenScreen() {
           <span className="xs:hidden">Ingr.</span>
         </button>
         <button
-          onClick={() => setSubTab("recipes")}
+          onClick={() => setSubTab("components")}
           className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
-            subTab === "recipes"
+            subTab === "components"
               ? "bg-card text-foreground shadow-sm"
               : "text-muted-foreground"
           }`}
         >
-          <BookOpen className="size-4" />
-          <span className="hidden xs:inline">Recipes</span>
-          <span className="xs:hidden">Rec.</span>
+          <ChefHat className="size-4" />
+          <span className="hidden xs:inline">Components</span>
+          <span className="xs:hidden">Comp.</span>
         </button>
         <button
-          onClick={() => setSubTab("meals")}
+          onClick={() => setSubTab("dishes")}
           className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
-            subTab === "meals"
+            subTab === "dishes"
               ? "bg-card text-foreground shadow-sm"
               : "text-muted-foreground"
           }`}
         >
           <UtensilsCrossed className="size-4" />
-          Meals
+          Dishes
         </button>
       </div>
 
       {subTab === "calculator" && <CalculatorView activeUser={activeUser} />}
       {subTab === "ingredients" && <IngredientsView />}
-      {subTab === "recipes" && <RecipesView />}
-      {subTab === "meals" && <MealsView />}
+      {subTab === "components" && <ComponentsView />}
+      {subTab === "dishes" && <DishesView />}
     </div>
   )
 }
 
 function CalculatorView({ activeUser }: { activeUser: string }) {
-  const [ingredients, setIngredients] = useState<Ingredient[]>([])
+  const [ingredients, setIngredients] = useState<CalculatorIngredient[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [grams, setGrams] = useState("")
   const [saveName, setSaveName] = useState("")
@@ -146,7 +259,7 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
     
     if (baseNutrition) {
       const multiplier = gramsNum / 100
-      const newIngredient: Ingredient = {
+      const newIngredient: CalculatorIngredient = {
         id: Date.now().toString(),
         name: ingredientName,
         grams: gramsNum,
@@ -198,17 +311,17 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
     { calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0 }
   )
 
-  const handleSaveMealPart = () => {
+  const handleSaveComponent = () => {
     if (selectedIngredients.length > 0 && saveName.trim()) {
-      alert(`Meal Part "${saveName}" saved with ${selectedIngredients.length} ingredients!`)
+      alert(`Component "${saveName}" saved with ${selectedIngredients.length} ingredients! You can add recipe steps in the Components tab.`)
       setSaveName("")
       setIngredients(ingredients.map((i) => ({ ...i, selected: false })))
     }
   }
 
-  const handleSaveMeal = () => {
+  const handleSaveDish = () => {
     if (ingredients.length > 0 && saveName.trim()) {
-      alert(`Meal "${saveName}" saved with ${ingredients.length} ingredients!`)
+      alert(`Dish "${saveName}" saved with ${ingredients.length} elements!`)
       setSaveName("")
     }
   }
@@ -368,32 +481,32 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
           />
 
           <div className="flex flex-col gap-3">
-            {/* Save Selected as Meal Part */}
+            {/* Save Selected as Component */}
             <button
-              onClick={handleSaveMealPart}
+              onClick={handleSaveComponent}
               disabled={selectedIngredients.length === 0 || !saveName.trim()}
               className="w-full py-3 rounded-xl bg-secondary text-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-50 disabled:active:scale-100"
             >
               <ChefHat className="size-4" />
-              Save Selected as Meal Part ({selectedIngredients.length})
+              Save Selected as Component ({selectedIngredients.length})
             </button>
             <p className="text-xs text-muted-foreground -mt-1 mb-1">
               {selectedIngredients.length > 0 
-                ? `${Math.round(selectedTotals.calories)} kcal selected - can be used as recipe ingredient`
-                : "Select ingredients above to create a meal part"}
+                ? `${Math.round(selectedTotals.calories)} kcal - bulk preparation with recipe steps`
+                : "Select ingredients above to create a component"}
             </p>
 
-            {/* Save All as Meal */}
+            {/* Save All as Dish */}
             <button
-              onClick={handleSaveMeal}
+              onClick={handleSaveDish}
               disabled={!saveName.trim()}
               className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-50 disabled:active:scale-100"
             >
               <UtensilsCrossed className="size-4" />
-              Save All as Meal
+              Save All as Dish
             </button>
             <p className="text-xs text-muted-foreground -mt-1">
-              {Math.round(totals.calories)} kcal total - complete meal ready to log
+              {Math.round(totals.calories)} kcal - complete dish ready to log
             </p>
           </div>
         </div>
@@ -402,20 +515,14 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
   )
 }
 
-type RecipeType = "all" | "one-pot" | "protein" | "vegetables" | "quick" | "meal-prep"
-
-type ElementFilter = "all" | "ingredient" | "recipe"
-
-const elementCategories = ["All", "Protein", "Carbs", "Vegetables", "Fruits", "Dairy", "Fats", "Nuts", "Breakfast", "Main"]
+const ingredientCategories = ["All", "Protein", "Carbs", "Vegetables", "Fruits", "Dairy", "Fats", "Nuts"]
 
 function IngredientsView() {
-  const [foodElements, setFoodElements] = useState<FoodElement[]>(initialFoodElements)
+  const [ingredientsList, setIngredientsList] = useState<IngredientItem[]>(initialIngredients)
   const [searchTerm, setSearchTerm] = useState("")
-  const [typeFilter, setTypeFilter] = useState<ElementFilter>("all")
   const [showAddForm, setShowAddForm] = useState(false)
-  const [newElement, setNewElement] = useState({
+  const [newIngredient, setNewIngredient] = useState({
     name: "",
-    type: "ingredient" as ElementType,
     caloriesPer100g: "",
     proteinPer100g: "",
     carbsPer100g: "",
@@ -424,29 +531,25 @@ function IngredientsView() {
     category: "Protein",
   })
 
-  const filteredElements = foodElements.filter((el) => {
-    const matchesSearch = el.name.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesType = typeFilter === "all" || el.type === typeFilter
-    return matchesSearch && matchesType
-  })
+  const filteredIngredients = ingredientsList.filter((el) =>
+    el.name.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
-  const handleAddElement = () => {
-    if (newElement.name.trim()) {
-      const element: FoodElement = {
+  const handleAddIngredient = () => {
+    if (newIngredient.name.trim()) {
+      const ingredient: IngredientItem = {
         id: Date.now().toString(),
-        name: newElement.name,
-        type: newElement.type,
-        caloriesPer100g: parseFloat(newElement.caloriesPer100g) || 0,
-        proteinPer100g: parseFloat(newElement.proteinPer100g) || 0,
-        carbsPer100g: parseFloat(newElement.carbsPer100g) || 0,
-        fatsPer100g: parseFloat(newElement.fatsPer100g) || 0,
-        fiberPer100g: parseFloat(newElement.fiberPer100g) || 0,
-        category: newElement.category,
+        name: newIngredient.name,
+        caloriesPer100g: parseFloat(newIngredient.caloriesPer100g) || 0,
+        proteinPer100g: parseFloat(newIngredient.proteinPer100g) || 0,
+        carbsPer100g: parseFloat(newIngredient.carbsPer100g) || 0,
+        fatsPer100g: parseFloat(newIngredient.fatsPer100g) || 0,
+        fiberPer100g: parseFloat(newIngredient.fiberPer100g) || 0,
+        category: newIngredient.category,
       }
-      setFoodElements([...foodElements, element])
-      setNewElement({
+      setIngredientsList([...ingredientsList, ingredient])
+      setNewIngredient({
         name: "",
-        type: "ingredient",
         caloriesPer100g: "",
         proteinPer100g: "",
         carbsPer100g: "",
@@ -458,8 +561,8 @@ function IngredientsView() {
     }
   }
 
-  const handleDeleteElement = (id: string) => {
-    setFoodElements(foodElements.filter((el) => el.id !== id))
+  const handleDeleteIngredient = (id: string) => {
+    setIngredientsList(ingredientsList.filter((el) => el.id !== id))
   }
 
   return (
@@ -470,7 +573,7 @@ function IngredientsView() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search ingredients & recipes..."
+            placeholder="Search ingredients..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full bg-card rounded-xl pl-11 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -490,67 +593,25 @@ function IngredientsView() {
         <span className="text-sm font-medium">Import from Excel</span>
       </button>
 
-      {/* Type Filter */}
-      <div className="flex gap-2">
-        {(["all", "ingredient", "recipe"] as ElementFilter[]).map((filter) => (
-          <button
-            key={filter}
-            onClick={() => setTypeFilter(filter)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-              typeFilter === filter
-                ? "bg-primary text-primary-foreground"
-                : "bg-card border border-border text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {filter === "all" ? "All" : filter === "ingredient" ? "Ingredients" : "Recipes"}
-          </button>
-        ))}
-      </div>
-
-      {/* Add New Element Form */}
+      {/* Add New Ingredient Form */}
       {showAddForm && (
         <div className="bg-card rounded-2xl p-5 border border-primary/50">
-          <h3 className="text-base font-semibold mb-4">Add New Element</h3>
+          <h3 className="text-base font-semibold mb-4">Add New Ingredient</h3>
           <div className="flex flex-col gap-3">
             <input
               type="text"
               placeholder="Name"
-              value={newElement.name}
-              onChange={(e) => setNewElement({ ...newElement, name: e.target.value })}
+              value={newIngredient.name}
+              onChange={(e) => setNewIngredient({ ...newIngredient, name: e.target.value })}
               className="bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
-            
-            <div className="flex gap-2">
-              <button
-                onClick={() => setNewElement({ ...newElement, type: "ingredient" })}
-                className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                  newElement.type === "ingredient"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-muted-foreground"
-                }`}
-              >
-                <Apple className="size-4" />
-                Ingredient
-              </button>
-              <button
-                onClick={() => setNewElement({ ...newElement, type: "recipe" })}
-                className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                  newElement.type === "recipe"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-muted-foreground"
-                }`}
-              >
-                <ChefHat className="size-4" />
-                Recipe
-              </button>
-            </div>
 
             <select
-              value={newElement.category}
-              onChange={(e) => setNewElement({ ...newElement, category: e.target.value })}
+              value={newIngredient.category}
+              onChange={(e) => setNewIngredient({ ...newIngredient, category: e.target.value })}
               className="bg-secondary rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
             >
-              {elementCategories.slice(1).map((cat) => (
+              {ingredientCategories.slice(1).map((cat) => (
                 <option key={cat} value={cat}>{cat}</option>
               ))}
             </select>
@@ -560,91 +621,78 @@ function IngredientsView() {
               <input
                 type="number"
                 placeholder="kcal"
-                value={newElement.caloriesPer100g}
-                onChange={(e) => setNewElement({ ...newElement, caloriesPer100g: e.target.value })}
+                value={newIngredient.caloriesPer100g}
+                onChange={(e) => setNewIngredient({ ...newIngredient, caloriesPer100g: e.target.value })}
                 className="bg-secondary rounded-xl px-2 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
               <input
                 type="number"
                 placeholder="P"
-                value={newElement.proteinPer100g}
-                onChange={(e) => setNewElement({ ...newElement, proteinPer100g: e.target.value })}
+                value={newIngredient.proteinPer100g}
+                onChange={(e) => setNewIngredient({ ...newIngredient, proteinPer100g: e.target.value })}
                 className="bg-secondary rounded-xl px-2 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
               <input
                 type="number"
                 placeholder="C"
-                value={newElement.carbsPer100g}
-                onChange={(e) => setNewElement({ ...newElement, carbsPer100g: e.target.value })}
+                value={newIngredient.carbsPer100g}
+                onChange={(e) => setNewIngredient({ ...newIngredient, carbsPer100g: e.target.value })}
                 className="bg-secondary rounded-xl px-2 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
               <input
                 type="number"
                 placeholder="F"
-                value={newElement.fatsPer100g}
-                onChange={(e) => setNewElement({ ...newElement, fatsPer100g: e.target.value })}
+                value={newIngredient.fatsPer100g}
+                onChange={(e) => setNewIngredient({ ...newIngredient, fatsPer100g: e.target.value })}
                 className="bg-secondary rounded-xl px-2 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
               <input
                 type="number"
                 placeholder="Fib"
-                value={newElement.fiberPer100g}
-                onChange={(e) => setNewElement({ ...newElement, fiberPer100g: e.target.value })}
+                value={newIngredient.fiberPer100g}
+                onChange={(e) => setNewIngredient({ ...newIngredient, fiberPer100g: e.target.value })}
                 className="bg-secondary rounded-xl px-2 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
 
             <button
-              onClick={handleAddElement}
-              disabled={!newElement.name.trim()}
+              onClick={handleAddIngredient}
+              disabled={!newIngredient.name.trim()}
               className="mt-2 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-50"
             >
-              <Save className="size-4" />
-              Save Element
+              <Plus className="size-4" />
+              Add Ingredient
             </button>
           </div>
         </div>
       )}
 
-      {/* Elements List */}
+      {/* Ingredients List */}
       <div className="flex flex-col gap-2">
-        {filteredElements.length === 0 ? (
+        {filteredIngredients.length === 0 ? (
           <div className="bg-card rounded-2xl p-8 border border-border text-center">
-            <p className="text-muted-foreground">No elements found</p>
+            <p className="text-muted-foreground">No ingredients found</p>
           </div>
         ) : (
-          filteredElements.map((element) => (
+          filteredIngredients.map((ingredient) => (
             <div
-              key={element.id}
+              key={ingredient.id}
               className="bg-card rounded-2xl p-4 border border-border flex items-center gap-3"
             >
-              <div className={`size-10 rounded-xl flex items-center justify-center shrink-0 ${
-                element.type === "recipe" ? "bg-primary/20" : "bg-secondary"
-              }`}>
-                {element.type === "recipe" ? (
-                  <ChefHat className="size-5 text-primary" />
-                ) : (
-                  <Apple className="size-5 text-muted-foreground" />
-                )}
+              <div className="size-10 rounded-xl bg-secondary flex items-center justify-center shrink-0">
+                <Apple className="size-5 text-muted-foreground" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <h4 className="font-medium text-foreground truncate">{element.name}</h4>
-                  {element.type === "recipe" && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary shrink-0">
-                      Recipe
-                    </span>
-                  )}
-                </div>
+                <h4 className="font-medium text-foreground truncate">{ingredient.name}</h4>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {element.caloriesPer100g} kcal · P {element.proteinPer100g}g · C {element.carbsPer100g}g · F {element.fatsPer100g}g · Fib {element.fiberPer100g}g
+                  {ingredient.caloriesPer100g} kcal · P {ingredient.proteinPer100g}g · C {ingredient.carbsPer100g}g · F {ingredient.fatsPer100g}g · Fib {ingredient.fiberPer100g}g
                 </p>
-                {element.category && (
-                  <span className="text-xs text-muted-foreground/70">{element.category}</span>
+                {ingredient.category && (
+                  <span className="text-xs text-muted-foreground/70">{ingredient.category}</span>
                 )}
               </div>
               <button
-                onClick={() => handleDeleteElement(element.id)}
+                onClick={() => handleDeleteIngredient(ingredient.id)}
                 className="size-8 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center shrink-0 active:scale-95 transition-transform"
               >
                 <Trash2 className="size-4" />
@@ -657,146 +705,19 @@ function IngredientsView() {
   )
 }
 
-const recipeFilters: { value: RecipeType; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "one-pot", label: "One-Pot" },
-  { value: "protein", label: "Protein" },
-  { value: "vegetables", label: "Vegetables" },
-  { value: "quick", label: "Quick" },
-  { value: "meal-prep", label: "Meal Prep" },
-]
+const componentCategories = ["All", "Breakfast", "Sides", "Sauces", "Prep"]
 
-const allRecipes = [
-  { name: "Chicken Stir Fry", calories: 450, time: "25 min", types: ["one-pot", "protein"] as RecipeType[] },
-  { name: "Greek Salad", calories: 280, time: "10 min", types: ["vegetables", "quick"] as RecipeType[] },
-  { name: "Protein Oatmeal", calories: 380, time: "5 min", types: ["protein", "quick"] as RecipeType[] },
-  { name: "Veggie Curry", calories: 320, time: "30 min", types: ["one-pot", "vegetables", "meal-prep"] as RecipeType[] },
-  { name: "Grilled Salmon", calories: 520, time: "20 min", types: ["protein"] as RecipeType[] },
-  { name: "Buddha Bowl", calories: 410, time: "15 min", types: ["vegetables", "meal-prep"] as RecipeType[] },
-]
-
-function RecipesView() {
-  const [activeFilter, setActiveFilter] = useState<RecipeType>("all")
-
-  const filteredRecipes = activeFilter === "all" 
-    ? allRecipes 
-    : allRecipes.filter(recipe => recipe.types.includes(activeFilter))
-
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-3">
-        <div className="flex-1 relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search recipes..."
-            className="w-full bg-card rounded-xl pl-11 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
-          />
-        </div>
-        <button className="size-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center active:scale-95 transition-transform">
-          <Plus className="size-5" />
-        </button>
-      </div>
-
-      {/* Recipe Type Filters */}
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
-        {recipeFilters.map((filter) => (
-          <button
-            key={filter.value}
-            onClick={() => setActiveFilter(filter.value)}
-            className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-              activeFilter === filter.value
-                ? "bg-primary text-primary-foreground"
-                : "bg-card border border-border text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {filter.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="flex flex-col gap-3">
-        {filteredRecipes.length === 0 ? (
-          <div className="bg-card rounded-2xl p-8 border border-border text-center">
-            <p className="text-muted-foreground">No recipes found for this filter</p>
-          </div>
-        ) : (
-          filteredRecipes.map((recipe, i) => (
-            <button
-              key={i}
-              className="bg-card rounded-2xl p-4 border border-border flex items-center gap-4 text-left active:scale-[0.98] transition-transform"
-            >
-              <div className="size-14 rounded-xl bg-secondary flex items-center justify-center">
-                <BookOpen className="size-6 text-muted-foreground" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="font-medium text-foreground">{recipe.name}</h4>
-                <p className="text-sm text-muted-foreground">
-                  {recipe.calories} kcal · {recipe.time}
-                </p>
-                <div className="flex gap-1.5 mt-1.5 flex-wrap">
-                  {recipe.types.map((type) => (
-                    <span
-                      key={type}
-                      className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground"
-                    >
-                      {recipeFilters.find(f => f.value === type)?.label}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </button>
-          ))
-        )}
-      </div>
-    </div>
-  )
-}
-
-// Sample meals data
-const initialMeals = [
-  { 
-    id: "m1", 
-    name: "Power Breakfast", 
-    elements: ["Scrambled Eggs", "Oats", "Banana"],
-    totalCalories: 520,
-    totalProtein: 28,
-    totalCarbs: 62,
-    totalFats: 18,
-    totalFiber: 8,
-  },
-  { 
-    id: "m2", 
-    name: "Lunch Bowl", 
-    elements: ["Chicken Stir Fry", "Rice", "Broccoli"],
-    totalCalories: 680,
-    totalProtein: 45,
-    totalCarbs: 72,
-    totalFats: 12,
-    totalFiber: 5,
-  },
-  { 
-    id: "m3", 
-    name: "Evening Snack", 
-    elements: ["Greek Yogurt", "Almonds", "Banana"],
-    totalCalories: 380,
-    totalProtein: 18,
-    totalCarbs: 42,
-    totalFats: 16,
-    totalFiber: 6,
-  },
-]
-
-function MealsView() {
-  const [meals, setMeals] = useState(initialMeals)
+function ComponentsView() {
+  const [components, setComponents] = useState<ComponentItem[]>(initialComponents)
   const [searchTerm, setSearchTerm] = useState("")
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  const filteredMeals = meals.filter((meal) =>
-    meal.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredComponents = components.filter((comp) =>
+    comp.name.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const handleDeleteMeal = (id: string) => {
-    setMeals(meals.filter((m) => m.id !== id))
+  const handleDeleteComponent = (id: string) => {
+    setComponents(components.filter((c) => c.id !== id))
   }
 
   return (
@@ -807,7 +728,151 @@ function MealsView() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search meals..."
+            placeholder="Search components..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-card rounded-xl pl-11 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+          />
+        </div>
+        <button className="size-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center active:scale-95 transition-transform">
+          <Plus className="size-5" />
+        </button>
+      </div>
+
+      {/* Info Card */}
+      <div className="bg-primary/10 rounded-2xl p-4 border border-primary/30">
+        <p className="text-sm text-foreground">
+          <span className="font-medium">Components</span> are bulk preparations with recipe steps (e.g., Guacamole, Hummus). They can be used as elements in Dishes.
+        </p>
+      </div>
+
+      {/* Components List */}
+      <div className="flex flex-col gap-3">
+        {filteredComponents.length === 0 ? (
+          <div className="bg-card rounded-2xl p-8 border border-border text-center">
+            <ChefHat className="size-10 text-muted-foreground mx-auto mb-3" />
+            <p className="text-muted-foreground">No components saved yet</p>
+            <p className="text-xs text-muted-foreground/70 mt-1">
+              Use the Calculator to create bulk preparations
+            </p>
+          </div>
+        ) : (
+          filteredComponents.map((comp) => (
+            <div
+              key={comp.id}
+              className="bg-card rounded-2xl border border-border overflow-hidden"
+            >
+              <button
+                onClick={() => setExpandedId(expandedId === comp.id ? null : comp.id)}
+                className="w-full p-4 flex items-start justify-between text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="size-12 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
+                    <ChefHat className="size-6 text-primary" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-foreground">{comp.name}</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {comp.ingredients.length} ingredients · {comp.yieldGrams}g yield
+                    </p>
+                    {comp.category && (
+                      <span className="text-xs text-muted-foreground/70">{comp.category}</span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <FileText className={`size-4 text-muted-foreground transition-transform ${expandedId === comp.id ? "rotate-180" : ""}`} />
+                </div>
+              </button>
+
+              {expandedId === comp.id && (
+                <div className="px-4 pb-4 border-t border-border pt-3">
+                  {/* Macros */}
+                  <div className="grid grid-cols-5 gap-2 mb-4">
+                    <div className="bg-secondary rounded-lg px-2 py-2 text-center">
+                      <p className="text-[10px] text-muted-foreground">kcal</p>
+                      <p className="text-sm font-semibold text-foreground">{comp.totalCalories}</p>
+                    </div>
+                    <div className="bg-secondary rounded-lg px-2 py-2 text-center">
+                      <p className="text-[10px] text-muted-foreground">P</p>
+                      <p className="text-sm font-semibold text-primary">{comp.totalProtein}g</p>
+                    </div>
+                    <div className="bg-secondary rounded-lg px-2 py-2 text-center">
+                      <p className="text-[10px] text-muted-foreground">C</p>
+                      <p className="text-sm font-semibold text-amber-500">{comp.totalCarbs}g</p>
+                    </div>
+                    <div className="bg-secondary rounded-lg px-2 py-2 text-center">
+                      <p className="text-[10px] text-muted-foreground">F</p>
+                      <p className="text-sm font-semibold text-rose-400">{comp.totalFats}g</p>
+                    </div>
+                    <div className="bg-secondary rounded-lg px-2 py-2 text-center">
+                      <p className="text-[10px] text-muted-foreground">Fib</p>
+                      <p className="text-sm font-semibold text-emerald-400">{comp.totalFiber}g</p>
+                    </div>
+                  </div>
+
+                  {/* Ingredients */}
+                  <div className="mb-4">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Ingredients</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {comp.ingredients.map((ing, i) => (
+                        <span key={i} className="text-xs px-2 py-1 rounded-lg bg-secondary text-foreground">
+                          {ing.name} ({ing.grams}g)
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Recipe Steps */}
+                  <div className="mb-4">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Recipe Steps</p>
+                    <ol className="list-decimal list-inside space-y-1.5">
+                      {comp.recipeSteps.map((step, i) => (
+                        <li key={i} className="text-sm text-foreground">{step}</li>
+                      ))}
+                    </ol>
+                  </div>
+
+                  {/* Delete */}
+                  <button
+                    onClick={() => handleDeleteComponent(comp.id)}
+                    className="w-full py-2.5 rounded-xl bg-destructive/10 text-destructive text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                  >
+                    <Trash2 className="size-4" />
+                    Delete Component
+                  </button>
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  )
+}
+
+function DishesView() {
+  const [dishes, setDishes] = useState<DishItem[]>(initialDishes)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+
+  const filteredDishes = dishes.filter((dish) =>
+    dish.name.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  const handleDeleteDish = (id: string) => {
+    setDishes(dishes.filter((d) => d.id !== id))
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Search */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1 relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search dishes..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full bg-card rounded-xl pl-11 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -818,69 +883,114 @@ function MealsView() {
       {/* Info Card */}
       <div className="bg-primary/10 rounded-2xl p-4 border border-primary/30">
         <p className="text-sm text-foreground">
-          Meals are saved combinations of ingredients and recipes. Create new meals in the Calculator tab.
+          <span className="font-medium">Dishes</span> are complete meals composed of ingredients and components. Create new dishes in the Calculator tab.
         </p>
       </div>
 
-      {/* Meals List */}
+      {/* Dishes List */}
       <div className="flex flex-col gap-3">
-        {filteredMeals.length === 0 ? (
+        {filteredDishes.length === 0 ? (
           <div className="bg-card rounded-2xl p-8 border border-border text-center">
             <UtensilsCrossed className="size-10 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground">No meals saved yet</p>
+            <p className="text-muted-foreground">No dishes saved yet</p>
             <p className="text-xs text-muted-foreground/70 mt-1">
-              Use the Calculator to create and save meals
+              Use the Calculator to create and save dishes
             </p>
           </div>
         ) : (
-          filteredMeals.map((meal) => (
+          filteredDishes.map((dish) => (
             <div
-              key={meal.id}
-              className="bg-card rounded-2xl p-4 border border-border"
+              key={dish.id}
+              className="bg-card rounded-2xl border border-border overflow-hidden"
             >
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <h4 className="font-medium text-foreground">{meal.name}</h4>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {meal.elements.join(" + ")}
-                  </p>
+              <button
+                onClick={() => setExpandedId(expandedId === dish.id ? null : dish.id)}
+                className="w-full p-4 flex items-start justify-between text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="size-12 rounded-xl bg-secondary flex items-center justify-center shrink-0">
+                    <UtensilsCrossed className="size-6 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-foreground">{dish.name}</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {dish.elements.length} elements · {dish.totalCalories} kcal
+                    </p>
+                    {dish.category && (
+                      <span className="text-xs text-muted-foreground/70">{dish.category}</span>
+                    )}
+                  </div>
                 </div>
-                <button
-                  onClick={() => handleDeleteMeal(meal.id)}
-                  className="size-8 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center shrink-0 active:scale-95 transition-transform"
-                >
-                  <Trash2 className="size-4" />
-                </button>
-              </div>
-              
-              {/* Macros */}
-              <div className="grid grid-cols-5 gap-2">
-                <div className="bg-secondary rounded-lg px-2 py-2 text-center">
-                  <p className="text-[10px] text-muted-foreground">kcal</p>
-                  <p className="text-sm font-semibold text-foreground">{meal.totalCalories}</p>
-                </div>
-                <div className="bg-secondary rounded-lg px-2 py-2 text-center">
-                  <p className="text-[10px] text-muted-foreground">P</p>
-                  <p className="text-sm font-semibold text-primary">{meal.totalProtein}g</p>
-                </div>
-                <div className="bg-secondary rounded-lg px-2 py-2 text-center">
-                  <p className="text-[10px] text-muted-foreground">C</p>
-                  <p className="text-sm font-semibold text-amber-500">{meal.totalCarbs}g</p>
-                </div>
-                <div className="bg-secondary rounded-lg px-2 py-2 text-center">
-                  <p className="text-[10px] text-muted-foreground">F</p>
-                  <p className="text-sm font-semibold text-rose-400">{meal.totalFats}g</p>
-                </div>
-                <div className="bg-secondary rounded-lg px-2 py-2 text-center">
-                  <p className="text-[10px] text-muted-foreground">Fib</p>
-                  <p className="text-sm font-semibold text-emerald-400">{meal.totalFiber}g</p>
-                </div>
-              </div>
-
-              {/* Quick Log Button */}
-              <button className="w-full mt-3 py-2.5 rounded-xl bg-primary/10 text-primary text-sm font-medium active:scale-[0.98] transition-transform">
-                Quick Log This Meal
               </button>
+
+              {expandedId === dish.id && (
+                <div className="px-4 pb-4 border-t border-border pt-3">
+                  {/* Macros */}
+                  <div className="grid grid-cols-5 gap-2 mb-4">
+                    <div className="bg-secondary rounded-lg px-2 py-2 text-center">
+                      <p className="text-[10px] text-muted-foreground">kcal</p>
+                      <p className="text-sm font-semibold text-foreground">{dish.totalCalories}</p>
+                    </div>
+                    <div className="bg-secondary rounded-lg px-2 py-2 text-center">
+                      <p className="text-[10px] text-muted-foreground">P</p>
+                      <p className="text-sm font-semibold text-primary">{dish.totalProtein}g</p>
+                    </div>
+                    <div className="bg-secondary rounded-lg px-2 py-2 text-center">
+                      <p className="text-[10px] text-muted-foreground">C</p>
+                      <p className="text-sm font-semibold text-amber-500">{dish.totalCarbs}g</p>
+                    </div>
+                    <div className="bg-secondary rounded-lg px-2 py-2 text-center">
+                      <p className="text-[10px] text-muted-foreground">F</p>
+                      <p className="text-sm font-semibold text-rose-400">{dish.totalFats}g</p>
+                    </div>
+                    <div className="bg-secondary rounded-lg px-2 py-2 text-center">
+                      <p className="text-[10px] text-muted-foreground">Fib</p>
+                      <p className="text-sm font-semibold text-emerald-400">{dish.totalFiber}g</p>
+                    </div>
+                  </div>
+
+                  {/* Elements */}
+                  <div className="mb-4">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Elements</p>
+                    <div className="flex flex-col gap-2">
+                      {dish.elements.map((el, i) => (
+                        <div key={i} className="flex items-center gap-2 text-sm">
+                          <div className={`size-6 rounded-lg flex items-center justify-center ${
+                            el.type === "component" ? "bg-primary/20" : "bg-secondary"
+                          }`}>
+                            {el.type === "component" ? (
+                              <ChefHat className="size-3.5 text-primary" />
+                            ) : (
+                              <Apple className="size-3.5 text-muted-foreground" />
+                            )}
+                          </div>
+                          <span className="text-foreground">{el.name}</span>
+                          <span className="text-muted-foreground">({el.grams}g)</span>
+                          {el.type === "component" && (
+                            <button className="ml-auto p-1 rounded-md hover:bg-secondary">
+                              <FileText className="size-3.5 text-muted-foreground" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleDeleteDish(dish.id)}
+                      className="flex-1 py-2.5 rounded-xl bg-destructive/10 text-destructive text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                    >
+                      <Trash2 className="size-4" />
+                      Delete
+                    </button>
+                    <button className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:scale-[0.98] transition-transform">
+                      Quick Log
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ))
         )}
