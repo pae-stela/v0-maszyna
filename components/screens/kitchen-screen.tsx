@@ -277,12 +277,6 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
     setUseUnits(false)
     setShowSuggestions(false)
   }
-      setIngredients([...ingredients, newIngredient])
-      setSearchTerm("")
-      setGrams("")
-      setShowSuggestions(false)
-    }
-  }
 
   const removeIngredient = (id: string) => {
     setIngredients(ingredients.filter((i) => i.id !== id))
