@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useUser } from "@/lib/user-context"
-import { Calculator, Search, Plus, Trash2, Apple, Upload, ChefHat, UtensilsCrossed, FileText } from "lucide-react"
+import { Calculator, Search, Plus, Trash2, Apple, Upload, ChefHat, UtensilsCrossed, FileText, ChevronDown } from "lucide-react"
 
 type SubTab = "calculator" | "ingredients" | "dishes"
 
@@ -697,15 +697,11 @@ function IngredientsView() {
           filteredIngredients.map((ingredient) => (
             <div
               key={ingredient.id}
-              className={`bg-card rounded-2xl border border-border overflow-hidden ${ingredient.isComponent ? "cursor-pointer" : ""}`}
-              onClick={() => {
-                if (ingredient.isComponent) {
-                  setExpandedId(expandedId === ingredient.id ? null : ingredient.id)
-                }
-              }}
+              className="bg-card rounded-2xl border border-border overflow-hidden cursor-pointer"
+              onClick={() => setExpandedId(expandedId === ingredient.id ? null : ingredient.id)}
             >
               {/* Main row */}
-              <div className={`p-4 flex items-center gap-3 ${ingredient.isComponent ? "active:bg-secondary/50" : ""}`}>
+              <div className="p-4 flex items-center gap-3 active:bg-secondary/50">
                 <div className={`size-10 rounded-xl flex items-center justify-center shrink-0 ${
                   ingredient.isComponent 
                     ? "bg-primary/20" 
@@ -718,36 +714,20 @@ function IngredientsView() {
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h4 className="font-medium text-foreground truncate">{ingredient.name}</h4>
-                    {ingredient.isComponent && (
-                      <FileText className={`size-3.5 text-muted-foreground transition-transform ${expandedId === ingredient.id ? "rotate-180" : ""}`} />
-                    )}
-                  </div>
+                  <h4 className="font-medium text-foreground truncate">{ingredient.name}</h4>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {ingredient.caloriesPer100g} kcal · P {ingredient.proteinPer100g}g · C {ingredient.carbsPer100g}g · F {ingredient.fatsPer100g}g · Fib {ingredient.fiberPer100g}g
                   </p>
                   <span className="text-xs text-muted-foreground/70">{ingredient.category}</span>
                 </div>
-                {/* Only show inline delete for regular ingredients */}
-                {!ingredient.isComponent && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleDeleteIngredient(ingredient.id)
-                    }}
-                    className="size-8 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center shrink-0 active:scale-95 transition-transform"
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
-                )}
+                <ChevronDown className={`size-5 text-muted-foreground shrink-0 transition-transform ${expandedId === ingredient.id ? "rotate-180" : ""}`} />
               </div>
 
-              {/* Expanded Component Details with Actions */}
-              {ingredient.isComponent && expandedId === ingredient.id && (
+              {/* Expanded Details with Actions */}
+              {expandedId === ingredient.id && (
                 <div className="px-4 pb-4 border-t border-border pt-3">
-                  {/* Sub-ingredients */}
-                  {ingredient.subIngredients && ingredient.subIngredients.length > 0 && (
+                  {/* Sub-ingredients (for components only) */}
+                  {ingredient.isComponent && ingredient.subIngredients && ingredient.subIngredients.length > 0 && (
                     <div className="mb-4">
                       <p className="text-xs font-medium text-muted-foreground mb-2">Ingredients</p>
                       <div className="flex flex-wrap gap-1.5">
@@ -760,8 +740,8 @@ function IngredientsView() {
                     </div>
                   )}
 
-                  {/* Recipe Steps / Instructions */}
-                  {ingredient.recipeSteps && ingredient.recipeSteps.length > 0 && (
+                  {/* Recipe Steps / Instructions (for components only) */}
+                  {ingredient.isComponent && ingredient.recipeSteps && ingredient.recipeSteps.length > 0 && (
                     <div className="mb-4">
                       <p className="text-xs font-medium text-muted-foreground mb-2">Instructions</p>
                       <ol className="list-decimal list-inside space-y-1.5">
@@ -772,7 +752,7 @@ function IngredientsView() {
                     </div>
                   )}
 
-                  {ingredient.yieldGrams && (
+                  {ingredient.isComponent && ingredient.yieldGrams && (
                     <p className="text-xs text-muted-foreground mb-4">
                       Yields approximately {ingredient.yieldGrams}g
                     </p>
@@ -781,13 +761,19 @@ function IngredientsView() {
                   {/* Action Buttons */}
                   <div className="flex gap-2">
                     <button
-                      onClick={() => alert("Edit functionality coming soon")}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        alert("Edit functionality coming soon")
+                      }}
                       className="flex-1 py-2.5 rounded-xl bg-secondary text-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
                     >
                       Edit
                     </button>
                     <button
-                      onClick={() => handleDeleteIngredient(ingredient.id)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDeleteIngredient(ingredient.id)
+                      }}
                       className="flex-1 py-2.5 rounded-xl bg-destructive/10 text-destructive text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
                     >
                       <Trash2 className="size-4" />
