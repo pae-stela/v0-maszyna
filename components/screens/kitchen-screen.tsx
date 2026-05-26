@@ -450,12 +450,16 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
       </div>
 
       {/* Ingredients List */}
-      {ingredients.length > 0 && (
-        <div className="flex flex-col gap-3">
-          <h3 className="text-base font-semibold">Meal Breakdown</h3>
-          
-          {/* Ingredient Cards */}
-          {ingredients.map((ing) => (
+      <div className="flex flex-col gap-3">
+        <h3 className="text-base font-semibold">Meal Breakdown</h3>
+        
+        {ingredients.length === 0 ? (
+          <div className="bg-card rounded-2xl p-6 border border-border text-center">
+            <p className="text-sm text-muted-foreground">Add ingredients to start building your meal</p>
+          </div>
+        ) : (
+          /* Ingredient Cards */
+          ingredients.map((ing) => (
             <div
               key={ing.id}
               className={`bg-card rounded-2xl p-4 border transition-colors ${
@@ -513,81 +517,81 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
                 </div>
               </div>
             </div>
-          ))}
-          
-          {/* Totals Card */}
-          <div className="bg-primary/10 rounded-2xl p-4 border border-primary/30">
-            <p className="text-sm font-semibold text-foreground mb-3">Total</p>
-            <div className="grid grid-cols-5 gap-2">
-              <div className="bg-background/50 rounded-lg px-2 py-2 text-center">
-                <p className="text-[10px] text-muted-foreground">kcal</p>
-                <p className="text-sm font-bold text-foreground">{Math.round(totals.calories)}</p>
-              </div>
-              <div className="bg-background/50 rounded-lg px-2 py-2 text-center">
-                <p className="text-[10px] text-muted-foreground">P</p>
-                <p className="text-sm font-bold text-primary">{Math.round(totals.protein * 10) / 10}g</p>
-              </div>
-              <div className="bg-background/50 rounded-lg px-2 py-2 text-center">
-                <p className="text-[10px] text-muted-foreground">C</p>
-                <p className="text-sm font-bold text-amber-500">{Math.round(totals.carbs * 10) / 10}g</p>
-              </div>
-              <div className="bg-background/50 rounded-lg px-2 py-2 text-center">
-                <p className="text-[10px] text-muted-foreground">F</p>
-                <p className="text-sm font-bold text-rose-400">{Math.round(totals.fats * 10) / 10}g</p>
-              </div>
-              <div className="bg-background/50 rounded-lg px-2 py-2 text-center">
-                <p className="text-[10px] text-muted-foreground">Fib</p>
-                <p className="text-sm font-bold text-emerald-400">{Math.round(totals.fiber * 10) / 10}g</p>
-              </div>
+          ))
+        )}
+        
+        {/* Totals Card - always visible */}
+        <div className="bg-primary/10 rounded-2xl p-4 border border-primary/30">
+          <p className="text-sm font-semibold text-foreground mb-3">Total</p>
+          <div className="grid grid-cols-5 gap-2">
+            <div className="bg-background/50 rounded-lg px-2 py-2 text-center">
+              <p className="text-[10px] text-muted-foreground">kcal</p>
+              <p className="text-sm font-bold text-foreground">{Math.round(totals.calories)}</p>
+            </div>
+            <div className="bg-background/50 rounded-lg px-2 py-2 text-center">
+              <p className="text-[10px] text-muted-foreground">P</p>
+              <p className="text-sm font-bold text-primary">{Math.round(totals.protein * 10) / 10}g</p>
+            </div>
+            <div className="bg-background/50 rounded-lg px-2 py-2 text-center">
+              <p className="text-[10px] text-muted-foreground">C</p>
+              <p className="text-sm font-bold text-amber-500">{Math.round(totals.carbs * 10) / 10}g</p>
+            </div>
+            <div className="bg-background/50 rounded-lg px-2 py-2 text-center">
+              <p className="text-[10px] text-muted-foreground">F</p>
+              <p className="text-sm font-bold text-rose-400">{Math.round(totals.fats * 10) / 10}g</p>
+            </div>
+            <div className="bg-background/50 rounded-lg px-2 py-2 text-center">
+              <p className="text-[10px] text-muted-foreground">Fib</p>
+              <p className="text-sm font-bold text-emerald-400">{Math.round(totals.fiber * 10) / 10}g</p>
             </div>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Save Options */}
-      {ingredients.length > 0 && (
-        <div className="bg-card rounded-2xl p-5 border border-border">
-          <h3 className="text-base font-semibold mb-4">Save Options</h3>
-          
-          <input
-            type="text"
-            placeholder="Name..."
-            value={saveName}
-            onChange={(e) => setSaveName(e.target.value)}
-            className="w-full bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 mb-4"
-          />
+      {/* Save Options - always visible */}
+      <div className="bg-card rounded-2xl p-5 border border-border">
+        <h3 className="text-base font-semibold mb-4">Save Options</h3>
+        
+        <input
+          type="text"
+          placeholder="Name..."
+          value={saveName}
+          onChange={(e) => setSaveName(e.target.value)}
+          className="w-full bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 mb-4"
+        />
 
-          <div className="flex flex-col gap-3">
-            {/* Save Selected as Component */}
-            <button
-              onClick={handleSaveComponent}
-              disabled={selectedIngredients.length === 0 || !saveName.trim()}
-              className="w-full py-3 rounded-xl bg-secondary text-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-50 disabled:active:scale-100"
-            >
-              <ChefHat className="size-4" />
-              Save Selected as Component ({selectedIngredients.length})
-            </button>
-            <p className="text-xs text-muted-foreground -mt-1 mb-1">
-              {selectedIngredients.length > 0 
-                ? `${Math.round(selectedTotals.calories)} kcal - bulk preparation with recipe steps`
-                : "Select ingredients above to create a component"}
-            </p>
+        <div className="flex flex-col gap-3">
+          {/* Save Selected as Component */}
+          <button
+            onClick={handleSaveComponent}
+            disabled={selectedIngredients.length === 0 || !saveName.trim()}
+            className="w-full py-3 rounded-xl bg-secondary text-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-50 disabled:active:scale-100"
+          >
+            <ChefHat className="size-4" />
+            Save Selected as Component ({selectedIngredients.length})
+          </button>
+          <p className="text-xs text-muted-foreground -mt-1 mb-1">
+            {selectedIngredients.length > 0 
+              ? `${Math.round(selectedTotals.calories)} kcal - bulk preparation with recipe steps`
+              : "Select ingredients above to create a component"}
+          </p>
 
-            {/* Save All as Dish */}
-            <button
-              onClick={handleSaveDish}
-              disabled={!saveName.trim()}
-              className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-50 disabled:active:scale-100"
-            >
-              <UtensilsCrossed className="size-4" />
-              Save All as Dish
-            </button>
-            <p className="text-xs text-muted-foreground -mt-1">
-              {Math.round(totals.calories)} kcal - complete dish ready to log
-            </p>
-          </div>
+          {/* Save All as Dish */}
+          <button
+            onClick={handleSaveDish}
+            disabled={ingredients.length === 0 || !saveName.trim()}
+            className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-50 disabled:active:scale-100"
+          >
+            <UtensilsCrossed className="size-4" />
+            Save All as Dish
+          </button>
+          <p className="text-xs text-muted-foreground -mt-1">
+            {ingredients.length > 0 
+              ? `${Math.round(totals.calories)} kcal - complete dish ready to log`
+              : "Add ingredients to save as dish"}
+          </p>
         </div>
-      )}
+      </div>
     </div>
   )
 }
