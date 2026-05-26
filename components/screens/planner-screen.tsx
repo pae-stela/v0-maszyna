@@ -89,6 +89,26 @@ function isSameDay(d1: Date, d2: Date): boolean {
     d1.getDate() === d2.getDate()
 }
 
+// Preset workouts (would normally come from training screen)
+const presetWorkouts = [
+  { id: "w1", name: "Leg Day", details: "Squats, Lunges, Leg Press, Calf Raises" },
+  { id: "w2", name: "Upper Body", details: "Bench Press, Rows, Shoulder Press, Bicep Curls" },
+  { id: "w3", name: "Push Day", details: "Chest Press, Tricep Dips, Shoulder Raises" },
+  { id: "w4", name: "Pull Day", details: "Deadlifts, Pull-ups, Rows, Bicep Curls" },
+  { id: "w5", name: "Full Body", details: "Squats, Deadlifts, Bench Press, Rows" },
+  { id: "w6", name: "Core & Abs", details: "Planks, Crunches, Russian Twists, Leg Raises" },
+]
+
+// Preset dishes (would normally come from kitchen screen)
+const presetDishes = [
+  { id: "d1", name: "Power Breakfast", details: "Eggs, Oats, Banana" },
+  { id: "d2", name: "Lunch Bowl", details: "Chicken, Rice, Broccoli, Guacamole" },
+  { id: "d3", name: "Protein Shake", details: "Banana, Greek Yogurt, Almonds" },
+  { id: "d4", name: "Trail Mix Bites", details: "Almonds, Oats" },
+  { id: "d5", name: "Grilled Salmon", details: "Salmon, Vegetables, Olive Oil" },
+  { id: "d6", name: "Chicken Salad", details: "Chicken Breast, Mixed Greens, Dressing" },
+]
+
 function CalendarView() {
   const [viewMode, setViewMode] = useState<CalendarViewMode>("today")
   const [baseDate, setBaseDate] = useState(new Date())
@@ -106,6 +126,8 @@ function CalendarView() {
   ])
 
   const [newEvent, setNewEvent] = useState({ title: "", time: "12:00", details: "" })
+  const [inputMode, setInputMode] = useState<"preset" | "custom">("preset")
+  const [selectedPreset, setSelectedPreset] = useState<string | null>(null)
 
   const dates = getDateRange(baseDate, viewMode)
   const today = new Date()
@@ -122,18 +144,35 @@ function CalendarView() {
   }
 
   const handleAddEvent = () => {
-    if (!newEvent.title.trim()) return
+    let title = ""
+    let details = ""
+    
+    if (inputMode === "preset" && selectedPreset) {
+      const presets = addType === "meal" ? presetDishes : presetWorkouts
+      const preset = presets.find(p => p.id === selectedPreset)
+      if (preset) {
+        title = preset.name
+        details = preset.details
+      }
+    } else if (inputMode === "custom" && newEvent.title.trim()) {
+      title = newEvent.title
+      details = newEvent.details
+    }
+    
+    if (!title) return
     
     const event: PlannerEvent = {
       id: Date.now().toString(),
       date: selectedDate,
-      title: newEvent.title,
+      title,
       time: newEvent.time,
       type: addType,
-      details: newEvent.details || undefined,
+      details: details || undefined,
     }
     setEvents([...events, event])
     setNewEvent({ title: "", time: "12:00", details: "" })
+    setSelectedPreset(null)
+    setInputMode("preset")
     setShowAddModal(false)
   }
 
@@ -321,7 +360,10 @@ function CalendarView() {
               {/* Type Toggle */}
               <div className="flex gap-2 p-1 bg-secondary rounded-xl">
                 <button
-                  onClick={() => setAddType("meal")}
+                  onClick={() => {
+                    setAddType("meal")
+                    setSelectedPreset(null)
+                  }}
                   className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
                     addType === "meal"
                       ? "bg-emerald-500 text-white"
@@ -332,7 +374,10 @@ function CalendarView() {
                   Meal
                 </button>
                 <button
-                  onClick={() => setAddType("training")}
+                  onClick={() => {
+                    setAddType("training")
+                    setSelectedPreset(null)
+                  }}
                   className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
                     addType === "training"
                       ? "bg-primary text-primary-foreground"
@@ -344,36 +389,99 @@ function CalendarView() {
                 </button>
               </div>
 
-              {/* Title */}
-              <input
-                type="text"
-                placeholder={addType === "meal" ? "Meal name..." : "Training name..."}
-                value={newEvent.title}
-                onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
-                className="bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
+              {/* Preset / Custom Toggle */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setInputMode("preset")
+                    setNewEvent({ ...newEvent, title: "", details: "" })
+                  }}
+                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
+                    inputMode === "preset"
+                      ? "bg-secondary text-foreground border border-primary/50"
+                      : "bg-secondary/50 text-muted-foreground border border-transparent"
+                  }`}
+                >
+                  Select {addType === "meal" ? "Dish" : "Workout"}
+                </button>
+                <button
+                  onClick={() => {
+                    setInputMode("custom")
+                    setSelectedPreset(null)
+                  }}
+                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
+                    inputMode === "custom"
+                      ? "bg-secondary text-foreground border border-primary/50"
+                      : "bg-secondary/50 text-muted-foreground border border-transparent"
+                  }`}
+                >
+                  Custom
+                </button>
+              </div>
+
+              {/* Preset Selection */}
+              {inputMode === "preset" && (
+                <div className="flex flex-col gap-2 max-h-48 overflow-y-auto">
+                  {(addType === "meal" ? presetDishes : presetWorkouts).map((preset) => (
+                    <button
+                      key={preset.id}
+                      onClick={() => setSelectedPreset(preset.id)}
+                      className={`p-3 rounded-xl text-left transition-all ${
+                        selectedPreset === preset.id
+                          ? addType === "meal" 
+                            ? "bg-emerald-500/20 border border-emerald-500"
+                            : "bg-primary/20 border border-primary"
+                          : "bg-secondary border border-transparent hover:border-border"
+                      }`}
+                    >
+                      <p className={`text-sm font-medium ${
+                        selectedPreset === preset.id ? "text-foreground" : "text-foreground"
+                      }`}>
+                        {preset.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                        {preset.details}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Custom Input */}
+              {inputMode === "custom" && (
+                <>
+                  <input
+                    type="text"
+                    placeholder={addType === "meal" ? "e.g. Homemade pasta, Restaurant dinner..." : "e.g. Running, Swimming, Yoga..."}
+                    value={newEvent.title}
+                    onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                    className="bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                  <textarea
+                    placeholder="Optional notes..."
+                    value={newEvent.details}
+                    onChange={(e) => setNewEvent({ ...newEvent, details: e.target.value })}
+                    rows={2}
+                    className="bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                  />
+                </>
+              )}
 
               {/* Time */}
-              <input
-                type="time"
-                value={newEvent.time}
-                onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
-                className="bg-secondary rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-
-              {/* Details */}
-              <textarea
-                placeholder={addType === "meal" ? "Ingredients or dish name..." : "Exercises..."}
-                value={newEvent.details}
-                onChange={(e) => setNewEvent({ ...newEvent, details: e.target.value })}
-                rows={3}
-                className="bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
-              />
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Time:</span>
+                <input
+                  type="time"
+                  value={newEvent.time}
+                  onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
+                  className="flex-1 bg-secondary rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+              </div>
 
               {/* Add Button */}
               <button
                 onClick={handleAddEvent}
-                disabled={!newEvent.title.trim()}
+                disabled={inputMode === "preset" ? !selectedPreset : !newEvent.title.trim()}
                 className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform"
               >
                 Add {addType === "meal" ? "Meal" : "Training"}
