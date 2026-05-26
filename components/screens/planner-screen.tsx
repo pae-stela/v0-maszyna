@@ -292,17 +292,31 @@ function CalendarView() {
                 )}
               </div>
 
-              {/* Add button */}
-              <button
-                onClick={() => {
-                  setSelectedDate(date)
-                  setShowAddModal(true)
-                }}
-                className="w-full py-2 border-t border-border text-xs text-muted-foreground hover:text-primary hover:bg-secondary/50 transition-colors flex items-center justify-center gap-1"
-              >
-                <Plus className="size-3" />
-                Add
-              </button>
+              {/* Add buttons */}
+              <div className="flex border-t border-border">
+                <button
+                  onClick={() => {
+                    setSelectedDate(date)
+                    setAddType("meal")
+                    setShowAddModal(true)
+                  }}
+                  className="flex-1 py-2 text-xs text-emerald-600 hover:bg-emerald-500/10 transition-colors flex items-center justify-center gap-1 border-r border-border"
+                >
+                  <UtensilsCrossed className="size-3" />
+                  Meal
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedDate(date)
+                    setAddType("training")
+                    setShowAddModal(true)
+                  }}
+                  className="flex-1 py-2 text-xs text-primary hover:bg-primary/10 transition-colors flex items-center justify-center gap-1"
+                >
+                  <Dumbbell className="size-3" />
+                  Training
+                </button>
+              </div>
             </div>
           )
         })}
@@ -347,7 +361,23 @@ function CalendarView() {
         <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 p-4">
           <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden">
             <div className="p-4 border-b border-border flex items-center justify-between">
-              <h3 className="font-semibold text-foreground">Add to {formatDate(selectedDate)}</h3>
+              <div className="flex items-center gap-2">
+                {addType === "meal" ? (
+                  <div className="size-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                    <UtensilsCrossed className="size-4 text-emerald-500" />
+                  </div>
+                ) : (
+                  <div className="size-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                    <Dumbbell className="size-4 text-primary" />
+                  </div>
+                )}
+                <div>
+                  <h3 className="font-semibold text-foreground">
+                    Add {addType === "meal" ? "Meal" : "Training"}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">{formatDate(selectedDate)}</p>
+                </div>
+              </div>
               <button 
                 onClick={() => setShowAddModal(false)}
                 className="p-1 rounded-lg hover:bg-secondary"
@@ -357,38 +387,6 @@ function CalendarView() {
             </div>
 
             <div className="p-4 flex flex-col gap-4">
-              {/* Type Toggle */}
-              <div className="flex gap-2 p-1 bg-secondary rounded-xl">
-                <button
-                  onClick={() => {
-                    setAddType("meal")
-                    setSelectedPreset(null)
-                  }}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                    addType === "meal"
-                      ? "bg-emerald-500 text-white"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  <UtensilsCrossed className="size-4" />
-                  Meal
-                </button>
-                <button
-                  onClick={() => {
-                    setAddType("training")
-                    setSelectedPreset(null)
-                  }}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                    addType === "training"
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  <Dumbbell className="size-4" />
-                  Training
-                </button>
-              </div>
-
               {/* Preset / Custom Toggle */}
               <div className="flex gap-2">
                 <button
