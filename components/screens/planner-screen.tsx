@@ -14,6 +14,7 @@ interface PlannerEvent {
   time: string
   type: EventType
   details?: string
+  owner: "marcin" | "patrycja"
 }
 
 export function PlannerScreen() {
@@ -116,13 +117,19 @@ function CalendarView() {
   const [addType, setAddType] = useState<"meal" | "training">("meal")
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [googleConnected, setGoogleConnected] = useState(false)
+  const [activeUser, setActiveUser] = useState<"marcin" | "patrycja">("marcin")
+  const [showBothCalendars, setShowBothCalendars] = useState(true)
   
   const [events, setEvents] = useState<PlannerEvent[]>([
-    { id: "1", date: new Date(), title: "Leg Day", time: "7:00 AM", type: "training", details: "Squats, Lunges, Leg Press" },
-    { id: "2", date: new Date(), title: "Power Breakfast", time: "8:30 AM", type: "meal", details: "Eggs, Oats, Banana" },
-    { id: "3", date: new Date(), title: "Lunch Bowl", time: "1:00 PM", type: "meal", details: "Chicken, Rice, Broccoli" },
-    { id: "4", date: new Date(Date.now() + 86400000), title: "Upper Body", time: "7:00 AM", type: "training" },
-    { id: "5", date: new Date(Date.now() + 86400000), title: "Team Meeting", time: "10:00 AM", type: "google" },
+    { id: "1", date: new Date(), title: "Leg Day", time: "7:00 AM", type: "training", details: "Squats, Lunges, Leg Press", owner: "marcin" },
+    { id: "2", date: new Date(), title: "Power Breakfast", time: "8:30 AM", type: "meal", details: "Eggs, Oats, Banana", owner: "marcin" },
+    { id: "3", date: new Date(), title: "Lunch Bowl", time: "1:00 PM", type: "meal", details: "Chicken, Rice, Broccoli", owner: "marcin" },
+    { id: "4", date: new Date(Date.now() + 86400000), title: "Upper Body", time: "7:00 AM", type: "training", owner: "marcin" },
+    { id: "5", date: new Date(Date.now() + 86400000), title: "Team Meeting", time: "10:00 AM", type: "google", owner: "marcin" },
+    { id: "6", date: new Date(), title: "Yoga", time: "6:30 AM", type: "training", details: "Morning flow", owner: "patrycja" },
+    { id: "7", date: new Date(), title: "Protein Shake", time: "7:30 AM", type: "meal", owner: "patrycja" },
+    { id: "8", date: new Date(), title: "Chicken Salad", time: "12:30 PM", type: "meal", owner: "patrycja" },
+    { id: "9", date: new Date(Date.now() + 86400000), title: "Pilates", time: "6:00 PM", type: "training", owner: "patrycja" },
   ])
 
   const [newEvent, setNewEvent] = useState({ title: "", time: "12:00", details: "" })
@@ -168,6 +175,7 @@ function CalendarView() {
       time: newEvent.time,
       type: addType,
       details: details || undefined,
+      owner: activeUser,
     }
     setEvents([...events, event])
     setNewEvent({ title: "", time: "12:00", details: "" })
@@ -177,14 +185,25 @@ function CalendarView() {
   }
 
   const getEventsForDate = (date: Date) => {
-    return events.filter(e => isSameDay(e.date, date)).sort((a, b) => a.time.localeCompare(b.time))
+    return events
+      .filter(e => isSameDay(e.date, date) && (showBothCalendars || e.owner === activeUser))
+      .sort((a, b) => a.time.localeCompare(b.time))
   }
 
-  const getEventColor = (type: EventType) => {
-    switch (type) {
-      case "training": return "bg-primary"
-      case "meal": return "bg-emerald-500"
-      case "google": return "bg-blue-500"
+  // Color scheme: Marcin = blue/navy, Patrycja = green/dark green
+  const getEventColor = (type: EventType, owner: "marcin" | "patrycja") => {
+    if (owner === "marcin") {
+      switch (type) {
+        case "training": return "bg-blue-500"
+        case "meal": return "bg-blue-400"
+        case "google": return "bg-blue-900"
+      }
+    } else {
+      switch (type) {
+        case "training": return "bg-emerald-500"
+        case "meal": return "bg-emerald-400"
+        case "google": return "bg-emerald-900"
+      }
     }
   }
 
@@ -213,6 +232,42 @@ function CalendarView() {
             {mode === "today" ? "Today" : mode === "3day" ? "3 Days" : "Week"}
           </button>
         ))}
+      </div>
+
+      {/* Calendar Owner Toggle */}
+      <div className="flex items-center gap-2">
+        <div className="flex gap-1 p-1 bg-card border border-border rounded-xl flex-1">
+          <button
+            onClick={() => setActiveUser("marcin")}
+            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
+              activeUser === "marcin"
+                ? "bg-blue-500 text-white"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Marcin
+          </button>
+          <button
+            onClick={() => setActiveUser("patrycja")}
+            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
+              activeUser === "patrycja"
+                ? "bg-emerald-500 text-white"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Patrycja
+          </button>
+        </div>
+        <button
+          onClick={() => setShowBothCalendars(!showBothCalendars)}
+          className={`px-3 py-2 rounded-xl text-sm font-medium transition-all border ${
+            showBothCalendars
+              ? "bg-secondary border-primary/50 text-foreground"
+              : "bg-card border-border text-muted-foreground"
+          }`}
+        >
+          Both
+        </button>
       </div>
 
       {/* Navigation */}
@@ -276,7 +331,7 @@ function CalendarView() {
                   dayEvents.map((event) => (
                     <div 
                       key={event.id}
-                      className={`rounded-lg p-2 text-white ${getEventColor(event.type)}`}
+                      className={`rounded-lg p-2 text-white ${getEventColor(event.type, event.owner)}`}
                     >
                       <div className="flex items-center gap-1.5">
                         {getEventIcon(event.type)}
@@ -284,9 +339,16 @@ function CalendarView() {
                           {event.title}
                         </span>
                       </div>
-                      <p className={`opacity-80 ${viewMode === "week" ? "text-[9px]" : "text-[10px]"}`}>
-                        {event.time}
-                      </p>
+                      <div className="flex items-center justify-between">
+                        <p className={`opacity-80 ${viewMode === "week" ? "text-[9px]" : "text-[10px]"}`}>
+                          {event.time}
+                        </p>
+                        {showBothCalendars && (
+                          <span className={`opacity-70 ${viewMode === "week" ? "text-[8px]" : "text-[9px]"}`}>
+                            {event.owner === "marcin" ? "M" : "P"}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   ))
                 )}
