@@ -656,7 +656,9 @@ function ShoppingView() {
           const dish = dishesAndComponents.find(d => d.name === mealName)
           if (dish) {
             dish.ingredients.forEach(ing => {
-              if (!items.some(i => i.name.toLowerCase() === ing.toLowerCase()) && 
+              // Only check against manual items (planner items will be replaced)
+              const manualItems = items.filter(i => i.source === "manual")
+              if (!manualItems.some(i => i.name.toLowerCase() === ing.toLowerCase()) && 
                   !newItems.some(i => i.name.toLowerCase() === ing.toLowerCase())) {
                 newItems.push({
                   id: Date.now().toString() + Math.random(),
@@ -677,7 +679,9 @@ function ShoppingView() {
         const dish = dishesAndComponents.find(d => d.id === dishId)
         if (dish) {
           dish.ingredients.forEach(ing => {
-            if (!items.some(i => i.name.toLowerCase() === ing.toLowerCase()) && 
+            // Only check against manual items (planner items will be replaced)
+            const manualItems = items.filter(i => i.source === "manual")
+            if (!manualItems.some(i => i.name.toLowerCase() === ing.toLowerCase()) && 
                 !newItems.some(i => i.name.toLowerCase() === ing.toLowerCase())) {
               newItems.push({
                 id: Date.now().toString() + Math.random(),
@@ -694,7 +698,10 @@ function ShoppingView() {
       })
     }
 
-    setItems([...items, ...newItems])
+    // Keep all manual items, only update planner-sourced items
+    const manualItems = items.filter(i => i.source === "manual")
+    
+    setItems([...manualItems, ...newItems])
     setShowImportModal(false)
     setSelectedDays([])
     setSelectedDishes([])
@@ -704,12 +711,12 @@ function ShoppingView() {
   return (
     <div className="flex flex-col gap-4">
       {/* Planner Changed Warning */}
-      {plannerChanged && (
+      {plannerChanged && items.some(i => i.source !== "manual") && (
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 flex items-center gap-3">
           <AlertTriangle className="size-5 text-amber-500 shrink-0" />
           <div className="flex-1">
             <p className="text-sm text-foreground font-medium">Planner has been edited</p>
-            <p className="text-xs text-muted-foreground">Update list to reflect changes?</p>
+            <p className="text-xs text-muted-foreground">Update planner items? Manual items won&apos;t change.</p>
           </div>
           <button
             onClick={() => setShowImportModal(true)}
@@ -826,9 +833,16 @@ function ShoppingView() {
                           {item.checked && <Check className="size-3 text-primary-foreground" />}
                         </button>
                         <div className="flex-1 min-w-0">
-                          <span className={`text-sm ${item.checked ? "text-muted-foreground line-through" : "text-foreground"}`}>
-                            {item.name}
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`text-sm ${item.checked ? "text-muted-foreground line-through" : "text-foreground"}`}>
+                              {item.name}
+                            </span>
+                            {item.source && item.source !== "manual" && (
+                              <span className="px-1.5 py-0.5 rounded bg-primary/20 text-primary text-[9px] font-medium shrink-0">
+                                PLANNER
+                              </span>
+                            )}
+                          </div>
                           {item.source && item.source !== "manual" && (
                             <p className="text-[10px] text-muted-foreground truncate">from {item.source}</p>
                           )}
