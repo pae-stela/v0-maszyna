@@ -579,7 +579,10 @@ function ShoppingView() {
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null)
   const [plannerChanged, setPlannerChanged] = useState(true) // Simulated planner change warning
   const [showImportModal, setShowImportModal] = useState(false)
+  const [showRecipeModal, setShowRecipeModal] = useState(false)
   const [importMode, setImportMode] = useState<"days" | "dishes">("days")
+  const [recipeTab, setRecipeTab] = useState<"dishes" | "components">("dishes")
+  const [recipeSearch, setRecipeSearch] = useState("")
   const [selectedDays, setSelectedDays] = useState<number[]>([])
   const [selectedDishes, setSelectedDishes] = useState<string[]>([])
 
@@ -595,12 +598,27 @@ function ShoppingView() {
   ]
 
   const dishesAndComponents = [
-    { id: "d1", name: "Power Breakfast", type: "dish", ingredients: ["Eggs", "Oats", "Banana"] },
-    { id: "d2", name: "Lunch Bowl", type: "dish", ingredients: ["Chicken Breast", "Rice", "Broccoli", "Guacamole"] },
-    { id: "d3", name: "Protein Shake", type: "dish", ingredients: ["Banana", "Greek Yogurt", "Almonds"] },
+    { id: "d1", name: "Power Breakfast", type: "dish", category: "Light", subCategory: "Oats & Granola", ingredients: ["Eggs", "Oats", "Banana"] },
+    { id: "d2", name: "Lunch Bowl", type: "dish", category: "Large", subCategory: "Salads & Veggies", ingredients: ["Chicken Breast", "Rice", "Broccoli", "Guacamole"] },
+    { id: "d3", name: "Protein Shake", type: "dish", category: "Drinks", subCategory: "Shakes & Smoothies", ingredients: ["Banana", "Greek Yogurt", "Almonds"] },
+    { id: "d4", name: "Trail Mix Bites", type: "dish", category: "Snacks", subCategory: "Sweet", ingredients: ["Almonds", "Oats"] },
+    { id: "d5", name: "Grilled Salmon", type: "dish", category: "Large", subCategory: "Traditional", ingredients: ["Salmon", "Olive Oil", "Lemon"] },
+    { id: "d6", name: "Chicken Salad", type: "dish", category: "Large", subCategory: "Salads & Veggies", ingredients: ["Chicken Breast", "Mixed Greens", "Tomato", "Dressing"] },
     { id: "c1", name: "Guacamole", type: "component", ingredients: ["Avocado", "Tomato", "Onion", "Lime juice"] },
     { id: "c2", name: "Scrambled Eggs", type: "component", ingredients: ["Eggs", "Butter", "Salt"] },
+    { id: "c3", name: "Tomato Sauce", type: "component", ingredients: ["Tomato", "Onion", "Garlic", "Olive Oil"] },
+    { id: "c4", name: "Pesto", type: "component", ingredients: ["Basil", "Pine Nuts", "Parmesan", "Olive Oil"] },
   ]
+
+  const dishCategories = ["All", "Large", "Light", "Snacks", "Drinks"]
+  const [selectedDishCategory, setSelectedDishCategory] = useState("All")
+
+  const filteredRecipes = dishesAndComponents.filter(item => {
+    const matchesTab = recipeTab === "dishes" ? item.type === "dish" : item.type === "component"
+    const matchesSearch = item.name.toLowerCase().includes(recipeSearch.toLowerCase())
+    const matchesCategory = recipeTab === "components" || selectedDishCategory === "All" || item.category === selectedDishCategory
+    return matchesTab && matchesSearch && matchesCategory
+  })
 
   const categories = [...new Set(items.map((item) => item.category))]
 
@@ -746,8 +764,7 @@ function ShoppingView() {
         </button>
         <button
           onClick={() => {
-            setImportMode("dishes")
-            setShowImportModal(true)
+            setShowRecipeModal(true)
           }}
           className="flex-1 py-3 rounded-xl bg-card border border-border text-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
         >
@@ -880,17 +897,19 @@ function ShoppingView() {
         )}
       </div>
 
-      {/* Import Modal */}
+      {/* Import from Planner Modal */}
       {showImportModal && (
         <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 p-4">
           <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden max-h-[80vh] flex flex-col">
             <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
-              <h3 className="font-semibold text-foreground">Import Ingredients</h3>
+              <div className="flex items-center gap-2">
+                <Calendar className="size-5 text-primary" />
+                <h3 className="font-semibold text-foreground">Import from Planner</h3>
+              </div>
               <button 
                 onClick={() => {
                   setShowImportModal(false)
                   setSelectedDays([])
-                  setSelectedDishes([])
                 }}
                 className="p-1 rounded-lg hover:bg-secondary"
               >
@@ -898,120 +917,183 @@ function ShoppingView() {
               </button>
             </div>
 
-            <div className="p-4 flex flex-col gap-4 overflow-y-auto">
-              {/* Import Mode Toggle */}
+            <div className="p-4 flex flex-col gap-3 overflow-y-auto">
+              <p className="text-xs text-muted-foreground">Select days to import ingredients from planned meals:</p>
+              {upcomingDays.map((day, index) => (
+                <button
+                  key={index}
+                  onClick={() => {
+                    if (selectedDays.includes(index)) {
+                      setSelectedDays(selectedDays.filter(d => d !== index))
+                    } else {
+                      setSelectedDays([...selectedDays, index])
+                    }
+                  }}
+                  disabled={day.meals.length === 0}
+                  className={`p-3 rounded-xl text-left transition-all ${
+                    selectedDays.includes(index)
+                      ? "bg-primary/20 border border-primary"
+                      : day.meals.length === 0
+                      ? "bg-secondary/50 border border-transparent opacity-50"
+                      : "bg-secondary border border-transparent hover:border-border"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-foreground">{day.label}</span>
+                    {selectedDays.includes(index) && <Check className="size-4 text-primary" />}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {day.meals.length > 0 ? day.meals.join(", ") : "No meals planned"}
+                  </p>
+                </button>
+              ))}
+            </div>
+
+            <div className="p-4 border-t border-border shrink-0">
+              <button
+                onClick={importFromPlanner}
+                disabled={selectedDays.length === 0}
+                className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform"
+              >
+                Import from {selectedDays.length} day{selectedDays.length !== 1 ? "s" : ""}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Import from Recipe Modal */}
+      {showRecipeModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 p-4">
+          <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden max-h-[80vh] flex flex-col">
+            <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                <FileText className="size-5 text-primary" />
+                <h3 className="font-semibold text-foreground">Import from Recipe</h3>
+              </div>
+              <button 
+                onClick={() => {
+                  setShowRecipeModal(false)
+                  setSelectedDishes([])
+                  setRecipeSearch("")
+                  setSelectedDishCategory("All")
+                }}
+                className="p-1 rounded-lg hover:bg-secondary"
+              >
+                <X className="size-5 text-muted-foreground" />
+              </button>
+            </div>
+
+            <div className="p-4 border-b border-border flex flex-col gap-3 shrink-0">
+              {/* Tab Toggle */}
               <div className="flex gap-2 p-1 bg-secondary rounded-xl">
                 <button
                   onClick={() => {
-                    setImportMode("days")
+                    setRecipeTab("dishes")
                     setSelectedDishes([])
                   }}
-                  className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                    importMode === "days"
+                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
+                    recipeTab === "dishes"
                       ? "bg-card text-foreground shadow-sm"
                       : "text-muted-foreground"
                   }`}
                 >
-                  By Days
+                  Dishes
                 </button>
                 <button
                   onClick={() => {
-                    setImportMode("dishes")
-                    setSelectedDays([])
+                    setRecipeTab("components")
+                    setSelectedDishes([])
                   }}
-                  className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                    importMode === "dishes"
+                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
+                    recipeTab === "components"
                       ? "bg-card text-foreground shadow-sm"
                       : "text-muted-foreground"
                   }`}
                 >
-                  By Dish/Component
+                  Components
                 </button>
               </div>
 
-              {/* Days Selection */}
-              {importMode === "days" && (
-                <div className="flex flex-col gap-2">
-                  <p className="text-xs text-muted-foreground">Select days to import ingredients from planned meals:</p>
-                  {upcomingDays.map((day, index) => (
+              {/* Search */}
+              <input
+                type="text"
+                placeholder="Search..."
+                value={recipeSearch}
+                onChange={(e) => setRecipeSearch(e.target.value)}
+                className="bg-secondary rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+
+              {/* Category Filter (dishes only) */}
+              {recipeTab === "dishes" && (
+                <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+                  {dishCategories.map((cat) => (
                     <button
-                      key={index}
-                      onClick={() => {
-                        if (selectedDays.includes(index)) {
-                          setSelectedDays(selectedDays.filter(d => d !== index))
-                        } else {
-                          setSelectedDays([...selectedDays, index])
-                        }
-                      }}
-                      disabled={day.meals.length === 0}
-                      className={`p-3 rounded-xl text-left transition-all ${
-                        selectedDays.includes(index)
-                          ? "bg-primary/20 border border-primary"
-                          : day.meals.length === 0
-                          ? "bg-secondary/50 border border-transparent opacity-50"
-                          : "bg-secondary border border-transparent hover:border-border"
+                      key={cat}
+                      onClick={() => setSelectedDishCategory(cat)}
+                      className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                        selectedDishCategory === cat
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary text-muted-foreground hover:text-foreground"
                       }`}
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-foreground">{day.label}</span>
-                        {selectedDays.includes(index) && <Check className="size-4 text-primary" />}
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {day.meals.length > 0 ? day.meals.join(", ") : "No meals planned"}
-                      </p>
+                      {cat}
                     </button>
                   ))}
                 </div>
               )}
+            </div>
 
-              {/* Dishes/Components Selection */}
-              {importMode === "dishes" && (
-                <div className="flex flex-col gap-2">
-                  <p className="text-xs text-muted-foreground">Select dishes or components to import ingredients:</p>
-                  {dishesAndComponents.map((item) => (
-                    <button
-                      key={item.id}
-                      onClick={() => {
-                        if (selectedDishes.includes(item.id)) {
-                          setSelectedDishes(selectedDishes.filter(d => d !== item.id))
-                        } else {
-                          setSelectedDishes([...selectedDishes, item.id])
-                        }
-                      }}
-                      className={`p-3 rounded-xl text-left transition-all ${
-                        selectedDishes.includes(item.id)
-                          ? "bg-primary/20 border border-primary"
-                          : "bg-secondary border border-transparent hover:border-border"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        {item.type === "component" ? (
-                          <FileText className="size-4 text-muted-foreground" />
-                        ) : (
-                          <UtensilsCrossed className="size-4 text-muted-foreground" />
-                        )}
-                        <span className="text-sm font-medium text-foreground flex-1">{item.name}</span>
-                        <span className="text-[10px] text-muted-foreground uppercase">{item.type}</span>
-                        {selectedDishes.includes(item.id) && <Check className="size-4 text-primary" />}
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1 pl-6">
-                        {item.ingredients.join(", ")}
-                      </p>
-                    </button>
-                  ))}
-                </div>
+            <div className="p-4 flex flex-col gap-2 overflow-y-auto flex-1">
+              {filteredRecipes.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">No {recipeTab} found</p>
+              ) : (
+                filteredRecipes.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      if (selectedDishes.includes(item.id)) {
+                        setSelectedDishes(selectedDishes.filter(d => d !== item.id))
+                      } else {
+                        setSelectedDishes([...selectedDishes, item.id])
+                      }
+                    }}
+                    className={`p-3 rounded-xl text-left transition-all ${
+                      selectedDishes.includes(item.id)
+                        ? "bg-primary/20 border border-primary"
+                        : "bg-secondary border border-transparent hover:border-border"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      {item.type === "component" ? (
+                        <FileText className="size-4 text-muted-foreground" />
+                      ) : (
+                        <UtensilsCrossed className="size-4 text-muted-foreground" />
+                      )}
+                      <span className="text-sm font-medium text-foreground flex-1">{item.name}</span>
+                      {item.type === "dish" && item.category && (
+                        <span className="text-[10px] text-muted-foreground">{item.category}</span>
+                      )}
+                      {selectedDishes.includes(item.id) && <Check className="size-4 text-primary" />}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1 pl-6 truncate">
+                      {item.ingredients.join(", ")}
+                    </p>
+                  </button>
+                ))
               )}
+            </div>
 
-              {/* Import Button */}
+            <div className="p-4 border-t border-border shrink-0">
               <button
-                onClick={importFromPlanner}
-                disabled={(importMode === "days" && selectedDays.length === 0) || (importMode === "dishes" && selectedDishes.length === 0)}
+                onClick={() => {
+                  importFromPlanner()
+                  setShowRecipeModal(false)
+                }}
+                disabled={selectedDishes.length === 0}
                 className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform"
               >
-                Import {importMode === "days" 
-                  ? `from ${selectedDays.length} day${selectedDays.length !== 1 ? "s" : ""}` 
-                  : `${selectedDishes.length} item${selectedDishes.length !== 1 ? "s" : ""}`
-                }
+                Import {selectedDishes.length} {recipeTab === "dishes" ? "dish" : "component"}{selectedDishes.length !== 1 ? "es" : ""}
               </button>
             </div>
           </div>
