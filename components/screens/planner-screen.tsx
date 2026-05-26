@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Calendar, ShoppingCart, ChevronLeft, ChevronRight, Plus, Check, X, Dumbbell, UtensilsCrossed, ExternalLink } from "lucide-react"
+import { Calendar, ShoppingCart, ChevronLeft, ChevronRight, Plus, Check, X, Dumbbell, UtensilsCrossed, ExternalLink, AlertTriangle, RefreshCw, ChevronDown, FileText } from "lucide-react"
 
 type SubTab = "calendar" | "shopping"
 type CalendarViewMode = "today" | "3day" | "week"
@@ -555,69 +555,468 @@ function CalendarView() {
 }
 
 function ShoppingView() {
-  const [items] = useState([
-    { name: "Chicken breast", quantity: "1.5kg", checked: false, category: "Protein" },
-    { name: "Greek yogurt", quantity: "1kg", checked: true, category: "Dairy" },
-    { name: "Eggs", quantity: "30 pcs", checked: false, category: "Protein" },
-    { name: "Broccoli", quantity: "500g", checked: false, category: "Vegetables" },
-    { name: "Sweet potato", quantity: "1kg", checked: true, category: "Carbs" },
-    { name: "Oats", quantity: "1kg", checked: false, category: "Carbs" },
-    { name: "Olive oil", quantity: "500ml", checked: false, category: "Fats" },
+  interface ShoppingItem {
+    id: string
+    name: string
+    amount: string
+    note: string
+    checked: boolean
+    category: string
+    source?: string // "manual" | dish/component name
+  }
+
+  const [items, setItems] = useState<ShoppingItem[]>([
+    { id: "1", name: "Chicken breast", amount: "1.5kg", note: "", checked: false, category: "Protein", source: "Lunch Bowl" },
+    { id: "2", name: "Greek yogurt", amount: "1kg", note: "Low fat preferred", checked: true, category: "Dairy", source: "Protein Shake" },
+    { id: "3", name: "Eggs", amount: "30 pcs", note: "", checked: false, category: "Protein", source: "Power Breakfast" },
+    { id: "4", name: "Broccoli", amount: "500g", note: "", checked: false, category: "Vegetables", source: "Lunch Bowl" },
+    { id: "5", name: "Oats", amount: "1kg", note: "Steel cut", checked: false, category: "Carbs", source: "Power Breakfast" },
   ])
+
+  const [newItemName, setNewItemName] = useState("")
+  const [newItemAmount, setNewItemAmount] = useState("")
+  const [newItemNote, setNewItemNote] = useState("")
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [expandedItemId, setExpandedItemId] = useState<string | null>(null)
+  const [plannerChanged, setPlannerChanged] = useState(true) // Simulated planner change warning
+  const [showImportModal, setShowImportModal] = useState(false)
+  const [importMode, setImportMode] = useState<"days" | "dishes">("days")
+  const [selectedDays, setSelectedDays] = useState<number[]>([])
+  const [selectedDishes, setSelectedDishes] = useState<string[]>([])
+
+  // Sample data for import options
+  const upcomingDays = [
+    { day: 0, label: "Today", meals: ["Power Breakfast", "Lunch Bowl"] },
+    { day: 1, label: "Tomorrow", meals: ["Protein Shake", "Chicken Salad"] },
+    { day: 2, label: "Day 3", meals: ["Trail Mix Bites"] },
+    { day: 3, label: "Day 4", meals: [] },
+    { day: 4, label: "Day 5", meals: ["Grilled Salmon"] },
+    { day: 5, label: "Day 6", meals: [] },
+    { day: 6, label: "Day 7", meals: ["Power Breakfast"] },
+  ]
+
+  const dishesAndComponents = [
+    { id: "d1", name: "Power Breakfast", type: "dish", ingredients: ["Eggs", "Oats", "Banana"] },
+    { id: "d2", name: "Lunch Bowl", type: "dish", ingredients: ["Chicken Breast", "Rice", "Broccoli", "Guacamole"] },
+    { id: "d3", name: "Protein Shake", type: "dish", ingredients: ["Banana", "Greek Yogurt", "Almonds"] },
+    { id: "c1", name: "Guacamole", type: "component", ingredients: ["Avocado", "Tomato", "Onion", "Lime juice"] },
+    { id: "c2", name: "Scrambled Eggs", type: "component", ingredients: ["Eggs", "Butter", "Salt"] },
+  ]
 
   const categories = [...new Set(items.map((item) => item.category))]
 
+  const toggleCheck = (id: string) => {
+    setItems(items.map(item => 
+      item.id === id ? { ...item, checked: !item.checked } : item
+    ))
+  }
+
+  const deleteItem = (id: string) => {
+    setItems(items.filter(item => item.id !== id))
+  }
+
+  const addItem = () => {
+    if (!newItemName.trim()) return
+    const newItem: ShoppingItem = {
+      id: Date.now().toString(),
+      name: newItemName,
+      amount: newItemAmount || "—",
+      note: newItemNote,
+      checked: false,
+      category: "Other",
+      source: "manual"
+    }
+    setItems([...items, newItem])
+    setNewItemName("")
+    setNewItemAmount("")
+    setNewItemNote("")
+    setShowAddForm(false)
+  }
+
+  const updateItemNote = (id: string, note: string) => {
+    setItems(items.map(item => 
+      item.id === id ? { ...item, note } : item
+    ))
+  }
+
+  const updateItemAmount = (id: string, amount: string) => {
+    setItems(items.map(item => 
+      item.id === id ? { ...item, amount } : item
+    ))
+  }
+
+  const importFromPlanner = () => {
+    // Simulate importing ingredients based on selection
+    const newItems: ShoppingItem[] = []
+    
+    if (importMode === "days") {
+      selectedDays.forEach(dayIndex => {
+        const day = upcomingDays[dayIndex]
+        day.meals.forEach(mealName => {
+          const dish = dishesAndComponents.find(d => d.name === mealName)
+          if (dish) {
+            dish.ingredients.forEach(ing => {
+              if (!items.some(i => i.name.toLowerCase() === ing.toLowerCase()) && 
+                  !newItems.some(i => i.name.toLowerCase() === ing.toLowerCase())) {
+                newItems.push({
+                  id: Date.now().toString() + Math.random(),
+                  name: ing,
+                  amount: "—",
+                  note: "",
+                  checked: false,
+                  category: "Imported",
+                  source: mealName
+                })
+              }
+            })
+          }
+        })
+      })
+    } else {
+      selectedDishes.forEach(dishId => {
+        const dish = dishesAndComponents.find(d => d.id === dishId)
+        if (dish) {
+          dish.ingredients.forEach(ing => {
+            if (!items.some(i => i.name.toLowerCase() === ing.toLowerCase()) && 
+                !newItems.some(i => i.name.toLowerCase() === ing.toLowerCase())) {
+              newItems.push({
+                id: Date.now().toString() + Math.random(),
+                name: ing,
+                amount: "—",
+                note: "",
+                checked: false,
+                category: "Imported",
+                source: dish.name
+              })
+            }
+          })
+        }
+      })
+    }
+
+    setItems([...items, ...newItems])
+    setShowImportModal(false)
+    setSelectedDays([])
+    setSelectedDishes([])
+    setPlannerChanged(false)
+  }
+
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-3">
-        <input
-          type="text"
-          placeholder="Add item to list..."
-          className="flex-1 bg-card rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
-        />
-        <button className="size-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center active:scale-95 transition-transform">
-          <Plus className="size-5" />
-        </button>
-      </div>
+      {/* Planner Changed Warning */}
+      {plannerChanged && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 flex items-center gap-3">
+          <AlertTriangle className="size-5 text-amber-500 shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm text-foreground font-medium">Planner has been edited</p>
+            <p className="text-xs text-muted-foreground">Update list to reflect changes?</p>
+          </div>
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="px-3 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-medium flex items-center gap-1"
+          >
+            <RefreshCw className="size-3" />
+            Update
+          </button>
+          <button
+            onClick={() => setPlannerChanged(false)}
+            className="p-1 hover:bg-secondary rounded"
+          >
+            <X className="size-4 text-muted-foreground" />
+          </button>
+        </div>
+      )}
 
-      <div className="flex flex-col gap-4">
-        {categories.map((category) => (
-          <div key={category}>
-            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-              {category}
-            </h4>
-            <div className="bg-card rounded-2xl border border-border overflow-hidden divide-y divide-border">
-              {items
-                .filter((item) => item.category === category)
-                .map((item, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-3 p-4"
-                  >
-                    <button
-                      className={`size-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                        item.checked
-                          ? "bg-primary border-primary"
-                          : "border-muted-foreground"
-                      }`}
-                    >
-                      {item.checked && <Check className="size-3 text-primary-foreground" />}
-                    </button>
-                    <div className="flex-1">
-                      <span className={`text-sm ${item.checked ? "text-muted-foreground line-through" : "text-foreground"}`}>
-                        {item.name}
-                      </span>
-                    </div>
-                    <span className="text-xs text-muted-foreground">{item.quantity}</span>
-                    <button className="p-1 hover:bg-secondary rounded transition-colors">
-                      <X className="size-4 text-muted-foreground" />
-                    </button>
-                  </div>
-                ))}
+      {/* Add Item Section */}
+      <div className="bg-card rounded-2xl border border-border overflow-hidden">
+        {!showAddForm ? (
+          <div className="p-3 flex gap-2">
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="flex-1 py-3 rounded-xl bg-secondary text-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+            >
+              <Plus className="size-4" />
+              Add Item
+            </button>
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+            >
+              <Calendar className="size-4" />
+              From Planner
+            </button>
+          </div>
+        ) : (
+          <div className="p-4 flex flex-col gap-3">
+            <input
+              type="text"
+              placeholder="Item name..."
+              value={newItemName}
+              onChange={(e) => setNewItemName(e.target.value)}
+              className="bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Amount (e.g. 500g)"
+                value={newItemAmount}
+                onChange={(e) => setNewItemAmount(e.target.value)}
+                className="flex-1 bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+            </div>
+            <textarea
+              placeholder="Note (optional)..."
+              value={newItemNote}
+              onChange={(e) => setNewItemNote(e.target.value)}
+              rows={2}
+              className="bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowAddForm(false)}
+                className="flex-1 py-2.5 rounded-xl bg-secondary text-foreground text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={addItem}
+                disabled={!newItemName.trim()}
+                className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50"
+              >
+                Add
+              </button>
             </div>
           </div>
-        ))}
+        )}
       </div>
+
+      {/* Shopping List */}
+      <div className="flex flex-col gap-4">
+        {categories.length === 0 ? (
+          <div className="bg-card rounded-2xl border border-border p-8 text-center">
+            <ShoppingCart className="size-10 text-muted-foreground mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground">Your shopping list is empty</p>
+          </div>
+        ) : (
+          categories.map((category) => (
+            <div key={category}>
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                {category}
+              </h4>
+              <div className="bg-card rounded-2xl border border-border overflow-hidden divide-y divide-border">
+                {items
+                  .filter((item) => item.category === category)
+                  .map((item) => (
+                    <div key={item.id}>
+                      <div
+                        className="flex items-center gap-3 p-4 cursor-pointer"
+                        onClick={() => setExpandedItemId(expandedItemId === item.id ? null : item.id)}
+                      >
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            toggleCheck(item.id)
+                          }}
+                          className={`size-6 rounded-full border-2 flex items-center justify-center transition-colors shrink-0 ${
+                            item.checked
+                              ? "bg-primary border-primary"
+                              : "border-muted-foreground"
+                          }`}
+                        >
+                          {item.checked && <Check className="size-3 text-primary-foreground" />}
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <span className={`text-sm ${item.checked ? "text-muted-foreground line-through" : "text-foreground"}`}>
+                            {item.name}
+                          </span>
+                          {item.source && item.source !== "manual" && (
+                            <p className="text-[10px] text-muted-foreground truncate">from {item.source}</p>
+                          )}
+                        </div>
+                        <span className="text-xs text-muted-foreground shrink-0">{item.amount}</span>
+                        <ChevronDown className={`size-4 text-muted-foreground transition-transform ${expandedItemId === item.id ? "rotate-180" : ""}`} />
+                      </div>
+                      
+                      {/* Expanded Edit Section */}
+                      {expandedItemId === item.id && (
+                        <div className="px-4 pb-4 pt-2 border-t border-border bg-secondary/30">
+                          <div className="flex flex-col gap-3">
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                placeholder="Amount"
+                                value={item.amount === "—" ? "" : item.amount}
+                                onChange={(e) => updateItemAmount(item.id, e.target.value || "—")}
+                                onClick={(e) => e.stopPropagation()}
+                                className="flex-1 bg-secondary rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                              />
+                            </div>
+                            <textarea
+                              placeholder="Add a note..."
+                              value={item.note}
+                              onChange={(e) => updateItemNote(item.id, e.target.value)}
+                              onClick={(e) => e.stopPropagation()}
+                              rows={2}
+                              className="bg-secondary rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                            />
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                deleteItem(item.id)
+                              }}
+                              className="w-full py-2 rounded-lg bg-destructive/10 text-destructive text-sm font-medium flex items-center justify-center gap-2"
+                            >
+                              <X className="size-4" />
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 p-4">
+          <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden max-h-[80vh] flex flex-col">
+            <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
+              <h3 className="font-semibold text-foreground">Import Ingredients</h3>
+              <button 
+                onClick={() => {
+                  setShowImportModal(false)
+                  setSelectedDays([])
+                  setSelectedDishes([])
+                }}
+                className="p-1 rounded-lg hover:bg-secondary"
+              >
+                <X className="size-5 text-muted-foreground" />
+              </button>
+            </div>
+
+            <div className="p-4 flex flex-col gap-4 overflow-y-auto">
+              {/* Import Mode Toggle */}
+              <div className="flex gap-2 p-1 bg-secondary rounded-xl">
+                <button
+                  onClick={() => {
+                    setImportMode("days")
+                    setSelectedDishes([])
+                  }}
+                  className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                    importMode === "days"
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  By Days
+                </button>
+                <button
+                  onClick={() => {
+                    setImportMode("dishes")
+                    setSelectedDays([])
+                  }}
+                  className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                    importMode === "dishes"
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  By Dish/Component
+                </button>
+              </div>
+
+              {/* Days Selection */}
+              {importMode === "days" && (
+                <div className="flex flex-col gap-2">
+                  <p className="text-xs text-muted-foreground">Select days to import ingredients from planned meals:</p>
+                  {upcomingDays.map((day, index) => (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        if (selectedDays.includes(index)) {
+                          setSelectedDays(selectedDays.filter(d => d !== index))
+                        } else {
+                          setSelectedDays([...selectedDays, index])
+                        }
+                      }}
+                      disabled={day.meals.length === 0}
+                      className={`p-3 rounded-xl text-left transition-all ${
+                        selectedDays.includes(index)
+                          ? "bg-primary/20 border border-primary"
+                          : day.meals.length === 0
+                          ? "bg-secondary/50 border border-transparent opacity-50"
+                          : "bg-secondary border border-transparent hover:border-border"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-foreground">{day.label}</span>
+                        {selectedDays.includes(index) && <Check className="size-4 text-primary" />}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {day.meals.length > 0 ? day.meals.join(", ") : "No meals planned"}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Dishes/Components Selection */}
+              {importMode === "dishes" && (
+                <div className="flex flex-col gap-2">
+                  <p className="text-xs text-muted-foreground">Select dishes or components to import ingredients:</p>
+                  {dishesAndComponents.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        if (selectedDishes.includes(item.id)) {
+                          setSelectedDishes(selectedDishes.filter(d => d !== item.id))
+                        } else {
+                          setSelectedDishes([...selectedDishes, item.id])
+                        }
+                      }}
+                      className={`p-3 rounded-xl text-left transition-all ${
+                        selectedDishes.includes(item.id)
+                          ? "bg-primary/20 border border-primary"
+                          : "bg-secondary border border-transparent hover:border-border"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        {item.type === "component" ? (
+                          <FileText className="size-4 text-muted-foreground" />
+                        ) : (
+                          <UtensilsCrossed className="size-4 text-muted-foreground" />
+                        )}
+                        <span className="text-sm font-medium text-foreground flex-1">{item.name}</span>
+                        <span className="text-[10px] text-muted-foreground uppercase">{item.type}</span>
+                        {selectedDishes.includes(item.id) && <Check className="size-4 text-primary" />}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1 pl-6">
+                        {item.ingredients.join(", ")}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Import Button */}
+              <button
+                onClick={importFromPlanner}
+                disabled={(importMode === "days" && selectedDays.length === 0) || (importMode === "dishes" && selectedDishes.length === 0)}
+                className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform"
+              >
+                Import {importMode === "days" 
+                  ? `from ${selectedDays.length} day${selectedDays.length !== 1 ? "s" : ""}` 
+                  : `${selectedDishes.length} item${selectedDishes.length !== 1 ? "s" : ""}`
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
