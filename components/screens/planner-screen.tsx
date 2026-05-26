@@ -300,10 +300,10 @@ function CalendarView() {
                     setAddType("meal")
                     setShowAddModal(true)
                   }}
-                  className="flex-1 py-2 text-xs text-emerald-600 hover:bg-emerald-500/10 transition-colors flex items-center justify-center gap-1 border-r border-border"
+                  className="flex-1 py-2 text-emerald-600 hover:bg-emerald-500/10 transition-colors flex items-center justify-center gap-1 border-r border-border"
                 >
-                  <UtensilsCrossed className="size-3" />
-                  Meal
+                  <Plus className="size-3" />
+                  <UtensilsCrossed className="size-3.5" />
                 </button>
                 <button
                   onClick={() => {
@@ -311,10 +311,10 @@ function CalendarView() {
                     setAddType("training")
                     setShowAddModal(true)
                   }}
-                  className="flex-1 py-2 text-xs text-primary hover:bg-primary/10 transition-colors flex items-center justify-center gap-1"
+                  className="flex-1 py-2 text-primary hover:bg-primary/10 transition-colors flex items-center justify-center gap-1"
                 >
-                  <Dumbbell className="size-3" />
-                  Training
+                  <Plus className="size-3" />
+                  <Dumbbell className="size-3.5" />
                 </button>
               </div>
             </div>
