@@ -576,7 +576,6 @@ function ShoppingView() {
   const [newItemName, setNewItemName] = useState("")
   const [newItemAmount, setNewItemAmount] = useState("")
   const [newItemNote, setNewItemNote] = useState("")
-  const [showAddForm, setShowAddForm] = useState(false)
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null)
   const [plannerChanged, setPlannerChanged] = useState(true) // Simulated planner change warning
   const [showImportModal, setShowImportModal] = useState(false)
@@ -710,6 +709,53 @@ function ShoppingView() {
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Quick Add Input */}
+      <div className="flex items-center gap-2">
+        <input
+          type="text"
+          placeholder="Add item..."
+          value={newItemName}
+          onChange={(e) => setNewItemName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && newItemName.trim()) {
+              addItem()
+            }
+          }}
+          className="flex-1 bg-card rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+        />
+        <button
+          onClick={addItem}
+          disabled={!newItemName.trim()}
+          className="size-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-transform"
+        >
+          <Plus className="size-5" />
+        </button>
+      </div>
+
+      {/* Import Buttons */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => {
+            setImportMode("days")
+            setShowImportModal(true)
+          }}
+          className="flex-1 py-3 rounded-xl bg-card border border-border text-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+        >
+          <Calendar className="size-4" />
+          From Planner
+        </button>
+        <button
+          onClick={() => {
+            setImportMode("dishes")
+            setShowImportModal(true)
+          }}
+          className="flex-1 py-3 rounded-xl bg-card border border-border text-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+        >
+          <FileText className="size-4" />
+          From Recipe
+        </button>
+      </div>
+
       {/* Planner Changed Warning */}
       {plannerChanged && items.some(i => i.source !== "manual") && (
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 flex items-center gap-3">
@@ -719,7 +765,10 @@ function ShoppingView() {
             <p className="text-xs text-muted-foreground">Update planner items? Manual items won&apos;t change.</p>
           </div>
           <button
-            onClick={() => setShowImportModal(true)}
+            onClick={() => {
+              setImportMode("days")
+              setShowImportModal(true)
+            }}
             className="px-3 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-medium flex items-center gap-1"
           >
             <RefreshCw className="size-3" />
@@ -733,69 +782,6 @@ function ShoppingView() {
           </button>
         </div>
       )}
-
-      {/* Add Item Section */}
-      <div className="bg-card rounded-2xl border border-border overflow-hidden">
-        {!showAddForm ? (
-          <div className="p-3 flex gap-2">
-            <button
-              onClick={() => setShowAddForm(true)}
-              className="flex-1 py-3 rounded-xl bg-secondary text-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
-            >
-              <Plus className="size-4" />
-              Add Item
-            </button>
-            <button
-              onClick={() => setShowImportModal(true)}
-              className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
-            >
-              <Calendar className="size-4" />
-              From Planner
-            </button>
-          </div>
-        ) : (
-          <div className="p-4 flex flex-col gap-3">
-            <input
-              type="text"
-              placeholder="Item name..."
-              value={newItemName}
-              onChange={(e) => setNewItemName(e.target.value)}
-              className="bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-            />
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="Amount (e.g. 500g)"
-                value={newItemAmount}
-                onChange={(e) => setNewItemAmount(e.target.value)}
-                className="flex-1 bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </div>
-            <textarea
-              placeholder="Note (optional)..."
-              value={newItemNote}
-              onChange={(e) => setNewItemNote(e.target.value)}
-              rows={2}
-              className="bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
-            />
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowAddForm(false)}
-                className="flex-1 py-2.5 rounded-xl bg-secondary text-foreground text-sm font-medium"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={addItem}
-                disabled={!newItemName.trim()}
-                className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50"
-              >
-                Add
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
 
       {/* Shopping List */}
       <div className="flex flex-col gap-4">
