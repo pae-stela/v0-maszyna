@@ -104,79 +104,323 @@ export function WorkoutScreen() {
   )
 }
 
+interface WorkoutSet {
+  completed: boolean
+  actualReps: number
+  difficulty: number | null // 1-5
+}
+
+interface JournalExercise {
+  id: string
+  name: string
+  targetSets: number
+  targetReps: number
+  weight: string
+  sets: WorkoutSet[]
+}
+
+const availablePlans = [
+  { id: "p1", name: "Push Day", exercises: [
+    { id: "e1", name: "Bench Press", sets: 3, reps: 10, weight: "80kg" },
+    { id: "e2", name: "Incline DB Press", sets: 3, reps: 10, weight: "26kg" },
+    { id: "e3", name: "Cable Flyes", sets: 3, reps: 12, weight: "20kg" },
+    { id: "e14", name: "Tricep Pushdowns", sets: 3, reps: 12, weight: "25kg" },
+  ]},
+  { id: "p2", name: "Pull Day", exercises: [
+    { id: "e5", name: "Pull-ups", sets: 4, reps: 8, weight: "BW" },
+    { id: "e6", name: "Barbell Rows", sets: 3, reps: 10, weight: "60kg" },
+    { id: "e12", name: "Bicep Curls", sets: 3, reps: 12, weight: "14kg" },
+  ]},
+  { id: "p3", name: "Leg Day", exercises: [
+    { id: "e16", name: "Squats", sets: 4, reps: 8, weight: "100kg" },
+    { id: "e18", name: "Romanian Deadlifts", sets: 3, reps: 10, weight: "80kg" },
+    { id: "e19", name: "Leg Curls", sets: 3, reps: 12, weight: "40kg" },
+  ]},
+]
+
 function JournalView() {
   const { activeUser } = useUser()
-  const [exercises] = useState([
-    { name: "Bench Press", sets: 3, reps: "8-10", weight: activeUser === "patrycja" ? "40kg" : "80kg" },
-    { name: "Incline DB Press", sets: 3, reps: "10-12", weight: activeUser === "patrycja" ? "12kg" : "26kg" },
-    { name: "Cable Flyes", sets: 3, reps: "12-15", weight: activeUser === "patrycja" ? "10kg" : "20kg" },
-  ])
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
+  const [showPlanPicker, setShowPlanPicker] = useState(false)
+  const [exercises, setExercises] = useState<JournalExercise[]>([])
+  const [expandedSet, setExpandedSet] = useState<{exerciseId: string, setIndex: number} | null>(null)
+  const [workoutStartTime] = useState(Date.now())
+  const [elapsedTime, setElapsedTime] = useState("00:00")
+
+  // Timer
+  useState(() => {
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - workoutStartTime
+      const mins = Math.floor(elapsed / 60000)
+      const secs = Math.floor((elapsed % 60000) / 1000)
+      setElapsedTime(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`)
+    }, 1000)
+    return () => clearInterval(interval)
+  })
+
+  const selectPlan = (planId: string) => {
+    const plan = availablePlans.find(p => p.id === planId)
+    if (plan) {
+      const weightMultiplier = activeUser === "patrycja" ? 0.5 : 1
+      setExercises(plan.exercises.map(e => ({
+        id: e.id,
+        name: e.name,
+        targetSets: e.sets,
+        targetReps: e.reps,
+        weight: e.weight === "BW" ? "BW" : `${Math.round(parseInt(e.weight) * weightMultiplier)}kg`,
+        sets: Array.from({ length: e.sets }, () => ({
+          completed: false,
+          actualReps: e.reps,
+          difficulty: null
+        }))
+      })))
+      setSelectedPlan(planId)
+      setShowPlanPicker(false)
+    }
+  }
+
+  const toggleSet = (exerciseId: string, setIndex: number) => {
+    const currentExpanded = expandedSet?.exerciseId === exerciseId && expandedSet?.setIndex === setIndex
+    if (currentExpanded) {
+      setExpandedSet(null)
+    } else {
+      // Mark as completed and expand
+      setExercises(exercises.map(ex => {
+        if (ex.id === exerciseId) {
+          const newSets = [...ex.sets]
+          newSets[setIndex] = { ...newSets[setIndex], completed: true }
+          return { ...ex, sets: newSets }
+        }
+        return ex
+      }))
+      setExpandedSet({ exerciseId, setIndex })
+    }
+  }
+
+  const updateSetReps = (exerciseId: string, setIndex: number, reps: number) => {
+    setExercises(exercises.map(ex => {
+      if (ex.id === exerciseId) {
+        const newSets = [...ex.sets]
+        newSets[setIndex] = { ...newSets[setIndex], actualReps: Math.max(1, reps) }
+        return { ...ex, sets: newSets }
+      }
+      return ex
+    }))
+  }
+
+  const updateSetDifficulty = (exerciseId: string, setIndex: number, difficulty: number) => {
+    setExercises(exercises.map(ex => {
+      if (ex.id === exerciseId) {
+        const newSets = [...ex.sets]
+        newSets[setIndex] = { ...newSets[setIndex], difficulty }
+        return { ...ex, sets: newSets }
+      }
+      return ex
+    }))
+  }
+
+  // Stats
+  const totalSets = exercises.reduce((sum, ex) => sum + ex.sets.length, 0)
+  const completedSets = exercises.reduce((sum, ex) => sum + ex.sets.filter(s => s.completed).length, 0)
+  const progress = totalSets > 0 ? (completedSets / totalSets) * 100 : 0
+  const estimatedCalories = completedSets * 8 // rough estimate
+
+  const difficultyLabels = ["Easy", "OK", "Mod", "Hard", "Max"]
+  const difficultyColors = ["text-emerald-500", "text-blue-500", "text-amber-500", "text-orange-500", "text-red-500"]
+
+  const currentPlan = availablePlans.find(p => p.id === selectedPlan)
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="bg-card rounded-2xl p-5 border border-border">
-        <div className="flex items-center justify-between mb-4">
+      {/* Plan Selector */}
+      <div 
+        onClick={() => setShowPlanPicker(true)}
+        className="bg-card rounded-2xl p-4 border border-border flex items-center justify-between cursor-pointer active:scale-[0.99] transition-transform"
+      >
+        <div className="flex items-center gap-3">
+          <div className="size-10 rounded-xl bg-primary/20 flex items-center justify-center">
+            <Dumbbell className="size-5 text-primary" />
+          </div>
           <div>
-            <h3 className="font-semibold text-foreground">Current Workout</h3>
-            <p className="text-sm text-muted-foreground">Push Day - Chest Focus</p>
-          </div>
-          <div className="flex items-center gap-2 text-primary">
-            <Timer className="size-4" />
-            <span className="text-sm font-medium">32:45</span>
+            <p className="text-xs text-muted-foreground">Current Workout</p>
+            <p className="font-semibold text-foreground">
+              {currentPlan ? currentPlan.name : "Select a plan"}
+            </p>
           </div>
         </div>
-        
-        <div className="flex gap-4 mb-4">
-          <div className="flex-1 bg-secondary rounded-xl p-3 text-center">
-            <span className="text-lg font-bold text-foreground">3</span>
-            <p className="text-xs text-muted-foreground">Exercises</p>
-          </div>
-          <div className="flex-1 bg-secondary rounded-xl p-3 text-center">
-            <span className="text-lg font-bold text-foreground">9</span>
-            <p className="text-xs text-muted-foreground">Sets Done</p>
-          </div>
-          <div className="flex-1 bg-secondary rounded-xl p-3 text-center">
-            <div className="flex items-center justify-center gap-1">
-              <Flame className="size-4 text-orange-400" />
-              <span className="text-lg font-bold text-foreground">245</span>
-            </div>
-            <p className="text-xs text-muted-foreground">Calories</p>
-          </div>
-        </div>
+        <ChevronRight className="size-5 text-muted-foreground" />
       </div>
 
-      <div className="flex flex-col gap-3">
-        {exercises.map((exercise, i) => (
-          <div
-            key={i}
-            className="bg-card rounded-2xl p-4 border border-border"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="font-medium text-foreground">{exercise.name}</h4>
-              <span className="text-xs text-muted-foreground">{exercise.weight}</span>
+      {/* Stats Card */}
+      {selectedPlan && (
+        <div className="bg-card rounded-2xl p-4 border border-border">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-4">
+              <div className="text-center">
+                <p className="text-lg font-bold text-foreground">{exercises.length}</p>
+                <p className="text-[10px] text-muted-foreground">Exercises</p>
+              </div>
+              <div className="w-px h-8 bg-border" />
+              <div className="text-center">
+                <p className="text-lg font-bold text-foreground">{completedSets}/{totalSets}</p>
+                <p className="text-[10px] text-muted-foreground">Sets</p>
+              </div>
+              <div className="w-px h-8 bg-border" />
+              <div className="text-center flex items-center gap-1">
+                <Flame className="size-4 text-orange-400" />
+                <p className="text-lg font-bold text-foreground">{estimatedCalories}</p>
+              </div>
             </div>
-            <div className="flex gap-2">
-              {Array.from({ length: exercise.sets }).map((_, setIndex) => (
+            <div className="flex items-center gap-1.5 text-primary">
+              <Timer className="size-4" />
+              <span className="text-sm font-mono font-medium">{elapsedTime}</span>
+            </div>
+          </div>
+          
+          {/* Progress Bar */}
+          <div className="h-2 bg-secondary rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-primary rounded-full transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <p className="text-[10px] text-muted-foreground text-center mt-1.5">
+            {Math.round(progress)}% complete
+          </p>
+        </div>
+      )}
+
+      {/* Exercises */}
+      {selectedPlan && (
+        <div className="flex flex-col gap-3">
+          {exercises.map((exercise) => (
+            <div
+              key={exercise.id}
+              className="bg-card rounded-2xl border border-border overflow-hidden"
+            >
+              <div className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-medium text-foreground">{exercise.name}</h4>
+                  <span className="text-xs font-medium text-muted-foreground bg-secondary px-2 py-1 rounded-lg">{exercise.weight}</span>
+                </div>
+                <div className="flex gap-2">
+                  {exercise.sets.map((set, setIndex) => (
+                    <button
+                      key={setIndex}
+                      onClick={() => toggleSet(exercise.id, setIndex)}
+                      className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all flex flex-col items-center ${
+                        set.completed
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary text-muted-foreground"
+                      }`}
+                    >
+                      <span>{set.completed ? set.actualReps : exercise.targetReps}</span>
+                      {set.difficulty && (
+                        <span className="text-[9px] opacity-80">{difficultyLabels[set.difficulty - 1]}</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Expanded Set Editor */}
+              {expandedSet?.exerciseId === exercise.id && (
+                <div className="px-4 pb-4 pt-1 border-t border-border bg-secondary/30">
+                  <div className="flex items-center gap-4">
+                    {/* Reps */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Reps:</span>
+                      <div className="flex items-center bg-background rounded-lg">
+                        <button
+                          onClick={() => updateSetReps(exercise.id, expandedSet.setIndex, exercise.sets[expandedSet.setIndex].actualReps - 1)}
+                          className="px-2 py-1 text-muted-foreground hover:text-foreground"
+                        >
+                          -
+                        </button>
+                        <span className="w-6 text-center text-sm font-medium">{exercise.sets[expandedSet.setIndex].actualReps}</span>
+                        <button
+                          onClick={() => updateSetReps(exercise.id, expandedSet.setIndex, exercise.sets[expandedSet.setIndex].actualReps + 1)}
+                          className="px-2 py-1 text-muted-foreground hover:text-foreground"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Difficulty */}
+                    <div className="flex-1 flex items-center gap-1.5">
+                      {[1, 2, 3, 4, 5].map((level) => (
+                        <button
+                          key={level}
+                          onClick={() => updateSetDifficulty(exercise.id, expandedSet.setIndex, level)}
+                          className={`flex-1 py-1.5 rounded-lg text-[10px] font-medium transition-all ${
+                            exercise.sets[expandedSet.setIndex].difficulty === level
+                              ? `bg-background ${difficultyColors[level - 1]}`
+                              : "bg-background/50 text-muted-foreground"
+                          }`}
+                        >
+                          {difficultyLabels[level - 1]}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!selectedPlan && (
+        <div className="bg-card rounded-2xl p-8 border border-dashed border-border text-center">
+          <div className="size-14 rounded-full bg-secondary mx-auto mb-4 flex items-center justify-center">
+            <Play className="size-6 text-muted-foreground" />
+          </div>
+          <p className="text-sm text-muted-foreground">Select a workout plan to start</p>
+        </div>
+      )}
+
+      {/* Plan Picker Modal */}
+      {showPlanPicker && (
+        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 p-4 pb-24">
+          <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden max-h-[70vh] flex flex-col">
+            <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
+              <h3 className="font-semibold text-foreground">Select Workout</h3>
+              <button 
+                onClick={() => setShowPlanPicker(false)}
+                className="p-1 rounded-lg hover:bg-secondary"
+              >
+                <X className="size-5 text-muted-foreground" />
+              </button>
+            </div>
+
+            <div className="p-4 flex flex-col gap-2 overflow-y-auto flex-1">
+              {availablePlans.map((plan) => (
                 <button
-                  key={setIndex}
-                  className={`flex-1 py-3 rounded-xl text-sm font-medium transition-all ${
-                    setIndex < 2
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-muted-foreground"
+                  key={plan.id}
+                  onClick={() => selectPlan(plan.id)}
+                  className={`p-4 rounded-xl text-left transition-all ${
+                    selectedPlan === plan.id
+                      ? "bg-primary/10 border-2 border-primary"
+                      : "bg-secondary border-2 border-transparent"
                   }`}
                 >
-                  {exercise.reps}
+                  <div className="flex items-center justify-between">
+                    <p className="font-medium text-foreground">{plan.name}</p>
+                    {selectedPlan === plan.id && (
+                      <Check className="size-5 text-primary" />
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {plan.exercises.length} exercises
+                  </p>
                 </button>
               ))}
             </div>
           </div>
-        ))}
-      </div>
-
-      <button className="w-full py-4 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform">
-        <Plus className="size-5" />
-        Add Exercise
-      </button>
+        </div>
+      )}
     </div>
   )
 }
