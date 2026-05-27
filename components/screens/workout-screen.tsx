@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useUser } from "@/lib/user-context"
-import { Play, Plus, ChevronRight, Timer, Flame, Dumbbell, Search, X, Check, Link2, Trash2 } from "lucide-react"
+import { Play, Plus, ChevronRight, Timer, Flame, Dumbbell, Search, X, Check, Link2, Trash2, Pause, Square } from "lucide-react"
 
 type SubTab = "journal" | "plans" | "exercises"
 
@@ -139,14 +139,18 @@ const availablePlans = [
 ]
 
 function JournalView() {
-  const { activeUser } = useUser()
+  const { activeUser, addWorkoutLog } = useUser()
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
   const [showPlanPicker, setShowPlanPicker] = useState(false)
   const [exercises, setExercises] = useState<JournalExercise[]>([])
   const [expandedSet, setExpandedSet] = useState<{exerciseId: string, setIndex: number} | null>(null)
   const [workoutStartTime, setWorkoutStartTime] = useState<number | null>(null)
+  const [pausedTime, setPausedTime] = useState<number>(0) // Accumulated paused time
+  const [pauseStartTime, setPauseStartTime] = useState<number | null>(null)
   const [elapsedTime, setElapsedTime] = useState("00:00")
   const [isWorkoutActive, setIsWorkoutActive] = useState(false)
+  const [isWorkoutPaused, setIsWorkoutPaused] = useState(false)
+  const [showFinishModal, setShowFinishModal] = useState(false)
   
   // Rest timer state
   const [restTimerActive, setRestTimerActive] = useState(false)
@@ -155,15 +159,15 @@ function JournalView() {
 
   // Workout timer effect
   useEffect(() => {
-    if (!isWorkoutActive || !workoutStartTime) return
+    if (!isWorkoutActive || !workoutStartTime || isWorkoutPaused) return
     const interval = setInterval(() => {
-      const elapsed = Date.now() - workoutStartTime
+      const elapsed = Date.now() - workoutStartTime - pausedTime
       const mins = Math.floor(elapsed / 60000)
       const secs = Math.floor((elapsed % 60000) / 1000)
       setElapsedTime(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`)
     }, 1000)
     return () => clearInterval(interval)
-  }, [isWorkoutActive, workoutStartTime])
+  }, [isWorkoutActive, workoutStartTime, isWorkoutPaused, pausedTime])
 
   // Rest timer effect
   useEffect(() => {
@@ -183,6 +187,61 @@ function JournalView() {
   const startWorkout = () => {
     setWorkoutStartTime(Date.now())
     setIsWorkoutActive(true)
+    setPausedTime(0)
+  }
+
+  const pauseWorkout = () => {
+    setIsWorkoutPaused(true)
+    setPauseStartTime(Date.now())
+    setRestTimerActive(false)
+  }
+
+  const resumeWorkout = () => {
+    if (pauseStartTime) {
+      setPausedTime(prev => prev + (Date.now() - pauseStartTime))
+    }
+    setIsWorkoutPaused(false)
+    setPauseStartTime(null)
+  }
+
+  const finishWorkout = (logToAnalytics: boolean, checkOffPlan: boolean) => {
+    if (logToAnalytics && workoutStartTime) {
+      const currentPlan = availablePlans.find(p => p.id === selectedPlan)
+      const now = new Date()
+      const startDate = new Date(workoutStartTime)
+      
+      addWorkoutLog({
+        id: `w${Date.now()}`,
+        user: activeUser,
+        date: now.toISOString().split('T')[0],
+        startTime: `${startDate.getHours().toString().padStart(2, '0')}:${startDate.getMinutes().toString().padStart(2, '0')}`,
+        endTime: `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`,
+        planName: currentPlan?.name || "Custom Workout",
+        exercises: exercises.map(ex => ({
+          exerciseId: ex.id,
+          name: ex.name,
+          sets: ex.sets.filter(s => s.completed).map(s => ({
+            reps: s.actualReps,
+            weight: ex.weight,
+            difficulty: s.difficulty || 3
+          }))
+        })),
+        totalSets: completedSets,
+        totalReps: exercises.reduce((sum, ex) => 
+          sum + ex.sets.filter(s => s.completed).reduce((setSum, s) => setSum + s.actualReps, 0), 0),
+        estimatedCalories
+      })
+    }
+    
+    // Reset state
+    setShowFinishModal(false)
+    setSelectedPlan(null)
+    setExercises([])
+    setIsWorkoutActive(false)
+    setIsWorkoutPaused(false)
+    setWorkoutStartTime(null)
+    setPausedTime(0)
+    setElapsedTime("00:00")
   }
 
   const startRestTimer = () => {
@@ -326,9 +385,34 @@ function JournalView() {
               </div>
             </div>
             {isWorkoutActive ? (
-              <div className="flex items-center gap-1.5 text-primary">
-                <Timer className="size-4" />
-                <span className="text-sm font-mono font-medium">{elapsedTime}</span>
+              <div className="flex items-center gap-2">
+                <div className={`flex items-center gap-1.5 ${isWorkoutPaused ? "text-amber-500" : "text-primary"}`}>
+                  <Timer className="size-4" />
+                  <span className="text-sm font-mono font-medium">{elapsedTime}</span>
+                </div>
+                <div className="flex gap-1">
+                  {isWorkoutPaused ? (
+                    <button
+                      onClick={resumeWorkout}
+                      className="p-1.5 bg-primary rounded-lg text-primary-foreground active:scale-95 transition-transform"
+                    >
+                      <Play className="size-3.5" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={pauseWorkout}
+                      className="p-1.5 bg-secondary rounded-lg text-muted-foreground active:scale-95 transition-transform"
+                    >
+                      <Pause className="size-3.5" />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowFinishModal(true)}
+                    className="p-1.5 bg-emerald-500 rounded-lg text-white active:scale-95 transition-transform"
+                  >
+                    <Square className="size-3.5" />
+                  </button>
+                </div>
               </div>
             ) : (
               <button
@@ -529,6 +613,47 @@ function JournalView() {
                   </p>
                 </button>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Finish Workout Modal */}
+      {showFinishModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card rounded-2xl w-full max-w-sm overflow-hidden">
+            <div className="p-5 text-center">
+              <div className="size-14 rounded-full bg-emerald-500/20 mx-auto mb-4 flex items-center justify-center">
+                <Check className="size-7 text-emerald-500" />
+              </div>
+              <h3 className="font-semibold text-lg text-foreground mb-1">Finish Workout?</h3>
+              <p className="text-sm text-muted-foreground mb-2">
+                {completedSets}/{totalSets} sets completed in {elapsedTime}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                ~{estimatedCalories} calories burned
+              </p>
+            </div>
+
+            <div className="p-4 border-t border-border flex flex-col gap-2">
+              <button
+                onClick={() => finishWorkout(true, true)}
+                className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium active:scale-[0.98] transition-transform"
+              >
+                Log & Check Off Plan
+              </button>
+              <button
+                onClick={() => finishWorkout(true, false)}
+                className="w-full py-3 rounded-xl bg-secondary text-foreground font-medium active:scale-[0.98] transition-transform"
+              >
+                Log to Analytics Only
+              </button>
+              <button
+                onClick={() => finishWorkout(false, false)}
+                className="w-full py-2.5 text-sm text-muted-foreground font-medium"
+              >
+                Discard Workout
+              </button>
             </div>
           </div>
         </div>
