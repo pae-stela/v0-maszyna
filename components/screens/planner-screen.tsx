@@ -580,6 +580,8 @@ function ShoppingView() {
   const [plannerChanged, setPlannerChanged] = useState(true) // Simulated planner change warning
   const [showImportModal, setShowImportModal] = useState(false)
   const [showRecipeModal, setShowRecipeModal] = useState(false)
+  const [showBatchReview, setShowBatchReview] = useState(false)
+  const [batchCounts, setBatchCounts] = useState<Record<string, number>>({})
   const [importMode, setImportMode] = useState<"days" | "dishes">("days")
   const [recipeTab, setRecipeTab] = useState<"dishes" | "components">("dishes")
   const [recipeSearch, setRecipeSearch] = useState("")
@@ -598,16 +600,16 @@ function ShoppingView() {
   ]
 
   const dishesAndComponents = [
-    { id: "d1", name: "Power Breakfast", type: "dish", category: "Light", subCategory: "Oats & Granola", ingredients: ["Eggs", "Oats", "Banana"] },
-    { id: "d2", name: "Lunch Bowl", type: "dish", category: "Large", subCategory: "Salads & Veggies", ingredients: ["Chicken Breast", "Rice", "Broccoli", "Guacamole"] },
-    { id: "d3", name: "Protein Shake", type: "dish", category: "Drinks", subCategory: "Shakes & Smoothies", ingredients: ["Banana", "Greek Yogurt", "Almonds"] },
-    { id: "d4", name: "Trail Mix Bites", type: "dish", category: "Snacks", subCategory: "Sweet", ingredients: ["Almonds", "Oats"] },
-    { id: "d5", name: "Grilled Salmon", type: "dish", category: "Large", subCategory: "Traditional", ingredients: ["Salmon", "Olive Oil", "Lemon"] },
-    { id: "d6", name: "Chicken Salad", type: "dish", category: "Large", subCategory: "Salads & Veggies", ingredients: ["Chicken Breast", "Mixed Greens", "Tomato", "Dressing"] },
-    { id: "c1", name: "Guacamole", type: "component", ingredients: ["Avocado", "Tomato", "Onion", "Lime juice"] },
-    { id: "c2", name: "Scrambled Eggs", type: "component", ingredients: ["Eggs", "Butter", "Salt"] },
-    { id: "c3", name: "Tomato Sauce", type: "component", ingredients: ["Tomato", "Onion", "Garlic", "Olive Oil"] },
-    { id: "c4", name: "Pesto", type: "component", ingredients: ["Basil", "Pine Nuts", "Parmesan", "Olive Oil"] },
+    { id: "d1", name: "Power Breakfast", type: "dish", category: "Light", subCategory: "Oats & Granola", ingredients: ["Eggs", "Oats", "Banana"], marcinServings: 1, patrycjaServings: 1 },
+    { id: "d2", name: "Lunch Bowl", type: "dish", category: "Large", subCategory: "Salads & Veggies", ingredients: ["Chicken Breast", "Rice", "Broccoli", "Guacamole"], marcinServings: 2, patrycjaServings: 2 },
+    { id: "d3", name: "Protein Shake", type: "dish", category: "Drinks", subCategory: "Shakes & Smoothies", ingredients: ["Banana", "Greek Yogurt", "Almonds"], marcinServings: 1, patrycjaServings: 1 },
+    { id: "d4", name: "Trail Mix Bites", type: "dish", category: "Snacks", subCategory: "Sweet", ingredients: ["Almonds", "Oats"], marcinServings: 3, patrycjaServings: 2 },
+    { id: "d5", name: "Grilled Salmon", type: "dish", category: "Large", subCategory: "Traditional", ingredients: ["Salmon", "Olive Oil", "Lemon"], marcinServings: 1, patrycjaServings: 1 },
+    { id: "d6", name: "Chicken Salad", type: "dish", category: "Large", subCategory: "Salads & Veggies", ingredients: ["Chicken Breast", "Mixed Greens", "Tomato", "Dressing"], marcinServings: 2, patrycjaServings: 2 },
+    { id: "c1", name: "Guacamole", type: "component", ingredients: ["Avocado", "Tomato", "Onion", "Lime juice"], marcinServings: 2, patrycjaServings: 2 },
+    { id: "c2", name: "Scrambled Eggs", type: "component", ingredients: ["Eggs", "Butter", "Salt"], marcinServings: 1, patrycjaServings: 1 },
+    { id: "c3", name: "Tomato Sauce", type: "component", ingredients: ["Tomato", "Onion", "Garlic", "Olive Oil"], marcinServings: 4, patrycjaServings: 4 },
+    { id: "c4", name: "Pesto", type: "component", ingredients: ["Basil", "Pine Nuts", "Parmesan", "Olive Oil"], marcinServings: 3, patrycjaServings: 3 },
   ]
 
   const dishCategories = ["All", "Large", "Light", "Snacks", "Drinks"]
@@ -621,6 +623,41 @@ function ShoppingView() {
   })
 
   const categories = [...new Set(items.map((item) => item.category))]
+
+  // Calculate meal occurrences for batch review
+  const getMealOccurrences = () => {
+    const occurrences: Record<string, { count: number; dish: typeof dishesAndComponents[0] }> = {}
+    
+    selectedDays.forEach(dayIndex => {
+      const day = upcomingDays[dayIndex]
+      day.meals.forEach(mealName => {
+        const dish = dishesAndComponents.find(d => d.name === mealName)
+        if (dish) {
+          if (!occurrences[dish.id]) {
+            occurrences[dish.id] = { count: 0, dish }
+          }
+          occurrences[dish.id].count++
+        }
+      })
+    })
+    
+    return occurrences
+  }
+
+  const initializeBatchReview = () => {
+    const occurrences = getMealOccurrences()
+    const initialBatches: Record<string, number> = {}
+    
+    Object.entries(occurrences).forEach(([dishId, { count, dish }]) => {
+      const totalServings = (dish.marcinServings || 1) + (dish.patrycjaServings || 1)
+      // Suggest batches: ceil(occurrences / totalServings), minimum 1
+      initialBatches[dishId] = Math.max(1, Math.ceil(count / totalServings))
+    })
+    
+    setBatchCounts(initialBatches)
+    setShowImportModal(false)
+    setShowBatchReview(true)
+  }
 
   const toggleCheck = (id: string) => {
     setItems(items.map(item => 
@@ -663,60 +700,80 @@ function ShoppingView() {
   }
 
   const importFromPlanner = () => {
-    // Simulate importing ingredients based on selection
+    // Import ingredients based on batch counts
     const newItems: ShoppingItem[] = []
+    const ingredientAmounts: Record<string, number> = {}
     
-    if (importMode === "days") {
-      selectedDays.forEach(dayIndex => {
-        const day = upcomingDays[dayIndex]
-        day.meals.forEach(mealName => {
-          const dish = dishesAndComponents.find(d => d.name === mealName)
-          if (dish) {
-            dish.ingredients.forEach(ing => {
-              // Only check against manual items (planner items will be replaced)
-              const manualItems = items.filter(i => i.source === "manual")
-              if (!manualItems.some(i => i.name.toLowerCase() === ing.toLowerCase()) && 
-                  !newItems.some(i => i.name.toLowerCase() === ing.toLowerCase())) {
-                newItems.push({
-                  id: Date.now().toString() + Math.random(),
-                  name: ing,
-                  amount: "—",
-                  note: "",
-                  checked: false,
-                  category: "Imported",
-                  source: mealName
-                })
-              }
-            })
+    // Calculate ingredient quantities based on batches
+    Object.entries(batchCounts).forEach(([dishId, batches]) => {
+      const dish = dishesAndComponents.find(d => d.id === dishId)
+      if (dish && batches > 0) {
+        dish.ingredients.forEach(ing => {
+          if (!ingredientAmounts[ing]) {
+            ingredientAmounts[ing] = 0
           }
+          ingredientAmounts[ing] += batches
         })
-      })
-    } else {
-      selectedDishes.forEach(dishId => {
-        const dish = dishesAndComponents.find(d => d.id === dishId)
-        if (dish) {
-          dish.ingredients.forEach(ing => {
-            // Only check against manual items (planner items will be replaced)
-            const manualItems = items.filter(i => i.source === "manual")
-            if (!manualItems.some(i => i.name.toLowerCase() === ing.toLowerCase()) && 
-                !newItems.some(i => i.name.toLowerCase() === ing.toLowerCase())) {
-              newItems.push({
-                id: Date.now().toString() + Math.random(),
-                name: ing,
-                amount: "—",
-                note: "",
-                checked: false,
-                category: "Imported",
-                source: dish.name
-              })
-            }
-          })
-        }
-      })
-    }
+      }
+    })
+
+    // Create shopping items from aggregated ingredients
+    Object.entries(ingredientAmounts).forEach(([ing, batches]) => {
+      const manualItems = items.filter(i => i.source === "manual")
+      if (!manualItems.some(i => i.name.toLowerCase() === ing.toLowerCase())) {
+        newItems.push({
+          id: Date.now().toString() + Math.random(),
+          name: ing,
+          amount: batches > 1 ? `${batches}x` : "—",
+          note: "",
+          checked: false,
+          category: "Imported",
+          source: "planner"
+        })
+      }
+    })
 
     // Keep all manual items, only update planner-sourced items
     const manualItems = items.filter(i => i.source === "manual")
+    
+    setItems([...manualItems, ...newItems])
+    setShowBatchReview(false)
+    setShowImportModal(false)
+    setSelectedDays([])
+    setBatchCounts({})
+    setPlannerChanged(false)
+  }
+
+  const importFromRecipe = () => {
+    // Import from specific dishes/components (no batch review needed)
+    const newItems: ShoppingItem[] = []
+    
+    selectedDishes.forEach(dishId => {
+      const dish = dishesAndComponents.find(d => d.id === dishId)
+      if (dish) {
+        dish.ingredients.forEach(ing => {
+          const manualItems = items.filter(i => i.source === "manual")
+          if (!manualItems.some(i => i.name.toLowerCase() === ing.toLowerCase()) && 
+              !newItems.some(i => i.name.toLowerCase() === ing.toLowerCase())) {
+            newItems.push({
+              id: Date.now().toString() + Math.random(),
+              name: ing,
+              amount: "—",
+              note: "",
+              checked: false,
+              category: "Imported",
+              source: dish.name
+            })
+          }
+        })
+      }
+    })
+
+    const manualItems = items.filter(i => i.source === "manual")
+    setItems([...manualItems, ...newItems])
+    setShowRecipeModal(false)
+    setSelectedDishes([])
+  }
     
     setItems([...manualItems, ...newItems])
     setShowImportModal(false)
@@ -951,11 +1008,11 @@ function ShoppingView() {
 
             <div className="p-4 border-t border-border shrink-0">
               <button
-                onClick={importFromPlanner}
+                onClick={initializeBatchReview}
                 disabled={selectedDays.length === 0}
                 className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform"
               >
-                Import from {selectedDays.length} day{selectedDays.length !== 1 ? "s" : ""}
+                Review Batches ({selectedDays.length} day{selectedDays.length !== 1 ? "s" : ""})
               </button>
             </div>
           </div>
@@ -1086,15 +1143,123 @@ function ShoppingView() {
 
             <div className="p-4 border-t border-border shrink-0">
               <button
-                onClick={() => {
-                  importFromPlanner()
-                  setShowRecipeModal(false)
-                }}
+                onClick={importFromRecipe}
                 disabled={selectedDishes.length === 0}
                 className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform"
               >
                 Import {selectedDishes.length} {recipeTab === "dishes" ? "dish" : "component"}{selectedDishes.length !== 1 ? "es" : ""}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Batch Review Modal */}
+      {showBatchReview && (
+        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 p-4">
+          <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden max-h-[85vh] flex flex-col">
+            <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                <RefreshCw className="size-5 text-primary" />
+                <h3 className="font-semibold text-foreground">Review Batches</h3>
+              </div>
+              <button 
+                onClick={() => {
+                  setShowBatchReview(false)
+                  setBatchCounts({})
+                  setSelectedDays([])
+                }}
+                className="p-1 rounded-lg hover:bg-secondary"
+              >
+                <X className="size-5 text-muted-foreground" />
+              </button>
+            </div>
+
+            <div className="p-4 border-b border-border bg-secondary/30 shrink-0">
+              <p className="text-xs text-muted-foreground">
+                We&apos;ve analyzed your planned meals. Adjust how many batches of each recipe you want to prepare.
+              </p>
+            </div>
+
+            <div className="p-4 flex flex-col gap-3 overflow-y-auto flex-1">
+              {Object.entries(getMealOccurrences()).map(([dishId, { count, dish }]) => {
+                const totalServings = (dish.marcinServings || 1) + (dish.patrycjaServings || 1)
+                const currentBatches = batchCounts[dishId] || 1
+                const coversOccasions = currentBatches * totalServings
+                
+                return (
+                  <div key={dishId} className="bg-secondary/50 rounded-xl p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1">
+                        <h4 className="text-sm font-medium text-foreground">{dish.name}</h4>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Planned {count}x · Recipe yields {totalServings} servings
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-500 text-[9px] font-medium">
+                          M:{dish.marcinServings || 1}
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-500 text-[9px] font-medium">
+                          P:{dish.patrycjaServings || 1}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between mt-3">
+                      <span className="text-xs text-muted-foreground">Batches to make:</span>
+                      <div className="flex items-center bg-background rounded-lg">
+                        <button
+                          onClick={() => setBatchCounts(prev => ({
+                            ...prev,
+                            [dishId]: Math.max(0, (prev[dishId] || 1) - 1)
+                          }))}
+                          className="px-3 py-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          -
+                        </button>
+                        <span className="w-8 text-center text-sm font-semibold text-foreground">{currentBatches}</span>
+                        <button
+                          onClick={() => setBatchCounts(prev => ({
+                            ...prev,
+                            [dishId]: (prev[dishId] || 1) + 1
+                          }))}
+                          className="px-3 py-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+
+                    {currentBatches > 0 && (
+                      <div className={`mt-2 text-xs ${coversOccasions >= count ? "text-emerald-500" : "text-amber-500"}`}>
+                        {coversOccasions >= count 
+                          ? `Covers all ${count} occasion${count !== 1 ? "s" : ""} (${coversOccasions} servings)`
+                          : `Only covers ${coversOccasions} of ${count} occasions`
+                        }
+                      </div>
+                    )}
+                    {currentBatches === 0 && (
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        Skipping this recipe
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            <div className="p-4 border-t border-border shrink-0 flex flex-col gap-2">
+              <button
+                onClick={importFromPlanner}
+                disabled={Object.values(batchCounts).every(b => b === 0)}
+                className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform"
+              >
+                Import Ingredients
+              </button>
+              <p className="text-[10px] text-muted-foreground text-center">
+                {Object.values(batchCounts).reduce((sum, b) => sum + b, 0)} total batch{Object.values(batchCounts).reduce((sum, b) => sum + b, 0) !== 1 ? "es" : ""} to prepare
+              </p>
             </div>
           </div>
         </div>
