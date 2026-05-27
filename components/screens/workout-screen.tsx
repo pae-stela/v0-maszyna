@@ -136,21 +136,56 @@ interface JournalExercise {
 }
 
 const availablePlans = [
-  { id: "p1", name: "Push Day", exercises: [
+  // Weights
+  { id: "p1", name: "Push Day", type: "weights" as const, exercises: [
     { id: "e1", name: "Bench Press", sets: 3, reps: 10, weight: "80kg" },
     { id: "e2", name: "Incline DB Press", sets: 3, reps: 10, weight: "26kg" },
     { id: "e3", name: "Cable Flyes", sets: 3, reps: 12, weight: "20kg" },
     { id: "e14", name: "Tricep Pushdowns", sets: 3, reps: 12, weight: "25kg" },
   ]},
-  { id: "p2", name: "Pull Day", exercises: [
+  { id: "p2", name: "Pull Day", type: "weights" as const, exercises: [
     { id: "e5", name: "Pull-ups", sets: 4, reps: 8, weight: "BW" },
     { id: "e6", name: "Barbell Rows", sets: 3, reps: 10, weight: "60kg" },
     { id: "e12", name: "Bicep Curls", sets: 3, reps: 12, weight: "14kg" },
   ]},
-  { id: "p3", name: "Leg Day", exercises: [
+  { id: "p3", name: "Leg Day", type: "weights" as const, exercises: [
     { id: "e16", name: "Squats", sets: 4, reps: 8, weight: "100kg" },
     { id: "e18", name: "Romanian Deadlifts", sets: 3, reps: 10, weight: "80kg" },
     { id: "e19", name: "Leg Curls", sets: 3, reps: 12, weight: "40kg" },
+  ]},
+  { id: "p4", name: "Upper Body", type: "weights" as const, exercises: [
+    { id: "e1", name: "Bench Press", sets: 3, reps: 10, weight: "70kg" },
+    { id: "e5", name: "Pull-ups", sets: 3, reps: 8, weight: "BW" },
+    { id: "e9", name: "Overhead Press", sets: 3, reps: 10, weight: "40kg" },
+  ]},
+  // Cardio
+  { id: "p5", name: "HIIT Running", type: "cardio" as const, exercises: [
+    { id: "e24", name: "Running", sets: 1, reps: 1, weight: "", duration: 30 },
+  ]},
+  { id: "p6", name: "Pool Session", type: "cardio" as const, exercises: [
+    { id: "e25", name: "Swimming", sets: 1, reps: 1, weight: "", duration: 45 },
+  ]},
+  { id: "p7", name: "Rowing Intervals", type: "cardio" as const, exercises: [
+    { id: "e26", name: "Rowing Machine", sets: 1, reps: 1, weight: "", duration: 25 },
+  ]},
+  { id: "p8", name: "Cardio Mix", type: "cardio" as const, exercises: [
+    { id: "e24", name: "Running", sets: 1, reps: 1, weight: "", duration: 15 },
+    { id: "e27", name: "Cycling", sets: 1, reps: 1, weight: "", duration: 15 },
+    { id: "e28", name: "Jump Rope", sets: 1, reps: 1, weight: "", duration: 10 },
+  ]},
+  // Flexibility
+  { id: "p9", name: "Morning Yoga", type: "flexibility" as const, exercises: [
+    { id: "e30", name: "Yoga Flow", sets: 1, reps: 1, weight: "", duration: 30 },
+  ]},
+  { id: "p10", name: "Recovery Stretch", type: "flexibility" as const, exercises: [
+    { id: "e31", name: "Static Stretching", sets: 1, reps: 1, weight: "", duration: 20 },
+    { id: "e33", name: "Foam Rolling", sets: 1, reps: 1, weight: "", duration: 15 },
+  ]},
+  { id: "p11", name: "Pilates Core", type: "flexibility" as const, exercises: [
+    { id: "e34", name: "Pilates", sets: 1, reps: 1, weight: "", duration: 45 },
+  ]},
+  { id: "p12", name: "Pre-Workout Warmup", type: "flexibility" as const, exercises: [
+    { id: "e32", name: "Dynamic Stretching", sets: 1, reps: 1, weight: "", duration: 10 },
   ]},
 ]
 
@@ -158,6 +193,7 @@ function JournalView() {
   const { activeUser, addWorkoutLog } = useUser()
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
   const [showPlanPicker, setShowPlanPicker] = useState(false)
+  const [planTypeFilter, setPlanTypeFilter] = useState<"weights" | "cardio" | "flexibility">("weights")
   const [exercises, setExercises] = useState<JournalExercise[]>([])
   const [expandedSet, setExpandedSet] = useState<{exerciseId: string, setIndex: number} | null>(null)
   const [workoutStartTime, setWorkoutStartTime] = useState<number | null>(null)
@@ -607,28 +643,74 @@ function JournalView() {
               </button>
             </div>
 
-            <div className="p-4 flex flex-col gap-2 overflow-y-auto flex-1">
-              {availablePlans.map((plan) => (
+            {/* Type Filter Tabs */}
+            <div className="px-4 pt-3 pb-2 border-b border-border shrink-0">
+              <div className="flex gap-2 p-1 bg-secondary rounded-xl">
                 <button
-                  key={plan.id}
-                  onClick={() => selectPlan(plan.id)}
-                  className={`p-4 rounded-xl text-left transition-all ${
-                    selectedPlan === plan.id
-                      ? "bg-primary/10 border-2 border-primary"
-                      : "bg-secondary border-2 border-transparent"
+                  onClick={() => setPlanTypeFilter("weights")}
+                  className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
+                    planTypeFilter === "weights"
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground"
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <p className="font-medium text-foreground">{plan.name}</p>
-                    {selectedPlan === plan.id && (
-                      <Check className="size-5 text-primary" />
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {plan.exercises.length} exercises
-                  </p>
+                  Weights
                 </button>
-              ))}
+                <button
+                  onClick={() => setPlanTypeFilter("cardio")}
+                  className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
+                    planTypeFilter === "cardio"
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  Cardio
+                </button>
+                <button
+                  onClick={() => setPlanTypeFilter("flexibility")}
+                  className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
+                    planTypeFilter === "flexibility"
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  Flexibility
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 flex flex-col gap-2 overflow-y-auto flex-1">
+              {availablePlans
+                .filter(plan => plan.type === planTypeFilter)
+                .map((plan) => {
+                  const isTimeBased = plan.exercises.some(e => 'duration' in e && e.duration)
+                  const totalDuration = plan.exercises.reduce((sum, e) => sum + (e.duration || 0), 0)
+                  
+                  return (
+                    <button
+                      key={plan.id}
+                      onClick={() => selectPlan(plan.id)}
+                      className={`p-4 rounded-xl text-left transition-all ${
+                        selectedPlan === plan.id
+                          ? "bg-primary/10 border-2 border-primary"
+                          : "bg-secondary border-2 border-transparent"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className="font-medium text-foreground">{plan.name}</p>
+                        {selectedPlan === plan.id && (
+                          <Check className="size-5 text-primary" />
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {isTimeBased 
+                          ? `${plan.exercises.length} ${plan.exercises.length === 1 ? 'activity' : 'activities'} · ${totalDuration} min`
+                          : `${plan.exercises.length} exercises`
+                        }
+                      </p>
+                    </button>
+                  )
+                })}
             </div>
           </div>
         </div>
