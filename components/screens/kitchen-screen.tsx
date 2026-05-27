@@ -394,7 +394,8 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
 
   const handleSaveComponent = () => {
     if (selectedIngredients.length > 0 && saveName.trim()) {
-      alert(`Component "${saveName}" saved with ${selectedIngredients.length} ingredients! You can add recipe steps in the Components tab.`)
+      const servingInfo = `Servings: Marcin ${marcinServings}x (${Math.round(marcinPortion.calories)} kcal each), Patrycja ${patrycjaServings}x (${Math.round(patrycjaPortion.calories)} kcal each)`
+      alert(`Component "${saveName}" saved!\n\n${selectedIngredients.length} ingredients\n${servingInfo}\n\nYou can add recipe steps in the Components tab.`)
       setSaveName("")
       setIngredients(ingredients.map((i) => ({ ...i, selected: false })))
     }
@@ -402,7 +403,8 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
 
   const handleSaveDish = () => {
     if (ingredients.length > 0 && saveName.trim()) {
-      alert(`Dish "${saveName}" saved with ${ingredients.length} elements!`)
+      const servingInfo = `Servings: Marcin ${marcinServings}x (${Math.round(marcinPortion.calories)} kcal each), Patrycja ${patrycjaServings}x (${Math.round(patrycjaPortion.calories)} kcal each)`
+      alert(`Dish "${saveName}" saved!\n\n${ingredients.length} ingredients\n${servingInfo}`)
       setSaveName("")
     }
   }
