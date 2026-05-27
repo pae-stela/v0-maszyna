@@ -109,15 +109,23 @@ const presetWorkouts = [
   { id: "w12", name: "Pre-Workout Warmup", type: "flexibility" as const, details: "10 min dynamic stretching" },
 ]
 
-// Preset dishes (would normally come from kitchen screen)
+// Preset dishes with macros (would normally come from kitchen screen)
 const presetDishes = [
-  { id: "d1", name: "Power Breakfast", details: "Eggs, Oats, Banana" },
-  { id: "d2", name: "Lunch Bowl", details: "Chicken, Rice, Broccoli, Guacamole" },
-  { id: "d3", name: "Protein Shake", details: "Banana, Greek Yogurt, Almonds" },
-  { id: "d4", name: "Trail Mix Bites", details: "Almonds, Oats" },
-  { id: "d5", name: "Grilled Salmon", details: "Salmon, Vegetables, Olive Oil" },
-  { id: "d6", name: "Chicken Salad", details: "Chicken Breast, Mixed Greens, Dressing" },
+  { id: "d1", name: "Power Breakfast", details: "Eggs, Oats, Banana", calories: 520, protein: 28, carbs: 55, fats: 18 },
+  { id: "d2", name: "Lunch Bowl", details: "Chicken, Rice, Broccoli, Guacamole", calories: 680, protein: 45, carbs: 60, fats: 25 },
+  { id: "d3", name: "Protein Shake", details: "Banana, Greek Yogurt, Almonds", calories: 320, protein: 25, carbs: 30, fats: 12 },
+  { id: "d4", name: "Trail Mix Bites", details: "Almonds, Oats", calories: 180, protein: 6, carbs: 20, fats: 9 },
+  { id: "d5", name: "Grilled Salmon", details: "Salmon, Vegetables, Olive Oil", calories: 450, protein: 38, carbs: 12, fats: 28 },
+  { id: "d6", name: "Chicken Salad", details: "Chicken Breast, Mixed Greens, Dressing", calories: 380, protein: 35, carbs: 15, fats: 20 },
+  { id: "d7", name: "Greek Yogurt Bowl", details: "Greek Yogurt, Berries, Honey, Granola", calories: 290, protein: 18, carbs: 38, fats: 8 },
+  { id: "d8", name: "Tuna Wrap", details: "Tuna, Whole Wheat Wrap, Veggies", calories: 350, protein: 30, carbs: 32, fats: 12 },
+  { id: "d9", name: "Egg White Omelette", details: "Egg Whites, Spinach, Feta", calories: 220, protein: 24, carbs: 6, fats: 10 },
+  { id: "d10", name: "Cottage Cheese Snack", details: "Cottage Cheese, Pineapple", calories: 160, protein: 20, carbs: 15, fats: 3 },
+  { id: "d11", name: "Steak & Vegetables", details: "Sirloin, Asparagus, Sweet Potato", calories: 550, protein: 42, carbs: 35, fats: 22 },
+  { id: "d12", name: "Overnight Oats", details: "Oats, Milk, Chia, Berries", calories: 380, protein: 14, carbs: 55, fats: 12 },
 ]
+
+export { presetDishes }
 
 function CalendarView() {
   const [viewMode, setViewMode] = useState<CalendarViewMode>("today")

@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import { useUser } from "@/lib/user-context"
-import { Droplets, Dumbbell, Pill, Check, ChevronRight, Calculator, Footprints } from "lucide-react"
+import { Droplets, Dumbbell, Pill, Check, ChevronRight, Calculator, Footprints, Sparkles, ChevronDown } from "lucide-react"
+import { presetDishes } from "./planner-screen"
 
 function ProgressRing({ 
   value, 
@@ -107,11 +108,54 @@ export function DashboardScreen() {
   const [water, setWater] = useState(data.water)
   const [showStepInput, setShowStepInput] = useState(false)
   const [stepInput, setStepInput] = useState("")
+  const [showSuggestions, setShowSuggestions] = useState(false)
 
   const todaySteps = getTodaySteps()
   const weeklyAvg = getWeeklyAvgSteps()
   const stepGoal = 10000
   const stepCalories = Math.round(todaySteps * 0.04 * (activeUser === "patrycja" ? 62 : 85))
+
+  // Calculate remaining macros
+  const remainingMacros = {
+    calories: data.calories.target - data.calories.current,
+    protein: data.protein.target - data.protein.current,
+    carbs: data.carbs.target - data.carbs.current,
+    fats: data.fats.target - data.fats.current,
+  }
+
+  // Score recipes based on how well they fill remaining macros
+  const getSuggestedRecipes = () => {
+    return presetDishes
+      .map(dish => {
+        // Penalize if exceeds remaining (we want to fill, not overflow)
+        const calorieScore = dish.calories <= remainingMacros.calories 
+          ? dish.calories / Math.max(remainingMacros.calories, 1)
+          : -0.5 * (dish.calories - remainingMacros.calories) / dish.calories
+        
+        // Prioritize protein matching
+        const proteinScore = dish.protein <= remainingMacros.protein + 10
+          ? dish.protein / Math.max(remainingMacros.protein, 1)
+          : -0.3 * (dish.protein - remainingMacros.protein) / dish.protein
+
+        const carbScore = dish.carbs <= remainingMacros.carbs + 15
+          ? 0.3 * dish.carbs / Math.max(remainingMacros.carbs, 1)
+          : -0.2
+
+        const fatScore = dish.fats <= remainingMacros.fats + 10
+          ? 0.3 * dish.fats / Math.max(remainingMacros.fats, 1)
+          : -0.2
+
+        const totalScore = calorieScore + proteinScore * 1.5 + carbScore + fatScore
+
+        return { ...dish, score: totalScore }
+      })
+      .filter(dish => dish.calories <= remainingMacros.calories + 100) // Allow small overflow
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3)
+  }
+
+  const suggestedRecipes = getSuggestedRecipes()
+  const hasRemainingMacros = remainingMacros.calories > 200
 
   const toggleItem = (id: string) => {
     setDayPlan(dayPlan.map((item) => 
@@ -279,6 +323,63 @@ export function DashboardScreen() {
           </div>
         )}
       </div>
+
+      {/* Recipe Suggestion Card */}
+      {hasRemainingMacros && suggestedRecipes.length > 0 && (
+        <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl border border-primary/20 overflow-hidden">
+          <button
+            onClick={() => setShowSuggestions(!showSuggestions)}
+            className="w-full p-4 flex items-center justify-between"
+          >
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                <Sparkles className="size-5 text-primary" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-semibold text-foreground">Meal Suggestions</p>
+                <p className="text-xs text-muted-foreground">
+                  {remainingMacros.calories} kcal · {remainingMacros.protein}g protein remaining
+                </p>
+              </div>
+            </div>
+            <ChevronDown className={`size-5 text-muted-foreground transition-transform ${showSuggestions ? "rotate-180" : ""}`} />
+          </button>
+
+          {showSuggestions && (
+            <div className="px-4 pb-4 flex flex-col gap-2">
+              {suggestedRecipes.map((recipe, index) => (
+                <div
+                  key={recipe.id}
+                  className="bg-card rounded-xl p-3 border border-border"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        {index === 0 && (
+                          <span className="px-1.5 py-0.5 rounded bg-primary/20 text-primary text-[9px] font-semibold">
+                            BEST MATCH
+                          </span>
+                        )}
+                        <p className="text-sm font-medium text-foreground truncate">{recipe.name}</p>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">{recipe.details}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 mt-2 text-[10px]">
+                    <span className="text-foreground font-medium">{recipe.calories} kcal</span>
+                    <span className="text-primary">{recipe.protein}g P</span>
+                    <span className="text-amber-500">{recipe.carbs}g C</span>
+                    <span className="text-rose-400">{recipe.fats}g F</span>
+                  </div>
+                </div>
+              ))}
+              <p className="text-[10px] text-muted-foreground text-center mt-1">
+                Suggestions based on your remaining daily macros
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* My Day Timeline */}
       <div>
