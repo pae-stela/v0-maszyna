@@ -489,7 +489,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             </div>
           </div>
         </div>
-      )}
 
       {/* Macro Calculator Modal */}
       {showMacroCalculator && (
