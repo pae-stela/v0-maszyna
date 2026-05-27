@@ -774,13 +774,6 @@ function ShoppingView() {
     setShowRecipeModal(false)
     setSelectedDishes([])
   }
-    
-    setItems([...manualItems, ...newItems])
-    setShowImportModal(false)
-    setSelectedDays([])
-    setSelectedDishes([])
-    setPlannerChanged(false)
-  }
 
   return (
     <div className="flex flex-col gap-4">

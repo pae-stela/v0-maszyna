@@ -50,7 +50,7 @@ export function AppShell() {
     <div className="min-h-screen bg-background">
       <TopBar />
       
-      <main className="pt-[72px] pb-[88px] px-4">
+      <main className="pt-[72px] pb-[100px] px-4">
         <h1 className="text-2xl font-bold text-foreground mb-6">{getScreenTitle()}</h1>
         <div className="transition-all duration-300">
           {renderScreen()}
