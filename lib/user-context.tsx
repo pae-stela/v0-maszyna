@@ -58,6 +58,13 @@ export interface WorkoutLog {
   notes?: string
 }
 
+// Step Log Types
+export interface StepLog {
+  date: string // ISO date
+  user: User
+  steps: number
+}
+
 interface UserContextType {
   activeUser: User
   setActiveUser: (user: User) => void
@@ -65,6 +72,10 @@ interface UserContextType {
   addMealLog: (log: MealLog) => void
   workoutLogs: WorkoutLog[]
   addWorkoutLog: (log: WorkoutLog) => void
+  stepLogs: StepLog[]
+  updateSteps: (date: string, steps: number) => void
+  getTodaySteps: () => number
+  getWeeklyAvgSteps: () => number
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined)
@@ -179,10 +190,25 @@ const sampleWorkoutLogs: WorkoutLog[] = [
   },
 ]
 
+// Sample step data
+const today = new Date().toISOString().split('T')[0]
+const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+const twoDaysAgo = new Date(Date.now() - 86400000 * 2).toISOString().split('T')[0]
+
+const sampleStepLogs: StepLog[] = [
+  { date: today, user: "patrycja", steps: 8432 },
+  { date: yesterday, user: "patrycja", steps: 10521 },
+  { date: twoDaysAgo, user: "patrycja", steps: 7890 },
+  { date: today, user: "marcin", steps: 6234 },
+  { date: yesterday, user: "marcin", steps: 9102 },
+  { date: twoDaysAgo, user: "marcin", steps: 5430 },
+]
+
 export function UserProvider({ children }: { children: ReactNode }) {
   const [activeUser, setActiveUser] = useState<User>("patrycja")
   const [mealLogs, setMealLogs] = useState<MealLog[]>(sampleMealLogs)
   const [workoutLogs, setWorkoutLogs] = useState<WorkoutLog[]>(sampleWorkoutLogs)
+  const [stepLogs, setStepLogs] = useState<StepLog[]>(sampleStepLogs)
 
   const addMealLog = (log: MealLog) => {
     setMealLogs(prev => [log, ...prev])
@@ -192,6 +218,30 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setWorkoutLogs(prev => [log, ...prev])
   }
 
+  const updateSteps = (date: string, steps: number) => {
+    setStepLogs(prev => {
+      const existing = prev.findIndex(s => s.date === date && s.user === activeUser)
+      if (existing >= 0) {
+        const updated = [...prev]
+        updated[existing] = { ...updated[existing], steps }
+        return updated
+      }
+      return [...prev, { date, user: activeUser, steps }]
+    })
+  }
+
+  const getTodaySteps = () => {
+    const todayDate = new Date().toISOString().split('T')[0]
+    return stepLogs.find(s => s.date === todayDate && s.user === activeUser)?.steps || 0
+  }
+
+  const getWeeklyAvgSteps = () => {
+    const userLogs = stepLogs.filter(s => s.user === activeUser)
+    if (userLogs.length === 0) return 0
+    const total = userLogs.reduce((sum, s) => sum + s.steps, 0)
+    return Math.round(total / userLogs.length)
+  }
+
   return (
     <UserContext.Provider value={{ 
       activeUser, 
@@ -199,7 +249,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
       mealLogs, 
       addMealLog,
       workoutLogs,
-      addWorkoutLog
+      addWorkoutLog,
+      stepLogs,
+      updateSteps,
+      getTodaySteps,
+      getWeeklyAvgSteps
     }}>
       {children}
     </UserContext.Provider>

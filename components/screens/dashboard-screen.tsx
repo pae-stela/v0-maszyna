@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useUser } from "@/lib/user-context"
-import { Droplets, Dumbbell, Pill, Check, ChevronRight, Calculator } from "lucide-react"
+import { Droplets, Dumbbell, Pill, Check, ChevronRight, Calculator, Footprints } from "lucide-react"
 
 function ProgressRing({ 
   value, 
@@ -101,10 +101,17 @@ const userData = {
 }
 
 export function DashboardScreen() {
-  const { activeUser } = useUser()
+  const { activeUser, getTodaySteps, updateSteps, getWeeklyAvgSteps } = useUser()
   const data = userData[activeUser]
   const [dayPlan, setDayPlan] = useState(data.dayPlan)
   const [water, setWater] = useState(data.water)
+  const [showStepInput, setShowStepInput] = useState(false)
+  const [stepInput, setStepInput] = useState("")
+
+  const todaySteps = getTodaySteps()
+  const weeklyAvg = getWeeklyAvgSteps()
+  const stepGoal = 10000
+  const stepCalories = Math.round(todaySteps * 0.04 * (activeUser === "patrycja" ? 62 : 85))
 
   const toggleItem = (id: string) => {
     setDayPlan(dayPlan.map((item) => 
@@ -196,6 +203,81 @@ export function DashboardScreen() {
             +1L
           </button>
         </div>
+      </div>
+
+      {/* Step Tracker */}
+      <div className="bg-card rounded-2xl p-4 border border-border">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Footprints className="size-5 text-emerald-400" />
+            <span className="text-sm font-semibold text-foreground">Steps</span>
+          </div>
+          <button
+            onClick={() => {
+              setStepInput(todaySteps.toString())
+              setShowStepInput(true)
+            }}
+            className="text-xs text-primary font-medium"
+          >
+            Update
+          </button>
+        </div>
+        
+        <div className="flex items-end justify-between mb-3">
+          <div>
+            <span className="text-2xl font-bold text-foreground">{todaySteps.toLocaleString()}</span>
+            <span className="text-sm text-muted-foreground ml-1">/ {stepGoal.toLocaleString()}</span>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-muted-foreground">~{stepCalories} kcal</p>
+            <p className="text-[10px] text-muted-foreground">Avg: {weeklyAvg.toLocaleString()}/day</p>
+          </div>
+        </div>
+
+        <div className="h-2 bg-secondary rounded-full overflow-hidden">
+          <div 
+            className="h-full bg-emerald-400 rounded-full transition-all duration-500"
+            style={{ width: `${Math.min((todaySteps / stepGoal) * 100, 100)}%` }}
+          />
+        </div>
+
+        {/* Step Input Modal */}
+        {showStepInput && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-card rounded-2xl w-full max-w-xs p-5">
+              <h3 className="font-semibold text-foreground mb-1 text-center">Update Steps</h3>
+              <p className="text-xs text-muted-foreground text-center mb-4">Enter today&apos;s step count from your watch</p>
+              
+              <input
+                type="number"
+                value={stepInput}
+                onChange={(e) => setStepInput(e.target.value)}
+                placeholder="e.g. 8500"
+                className="w-full bg-secondary rounded-xl px-4 py-3 text-lg text-center font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary mb-4"
+                autoFocus
+              />
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowStepInput(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-secondary text-muted-foreground font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    const steps = parseInt(stepInput) || 0
+                    updateSteps(new Date().toISOString().split('T')[0], steps)
+                    setShowStepInput(false)
+                  }}
+                  className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground font-medium"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* My Day Timeline */}

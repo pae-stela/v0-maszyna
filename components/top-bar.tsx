@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useUser } from "@/lib/user-context"
-import { Settings, X, Users, User, Calculator, Sparkles } from "lucide-react"
+import { Settings, X, Users, User, Calculator, Sparkles, Footprints } from "lucide-react"
 
 function WhiteCat() {
   return (
@@ -37,7 +37,7 @@ function BlackCat() {
 }
 
 export function TopBar() {
-  const { activeUser, setActiveUser } = useUser()
+  const { activeUser, setActiveUser, getWeeklyAvgSteps } = useUser()
   const [showSettings, setShowSettings] = useState(false)
   const [settingsTab, setSettingsTab] = useState<"couple" | "profile">("couple")
   const [marcinRatio, setMarcinRatio] = useState(2)
@@ -53,7 +53,10 @@ export function TopBar() {
   
   // Calculator inputs
   const [calcGoal, setCalcGoal] = useState<"maintain" | "cut" | "bulk">("maintain")
+  const [useStepData, setUseStepData] = useState(true)
   const [activityLevel, setActivityLevel] = useState<number>(1.55) // Moderate
+  
+  const weeklyAvgSteps = getWeeklyAvgSteps()
   
   // Get measurements from profile (simplified - would come from context in real app)
   const measurements = {
@@ -72,8 +75,15 @@ export function TopBar() {
       bmr = 10 * m.weight + 6.25 * m.height - 5 * m.age - 161
     }
     
-    // TDEE
-    let tdee = bmr * activityLevel
+    // TDEE - use steps or manual activity level
+    let tdee: number
+    if (useStepData && weeklyAvgSteps > 0) {
+      // Base activity (1.2) + step-based calories
+      const stepCalories = weeklyAvgSteps * 0.04 * m.weight
+      tdee = bmr * 1.2 + stepCalories
+    } else {
+      tdee = bmr * activityLevel
+    }
     
     // Adjust for goal
     if (calcGoal === "cut") tdee -= 400
@@ -498,28 +508,55 @@ export function TopBar() {
 
               {/* Activity Level */}
               <div>
-                <label className="text-xs text-muted-foreground mb-2 block">Activity Level</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { value: 1.2, label: "Sedentary", desc: "Desk job" },
-                    { value: 1.375, label: "Light", desc: "1-2x/week" },
-                    { value: 1.55, label: "Moderate", desc: "3-4x/week" },
-                    { value: 1.725, label: "Active", desc: "5-6x/week" },
-                  ].map((option) => (
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs text-muted-foreground">Activity Level</label>
+                  {weeklyAvgSteps > 0 && (
                     <button
-                      key={option.value}
-                      onClick={() => setActivityLevel(option.value)}
-                      className={`py-2 rounded-xl text-center transition-all ${
-                        activityLevel === option.value
-                          ? "bg-primary text-primary-foreground"
+                      onClick={() => setUseStepData(!useStepData)}
+                      className={`text-[10px] px-2 py-1 rounded-lg transition-all ${
+                        useStepData 
+                          ? "bg-emerald-500/20 text-emerald-500" 
                           : "bg-secondary text-muted-foreground"
                       }`}
                     >
-                      <p className="text-xs font-medium">{option.label}</p>
-                      <p className="text-[10px] opacity-70">{option.desc}</p>
+                      {useStepData ? `Using ${weeklyAvgSteps.toLocaleString()} avg steps` : "Use step data"}
                     </button>
-                  ))}
+                  )}
                 </div>
+                {!useStepData && (
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { value: 1.2, label: "Sedentary", desc: "Desk job" },
+                      { value: 1.375, label: "Light", desc: "1-2x/week" },
+                      { value: 1.55, label: "Moderate", desc: "3-4x/week" },
+                      { value: 1.725, label: "Active", desc: "5-6x/week" },
+                    ].map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={() => setActivityLevel(option.value)}
+                        className={`py-2 rounded-xl text-center transition-all ${
+                          activityLevel === option.value
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-secondary text-muted-foreground"
+                        }`}
+                      >
+                        <p className="text-xs font-medium">{option.label}</p>
+                        <p className="text-[10px] opacity-70">{option.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {useStepData && weeklyAvgSteps > 0 && (
+                  <div className="bg-emerald-500/10 rounded-xl p-3 flex items-center gap-3">
+                    <div className="size-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                      <Footprints className="size-5 text-emerald-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{weeklyAvgSteps.toLocaleString()} steps/day</p>
+                      <p className="text-[10px] text-muted-foreground">Based on your weekly average</p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Preview */}
