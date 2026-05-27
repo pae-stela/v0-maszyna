@@ -127,29 +127,14 @@ export function TopBar() {
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 bg-card/80 backdrop-blur-xl border-b border-border">
-        <div className="flex items-center gap-1 bg-secondary rounded-full p-1">
-          <button
-            onClick={() => setActiveUser("patrycja")}
-            className={`flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
-              activeUser === "patrycja"
-                ? "bg-primary text-primary-foreground shadow-lg"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <WhiteCat />
-            <span>Patrycja</span>
-          </button>
-          <button
-            onClick={() => setActiveUser("marcin")}
-            className={`flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
-              activeUser === "marcin"
-                ? "bg-primary text-primary-foreground shadow-lg"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <BlackCat />
-            <span>Marcin</span>
-          </button>
+        <div className="flex items-center gap-2">
+          {activeUser === "patrycja" ? <WhiteCat /> : <BlackCat />}
+          <div>
+            <p className="text-sm font-semibold text-foreground capitalize">{activeUser}</p>
+            <p className="text-[10px] text-muted-foreground">
+              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+            </p>
+          </div>
         </div>
 
         <button 
@@ -312,17 +297,46 @@ export function TopBar() {
                 </div>
               ) : (
                 <div className="flex flex-col gap-5">
-                  {/* Profile Info */}
+                  {/* Profile Selector */}
                   <div className="bg-secondary/50 rounded-xl p-4">
-                    <h4 className="text-sm font-semibold text-foreground mb-3">Your Profile</h4>
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className={`size-12 rounded-full flex items-center justify-center ${activeUser === "patrycja" ? "bg-emerald-500" : "bg-blue-500"}`}>
-                        {activeUser === "patrycja" ? <WhiteCat /> : <BlackCat />}
-                      </div>
-                      <div>
-                        <p className="font-medium text-foreground capitalize">{activeUser}</p>
-                        <p className="text-xs text-muted-foreground">Active profile</p>
-                      </div>
+                    <h4 className="text-sm font-semibold text-foreground mb-3">Active Profile</h4>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setActiveUser("patrycja")}
+                        className={`flex-1 p-3 rounded-xl flex items-center gap-3 transition-all ${
+                          activeUser === "patrycja"
+                            ? "bg-emerald-500/20 border-2 border-emerald-500"
+                            : "bg-background border-2 border-transparent hover:border-border"
+                        }`}
+                      >
+                        <div className="size-10 rounded-full bg-emerald-500 flex items-center justify-center">
+                          <WhiteCat />
+                        </div>
+                        <div className="text-left">
+                          <p className="text-sm font-medium text-foreground">Patrycja</p>
+                          {activeUser === "patrycja" && (
+                            <p className="text-[10px] text-emerald-500">Active</p>
+                          )}
+                        </div>
+                      </button>
+                      <button
+                        onClick={() => setActiveUser("marcin")}
+                        className={`flex-1 p-3 rounded-xl flex items-center gap-3 transition-all ${
+                          activeUser === "marcin"
+                            ? "bg-blue-500/20 border-2 border-blue-500"
+                            : "bg-background border-2 border-transparent hover:border-border"
+                        }`}
+                      >
+                        <div className="size-10 rounded-full bg-blue-500 flex items-center justify-center">
+                          <BlackCat />
+                        </div>
+                        <div className="text-left">
+                          <p className="text-sm font-medium text-foreground">Marcin</p>
+                          {activeUser === "marcin" && (
+                            <p className="text-[10px] text-blue-500">Active</p>
+                          )}
+                        </div>
+                      </button>
                     </div>
                   </div>
 

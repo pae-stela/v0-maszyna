@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useUser } from "@/lib/user-context"
-import { Droplets, Dumbbell, Pill, Check, ChevronRight, Calculator, Footprints, Sparkles, ChevronDown } from "lucide-react"
+import { Droplets, Dumbbell, Pill, Check, ChevronRight, Calculator, Footprints, Sparkles, ChevronDown, Users } from "lucide-react"
 import { presetDishes } from "./planner-screen"
 
 function ProgressRing({ 
@@ -104,11 +104,14 @@ const userData = {
 export function DashboardScreen() {
   const { activeUser, getTodaySteps, updateSteps, getWeeklyAvgSteps } = useUser()
   const data = userData[activeUser]
+  const partnerUser = activeUser === "patrycja" ? "marcin" : "patrycja"
+  const partnerData = userData[partnerUser]
   const [dayPlan, setDayPlan] = useState(data.dayPlan)
   const [water, setWater] = useState(data.water)
   const [showStepInput, setShowStepInput] = useState(false)
   const [stepInput, setStepInput] = useState("")
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [showPartnerDay, setShowPartnerDay] = useState(false)
 
   const todaySteps = getTodaySteps()
   const weeklyAvg = getWeeklyAvgSteps()
@@ -380,6 +383,68 @@ export function DashboardScreen() {
           )}
         </div>
       )}
+
+      {/* Partner's Day Card */}
+      <div className="bg-card rounded-2xl border border-border overflow-hidden">
+        <button
+          onClick={() => setShowPartnerDay(!showPartnerDay)}
+          className="w-full p-4 flex items-center justify-between"
+        >
+          <div className="flex items-center gap-3">
+            <div className={`size-10 rounded-xl flex items-center justify-center ${
+              partnerUser === "marcin" ? "bg-blue-500/20" : "bg-emerald-500/20"
+            }`}>
+              <Users className={`size-5 ${partnerUser === "marcin" ? "text-blue-500" : "text-emerald-500"}`} />
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-semibold text-foreground capitalize">{partnerUser}&apos;s Day</p>
+              <p className="text-xs text-muted-foreground">
+                {partnerData.dayPlan.filter(i => i.type === "meal").length} meals · {partnerData.dayPlan.filter(i => i.type === "training").length} workout
+              </p>
+            </div>
+          </div>
+          <ChevronDown className={`size-5 text-muted-foreground transition-transform ${showPartnerDay ? "rotate-180" : ""}`} />
+        </button>
+
+        {showPartnerDay && (
+          <div className="px-4 pb-4 flex flex-col gap-2">
+            {partnerData.dayPlan.slice(0, 5).map((item) => (
+              <div
+                key={item.id}
+                className={`flex items-center gap-3 p-2 rounded-lg ${
+                  item.logged ? "bg-primary/5" : "bg-secondary/50"
+                }`}
+              >
+                <span className="text-[10px] font-medium text-muted-foreground w-10">
+                  {item.time}
+                </span>
+                <div className={`size-6 rounded-lg flex items-center justify-center ${
+                  item.type === "meal" 
+                    ? "bg-primary/20" 
+                    : item.type === "training"
+                    ? "bg-orange-500/20"
+                    : "bg-purple-500/20"
+                }`}>
+                  {item.type === "meal" ? (
+                    <div className="size-2.5 rounded-full bg-primary" />
+                  ) : item.type === "training" ? (
+                    <Dumbbell className="size-3 text-orange-400" />
+                  ) : (
+                    <Pill className="size-3 text-purple-400" />
+                  )}
+                </div>
+                <span className="text-xs text-foreground flex-1 truncate">{item.name}</span>
+                {item.logged && <Check className="size-3.5 text-primary" />}
+              </div>
+            ))}
+            {partnerData.dayPlan.length > 5 && (
+              <p className="text-[10px] text-muted-foreground text-center">
+                +{partnerData.dayPlan.length - 5} more items
+              </p>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* My Day Timeline */}
       <div>

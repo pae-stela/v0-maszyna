@@ -260,36 +260,40 @@ function CalendarView() {
         ))}
       </div>
 
-      {/* Calendar Owner Toggle */}
-      <div className="flex items-center gap-2">
-        <div className="flex gap-1 p-1 bg-card border border-border rounded-xl flex-1">
-          <button
-            onClick={() => setActiveUser("marcin")}
-            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-              activeUser === "marcin"
-                ? "bg-blue-500 text-white"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Marcin
-          </button>
-          <button
-            onClick={() => setActiveUser("patrycja")}
-            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-              activeUser === "patrycja"
-                ? "bg-emerald-500 text-white"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Patrycja
-          </button>
-        </div>
+      {/* Calendar View Toggle */}
+      <div className="flex gap-1 p-1 bg-card border border-border rounded-xl">
         <button
-          onClick={() => setShowBothCalendars(!showBothCalendars)}
-          className={`px-3 py-2 rounded-xl text-sm font-medium transition-all border ${
+          onClick={() => {
+            setShowBothCalendars(false)
+            setActiveUser("patrycja")
+          }}
+          className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+            !showBothCalendars && activeUser === "patrycja"
+              ? "bg-emerald-500 text-white"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Me
+        </button>
+        <button
+          onClick={() => {
+            setShowBothCalendars(false)
+            setActiveUser("marcin")
+          }}
+          className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+            !showBothCalendars && activeUser === "marcin"
+              ? "bg-blue-500 text-white"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Marcin
+        </button>
+        <button
+          onClick={() => setShowBothCalendars(true)}
+          className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
             showBothCalendars
-              ? "bg-secondary border-primary/50 text-foreground"
-              : "bg-card border-border text-muted-foreground"
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
           Both
