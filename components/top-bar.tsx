@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useUser } from "@/lib/user-context"
-import { Settings, X, Users, User } from "lucide-react"
+import { Settings, X, Users, User, Calculator, Sparkles } from "lucide-react"
 
 function WhiteCat() {
   return (
@@ -43,6 +43,76 @@ export function TopBar() {
   const [marcinRatio, setMarcinRatio] = useState(2)
   const [patrycjaRatio, setPatrycjaRatio] = useState(1)
   const [restTimerDuration, setRestTimerDuration] = useState(90)
+  const [showMacroCalculator, setShowMacroCalculator] = useState(false)
+  
+  // Macro goals state (per user)
+  const [macroGoals, setMacroGoals] = useState({
+    patrycja: { calories: 1800, protein: 100, carbs: 180, fats: 65 },
+    marcin: { calories: 2500, protein: 150, carbs: 250, fats: 85 }
+  })
+  
+  // Calculator inputs
+  const [calcGoal, setCalcGoal] = useState<"maintain" | "cut" | "bulk">("maintain")
+  const [activityLevel, setActivityLevel] = useState<number>(1.55) // Moderate
+  
+  // Get measurements from profile (simplified - would come from context in real app)
+  const measurements = {
+    patrycja: { weight: 62, height: 168, age: 28, sex: "female" as const },
+    marcin: { weight: 85, height: 183, age: 32, sex: "male" as const }
+  }
+  
+  const calculateMacros = () => {
+    const m = measurements[activeUser]
+    
+    // Mifflin-St Jeor BMR
+    let bmr: number
+    if (m.sex === "male") {
+      bmr = 10 * m.weight + 6.25 * m.height - 5 * m.age + 5
+    } else {
+      bmr = 10 * m.weight + 6.25 * m.height - 5 * m.age - 161
+    }
+    
+    // TDEE
+    let tdee = bmr * activityLevel
+    
+    // Adjust for goal
+    if (calcGoal === "cut") tdee -= 400
+    else if (calcGoal === "bulk") tdee += 300
+    
+    const calories = Math.round(tdee)
+    
+    // Protein: 1.8-2.2g per kg for active people
+    const protein = Math.round(m.weight * 2)
+    
+    // Fats: 25-30% of calories
+    const fats = Math.round((calories * 0.28) / 9)
+    
+    // Carbs: remaining calories
+    const carbs = Math.round((calories - protein * 4 - fats * 9) / 4)
+    
+    return { calories, protein, carbs, fats }
+  }
+  
+  const applyCalculatedMacros = () => {
+    const calculated = calculateMacros()
+    setMacroGoals(prev => ({
+      ...prev,
+      [activeUser]: calculated
+    }))
+    setShowMacroCalculator(false)
+  }
+  
+  const updateMacroGoal = (macro: "calories" | "protein" | "carbs" | "fats", delta: number) => {
+    setMacroGoals(prev => ({
+      ...prev,
+      [activeUser]: {
+        ...prev[activeUser],
+        [macro]: Math.max(0, prev[activeUser][macro] + delta)
+      }
+    }))
+  }
+  
+  const currentGoals = macroGoals[activeUser]
 
   return (
     <>
@@ -248,26 +318,79 @@ export function TopBar() {
 
                   {/* Daily Goals */}
                   <div className="bg-secondary/50 rounded-xl p-4">
-                    <h4 className="text-sm font-semibold text-foreground mb-1">Daily Goals</h4>
+                    <div className="flex items-center justify-between mb-1">
+                      <h4 className="text-sm font-semibold text-foreground">Daily Goals</h4>
+                      <button
+                        onClick={() => setShowMacroCalculator(true)}
+                        className="flex items-center gap-1 text-xs text-primary font-medium"
+                      >
+                        <Sparkles className="size-3" />
+                        Calculate
+                      </button>
+                    </div>
                     <p className="text-xs text-muted-foreground mb-3">
                       Set your personal macro targets
                     </p>
-                    <div className="space-y-3">
+                    <div className="space-y-2.5">
+                      {/* Calories */}
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-foreground">Calories</span>
-                        <span className="text-sm font-medium text-foreground">{activeUser === "patrycja" ? "1,800" : "2,500"} kcal</span>
+                        <div className="flex items-center bg-background rounded-lg">
+                          <button
+                            onClick={() => updateMacroGoal("calories", -50)}
+                            className="px-2 py-1 text-muted-foreground hover:text-foreground text-sm"
+                          >-</button>
+                          <span className="w-14 text-center text-sm font-medium text-foreground">{currentGoals.calories}</span>
+                          <button
+                            onClick={() => updateMacroGoal("calories", 50)}
+                            className="px-2 py-1 text-muted-foreground hover:text-foreground text-sm"
+                          >+</button>
+                        </div>
                       </div>
+                      {/* Protein */}
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-foreground">Protein</span>
-                        <span className="text-sm font-medium text-primary">{activeUser === "patrycja" ? "100" : "150"}g</span>
+                        <span className="text-sm text-primary">Protein</span>
+                        <div className="flex items-center bg-background rounded-lg">
+                          <button
+                            onClick={() => updateMacroGoal("protein", -5)}
+                            className="px-2 py-1 text-muted-foreground hover:text-foreground text-sm"
+                          >-</button>
+                          <span className="w-12 text-center text-sm font-medium text-primary">{currentGoals.protein}g</span>
+                          <button
+                            onClick={() => updateMacroGoal("protein", 5)}
+                            className="px-2 py-1 text-muted-foreground hover:text-foreground text-sm"
+                          >+</button>
+                        </div>
                       </div>
+                      {/* Carbs */}
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-foreground">Carbs</span>
-                        <span className="text-sm font-medium text-amber-500">{activeUser === "patrycja" ? "180" : "250"}g</span>
+                        <span className="text-sm text-amber-500">Carbs</span>
+                        <div className="flex items-center bg-background rounded-lg">
+                          <button
+                            onClick={() => updateMacroGoal("carbs", -10)}
+                            className="px-2 py-1 text-muted-foreground hover:text-foreground text-sm"
+                          >-</button>
+                          <span className="w-12 text-center text-sm font-medium text-amber-500">{currentGoals.carbs}g</span>
+                          <button
+                            onClick={() => updateMacroGoal("carbs", 10)}
+                            className="px-2 py-1 text-muted-foreground hover:text-foreground text-sm"
+                          >+</button>
+                        </div>
                       </div>
+                      {/* Fats */}
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-foreground">Fats</span>
-                        <span className="text-sm font-medium text-rose-400">{activeUser === "patrycja" ? "65" : "85"}g</span>
+                        <span className="text-sm text-rose-400">Fats</span>
+                        <div className="flex items-center bg-background rounded-lg">
+                          <button
+                            onClick={() => updateMacroGoal("fats", -5)}
+                            className="px-2 py-1 text-muted-foreground hover:text-foreground text-sm"
+                          >-</button>
+                          <span className="w-12 text-center text-sm font-medium text-rose-400">{currentGoals.fats}g</span>
+                          <button
+                            onClick={() => updateMacroGoal("fats", 5)}
+                            className="px-2 py-1 text-muted-foreground hover:text-foreground text-sm"
+                          >+</button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -321,6 +444,115 @@ export function TopBar() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Macro Calculator Modal */}
+      {showMacroCalculator && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4">
+          <div className="bg-card rounded-2xl w-full max-w-sm overflow-hidden">
+            <div className="p-4 border-b border-border flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Calculator className="size-5 text-primary" />
+                <h3 className="font-semibold text-foreground">Macro Calculator</h3>
+              </div>
+              <button 
+                onClick={() => setShowMacroCalculator(false)}
+                className="p-1 rounded-lg hover:bg-secondary"
+              >
+                <X className="size-5 text-muted-foreground" />
+              </button>
+            </div>
+
+            <div className="p-4 flex flex-col gap-4">
+              <p className="text-xs text-muted-foreground">
+                Based on your measurements ({measurements[activeUser].weight}kg, {measurements[activeUser].height}cm, age {measurements[activeUser].age})
+              </p>
+
+              {/* Goal Selection */}
+              <div>
+                <label className="text-xs text-muted-foreground mb-2 block">Goal</label>
+                <div className="flex gap-2">
+                  {[
+                    { value: "cut", label: "Cut", desc: "-400 kcal" },
+                    { value: "maintain", label: "Maintain", desc: "TDEE" },
+                    { value: "bulk", label: "Bulk", desc: "+300 kcal" },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => setCalcGoal(option.value as typeof calcGoal)}
+                      className={`flex-1 py-2.5 rounded-xl text-center transition-all ${
+                        calcGoal === option.value
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary text-muted-foreground"
+                      }`}
+                    >
+                      <p className="text-sm font-medium">{option.label}</p>
+                      <p className="text-[10px] opacity-70">{option.desc}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Activity Level */}
+              <div>
+                <label className="text-xs text-muted-foreground mb-2 block">Activity Level</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { value: 1.2, label: "Sedentary", desc: "Desk job" },
+                    { value: 1.375, label: "Light", desc: "1-2x/week" },
+                    { value: 1.55, label: "Moderate", desc: "3-4x/week" },
+                    { value: 1.725, label: "Active", desc: "5-6x/week" },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => setActivityLevel(option.value)}
+                      className={`py-2 rounded-xl text-center transition-all ${
+                        activityLevel === option.value
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary text-muted-foreground"
+                      }`}
+                    >
+                      <p className="text-xs font-medium">{option.label}</p>
+                      <p className="text-[10px] opacity-70">{option.desc}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Preview */}
+              <div className="bg-secondary/50 rounded-xl p-3">
+                <p className="text-[10px] text-muted-foreground mb-2">Calculated targets:</p>
+                <div className="grid grid-cols-4 gap-2 text-center">
+                  <div>
+                    <p className="text-sm font-bold text-foreground">{calculateMacros().calories}</p>
+                    <p className="text-[9px] text-muted-foreground">kcal</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-primary">{calculateMacros().protein}g</p>
+                    <p className="text-[9px] text-muted-foreground">protein</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-amber-500">{calculateMacros().carbs}g</p>
+                    <p className="text-[9px] text-muted-foreground">carbs</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-rose-400">{calculateMacros().fats}g</p>
+                    <p className="text-[9px] text-muted-foreground">fats</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-border">
+              <button
+                onClick={applyCalculatedMacros}
+                className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium active:scale-[0.98] transition-transform"
+              >
+                Apply These Goals
+              </button>
             </div>
           </div>
         </div>
