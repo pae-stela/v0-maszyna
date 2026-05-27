@@ -21,7 +21,7 @@ export function PlannerScreen() {
   const [subTab, setSubTab] = useState<SubTab>("calendar")
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 pb-24">
       <div className="flex gap-2 p-1 bg-secondary rounded-xl">
         <button
           onClick={() => setSubTab("calendar")}
@@ -776,7 +776,7 @@ function ShoppingView() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 pb-24">
       {/* Quick Add Input */}
       <div className="flex items-center gap-2">
         <input

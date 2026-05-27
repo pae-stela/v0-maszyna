@@ -117,7 +117,7 @@ export function DashboardScreen() {
   }
 
   return (
-    <div className="flex flex-col gap-5 pb-4">
+    <div className="flex flex-col gap-5 pb-24">
       {/* Macro Circles */}
       <div className="bg-card rounded-2xl p-4 border border-border">
         <div className="flex items-center justify-between">

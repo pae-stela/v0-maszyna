@@ -10,7 +10,7 @@ export function WorkoutScreen() {
   const [subTab, setSubTab] = useState<SubTab>("journal")
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 pb-24">
       <div className="flex gap-2 p-1 bg-secondary rounded-xl">
         <button
           onClick={() => setSubTab("journal")}

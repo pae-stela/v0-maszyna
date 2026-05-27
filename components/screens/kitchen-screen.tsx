@@ -232,7 +232,7 @@ export function KitchenScreen() {
   const { activeUser } = useUser()
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 pb-24">
       <div className="flex gap-1 p-1 bg-secondary rounded-xl">
         <button
           onClick={() => setSubTab("calculator")}

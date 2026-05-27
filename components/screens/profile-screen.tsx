@@ -36,7 +36,7 @@ export function ProfileScreen() {
   const weightTrend = weightChange > 0 ? "up" : weightChange < 0 ? "down" : "stable"
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 pb-24">
       <div className="bg-card rounded-2xl p-5 border border-border">
         <div className="flex items-center gap-3 mb-4">
           <div className="size-12 rounded-full bg-primary/20 flex items-center justify-center">
