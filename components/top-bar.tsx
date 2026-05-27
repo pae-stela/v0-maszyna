@@ -81,8 +81,8 @@ export function TopBar() {
 
       {/* Settings Modal */}
       {showSettings && (
-        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-[60] p-4">
-          <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden max-h-[85vh] flex flex-col">
+        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-[60] p-4 pb-24">
+          <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden max-h-[70vh] flex flex-col">
             {/* Header */}
             <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
               <h3 className="font-semibold text-foreground">Settings</h3>

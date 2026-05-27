@@ -420,8 +420,8 @@ function CalendarView() {
 
       {/* Add Event Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 p-4">
-          <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden">
+        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 p-4 pb-24">
+          <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden max-h-[70vh] flex flex-col">
             <div className="p-4 border-b border-border flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {addType === "meal" ? (
@@ -949,8 +949,8 @@ function ShoppingView() {
 
       {/* Import from Planner Modal */}
       {showImportModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 p-4">
-          <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden max-h-[80vh] flex flex-col">
+        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 p-4 pb-24">
+          <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden max-h-[70vh] flex flex-col">
             <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                 <Calendar className="size-5 text-primary" />
@@ -1014,8 +1014,8 @@ function ShoppingView() {
 
       {/* Import from Recipe Modal */}
       {showRecipeModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 p-4">
-          <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden max-h-[80vh] flex flex-col">
+        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 p-4 pb-24">
+          <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden max-h-[70vh] flex flex-col">
             <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                 <FileText className="size-5 text-primary" />
@@ -1149,8 +1149,8 @@ function ShoppingView() {
 
       {/* Batch Review Modal */}
       {showBatchReview && (
-        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 p-4">
-          <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden max-h-[85vh] flex flex-col">
+        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 p-4 pb-24">
+          <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden max-h-[70vh] flex flex-col">
             <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                 <RefreshCw className="size-5 text-primary" />
