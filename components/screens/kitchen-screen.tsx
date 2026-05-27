@@ -22,6 +22,8 @@ interface IngredientItem {
   subIngredients?: { ingredientId: string; name: string; grams: number }[]
   recipeSteps?: string[]
   yieldGrams?: number
+  marcinServings?: number
+  patrycjaServings?: number
 }
 
 // Dishes - composed of ingredients and/or components
@@ -36,6 +38,8 @@ interface DishItem {
   totalFiber: number
   mainCategory: "Large" | "Light" | "Snacks" | "Drinks"
   subCategory: string
+  marcinServings?: number
+  patrycjaServings?: number
 }
 
 // Category structure for dishes
@@ -117,7 +121,9 @@ const initialIngredients: IngredientItem[] = [
       "Add lime juice and salt to taste",
       "Refrigerate for 30 min before serving"
     ],
-    yieldGrams: 295
+    yieldGrams: 295,
+    marcinServings: 2,
+    patrycjaServings: 2
   },
   { 
     id: "c2", 
@@ -139,7 +145,9 @@ const initialIngredients: IngredientItem[] = [
       "Pour eggs into pan and stir gently",
       "Remove from heat while still slightly wet"
     ],
-    yieldGrams: 160
+    yieldGrams: 160,
+    marcinServings: 1,
+    patrycjaServings: 1
   },
 ]
 
@@ -159,7 +167,9 @@ const initialDishes: DishItem[] = [
     totalFats: 20,
     totalFiber: 8,
     mainCategory: "Light",
-    subCategory: "Oats & Granola"
+    subCategory: "Oats & Granola",
+    marcinServings: 1,
+    patrycjaServings: 1
   },
   {
     id: "d2",
@@ -176,7 +186,9 @@ const initialDishes: DishItem[] = [
     totalFats: 14,
     totalFiber: 6,
     mainCategory: "Large",
-    subCategory: "Salads & Veggies"
+    subCategory: "Salads & Veggies",
+    marcinServings: 2,
+    patrycjaServings: 2
   },
   {
     id: "d3",
@@ -192,7 +204,9 @@ const initialDishes: DishItem[] = [
     totalFats: 12,
     totalFiber: 5,
     mainCategory: "Drinks",
-    subCategory: "Shakes & Smoothies"
+    subCategory: "Shakes & Smoothies",
+    marcinServings: 1,
+    patrycjaServings: 1
   },
   {
     id: "d4",
@@ -207,7 +221,9 @@ const initialDishes: DishItem[] = [
     totalFats: 16,
     totalFiber: 4,
     mainCategory: "Snacks",
-    subCategory: "Sweet"
+    subCategory: "Sweet",
+    marcinServings: 3,
+    patrycjaServings: 2
   },
 ]
 
@@ -1077,7 +1093,23 @@ function IngredientsView() {
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {ingredient.caloriesPer100g} kcal · P {ingredient.proteinPer100g}g · C {ingredient.carbsPer100g}g · F {ingredient.fatsPer100g}g · Fib {ingredient.fiberPer100g}g
                   </p>
-                  <span className="text-xs text-muted-foreground/70">{ingredient.category}</span>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-xs text-muted-foreground/70">{ingredient.category}</span>
+                    {ingredient.isComponent && (ingredient.marcinServings || ingredient.patrycjaServings) && (
+                      <div className="flex items-center gap-1">
+                        {ingredient.marcinServings && (
+                          <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-500 text-[9px] font-medium">
+                            M:{ingredient.marcinServings}
+                          </span>
+                        )}
+                        {ingredient.patrycjaServings && (
+                          <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-500 text-[9px] font-medium">
+                            P:{ingredient.patrycjaServings}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <ChevronDown className={`size-5 text-muted-foreground shrink-0 transition-transform ${expandedId === ingredient.id ? "rotate-180" : ""}`} />
               </div>
@@ -1263,7 +1295,23 @@ function DishesView() {
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {dish.elements.length} elements · {dish.totalCalories} kcal
                     </p>
-                    <span className="text-xs text-muted-foreground/70">{dish.mainCategory} · {dish.subCategory}</span>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs text-muted-foreground/70">{dish.mainCategory} · {dish.subCategory}</span>
+                      {(dish.marcinServings || dish.patrycjaServings) && (
+                        <div className="flex items-center gap-1">
+                          {dish.marcinServings && (
+                            <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-500 text-[9px] font-medium">
+                              M:{dish.marcinServings}
+                            </span>
+                          )}
+                          {dish.patrycjaServings && (
+                            <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-500 text-[9px] font-medium">
+                              P:{dish.patrycjaServings}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </button>
