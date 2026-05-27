@@ -6,7 +6,9 @@ import { Input } from '@/components/ui/input'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { Dumbbell, Utensils } from 'lucide-react'
+import { Dumbbell, Utensils, Globe } from 'lucide-react'
+import { useLanguage } from '@/lib/i18n/context'
+import type { Language } from '@/lib/i18n/translations'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -14,6 +16,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const { language, setLanguage, t } = useLanguage()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,6 +40,32 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
+      {/* Language Selector - Top Right */}
+      <div className="absolute top-4 right-4">
+        <div className="flex items-center gap-1 p-1 bg-card rounded-lg border border-border">
+          <button
+            onClick={() => setLanguage('en')}
+            className={`px-2.5 py-1.5 rounded text-xs font-medium transition-all ${
+              language === 'en' 
+                ? 'bg-primary text-primary-foreground' 
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            EN
+          </button>
+          <button
+            onClick={() => setLanguage('pl')}
+            className={`px-2.5 py-1.5 rounded text-xs font-medium transition-all ${
+              language === 'pl' 
+                ? 'bg-primary text-primary-foreground' 
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            PL
+          </button>
+        </div>
+      </div>
+
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2 mb-8">
@@ -49,21 +78,24 @@ export default function LoginPage() {
         </div>
 
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-foreground">Welcome back</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t('welcomeBack')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Sign in to continue tracking your fitness journey
+            {language === 'en' 
+              ? 'Sign in to continue tracking your fitness journey'
+              : 'Zaloguj się, aby kontynuować śledzenie postępów'
+            }
           </p>
         </div>
 
         <form onSubmit={handleLogin} className="flex flex-col gap-4">
           <div>
             <label htmlFor="email" className="text-sm font-medium text-foreground mb-1.5 block">
-              Email
+              {t('email')}
             </label>
             <Input
               id="email"
               type="email"
-              placeholder="you@example.com"
+              placeholder={language === 'en' ? 'you@example.com' : 'ty@example.com'}
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -73,12 +105,12 @@ export default function LoginPage() {
 
           <div>
             <label htmlFor="password" className="text-sm font-medium text-foreground mb-1.5 block">
-              Password
+              {t('password')}
             </label>
             <Input
               id="password"
               type="password"
-              placeholder="Enter your password"
+              placeholder={language === 'en' ? 'Enter your password' : 'Wprowadź hasło'}
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -93,14 +125,17 @@ export default function LoginPage() {
           )}
 
           <Button type="submit" className="w-full mt-2" disabled={isLoading}>
-            {isLoading ? 'Signing in...' : 'Sign in'}
+            {isLoading 
+              ? (language === 'en' ? 'Signing in...' : 'Logowanie...') 
+              : t('login')
+            }
           </Button>
         </form>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
-          Don&apos;t have an account?{' '}
+          {t('noAccount')}{' '}
           <Link href="/auth/sign-up" className="text-primary font-medium hover:underline">
-            Sign up
+            {t('signUp')}
           </Link>
         </p>
       </div>

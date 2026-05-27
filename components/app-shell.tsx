@@ -7,9 +7,11 @@ import { KitchenScreen } from "@/components/screens/kitchen-screen"
 import { WorkoutScreen } from "@/components/screens/workout-screen"
 import { PlannerScreen } from "@/components/screens/planner-screen"
 import { ProfileScreen } from "@/components/screens/profile-screen"
+import { useLanguage } from "@/lib/i18n/context"
 
 export function AppShell() {
   const [activeTab, setActiveTab] = useState<Tab>("dashboard")
+  const { t, language } = useLanguage()
 
   const renderScreen = () => {
     switch (activeTab) {
@@ -31,15 +33,15 @@ export function AppShell() {
   const getScreenTitle = () => {
     switch (activeTab) {
       case "dashboard":
-        return "Dashboard"
+        return t('dashboard')
       case "kitchen":
-        return "Kitchen"
+        return t('kitchen')
       case "workout":
-        return "Workout"
+        return t('workout')
       case "planner":
-        return "Planner"
+        return t('planner')
       case "profile":
-        return "Profile"
+        return t('profile')
       default:
         return ""
     }
@@ -47,7 +49,8 @@ export function AppShell() {
 
   const getScreenSubtitle = () => {
     if (activeTab === "dashboard") {
-      return new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+      const locale = language === 'pl' ? 'pl-PL' : 'en-US'
+      return new Date().toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' })
     }
     return null
   }

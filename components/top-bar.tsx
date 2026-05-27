@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import { useUser } from "@/lib/user-context"
-import { Settings, X, Users, User, Calculator, Sparkles, Footprints } from "lucide-react"
+import { Settings, X, Users, User, Calculator, Sparkles, Footprints, Globe } from "lucide-react"
+import { useLanguage } from "@/lib/i18n/context"
 
 export function WhiteCat() {
   return (
@@ -43,6 +44,7 @@ interface SettingsModalProps {
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const { activeUser, setActiveUser, getWeeklyAvgSteps } = useUser()
+  const { language, setLanguage, t } = useLanguage()
   const [settingsTab, setSettingsTab] = useState<"couple" | "profile">("couple")
   const [marcinRatio, setMarcinRatio] = useState(2)
   const [patrycjaRatio, setPatrycjaRatio] = useState(1)
@@ -322,6 +324,36 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                             <p className="text-[10px] text-blue-500">Active</p>
                           )}
                         </div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Language Setting */}
+                  <div className="bg-secondary/50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Globe className="size-4 text-muted-foreground" />
+                      <h4 className="text-sm font-semibold text-foreground">{t('language')}</h4>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setLanguage('en')}
+                        className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                          language === 'en'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-background text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        {t('english')}
+                      </button>
+                      <button
+                        onClick={() => setLanguage('pl')}
+                        className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                          language === 'pl'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-background text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        {t('polish')}
                       </button>
                     </div>
                   </div>

@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Dumbbell, Utensils, User, Users } from 'lucide-react'
+import { useLanguage } from '@/lib/i18n/context'
 
 export default function SignUpPage() {
   const [name, setName] = useState('')
@@ -17,6 +18,7 @@ export default function SignUpPage() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const { language, setLanguage, t } = useLanguage()
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -25,13 +27,13 @@ export default function SignUpPage() {
     setError(null)
 
     if (password !== repeatPassword) {
-      setError('Passwords do not match')
+      setError(language === 'en' ? 'Passwords do not match' : 'Hasła nie są takie same')
       setIsLoading(false)
       return
     }
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters')
+      setError(language === 'en' ? 'Password must be at least 6 characters' : 'Hasło musi mieć minimum 6 znaków')
       setIsLoading(false)
       return
     }
@@ -61,6 +63,32 @@ export default function SignUpPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
+      {/* Language Selector - Top Right */}
+      <div className="absolute top-4 right-4">
+        <div className="flex items-center gap-1 p-1 bg-card rounded-lg border border-border">
+          <button
+            onClick={() => setLanguage('en')}
+            className={`px-2.5 py-1.5 rounded text-xs font-medium transition-all ${
+              language === 'en' 
+                ? 'bg-primary text-primary-foreground' 
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            EN
+          </button>
+          <button
+            onClick={() => setLanguage('pl')}
+            className={`px-2.5 py-1.5 rounded text-xs font-medium transition-all ${
+              language === 'pl' 
+                ? 'bg-primary text-primary-foreground' 
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            PL
+          </button>
+        </div>
+      </div>
+
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2 mb-8">
@@ -73,9 +101,12 @@ export default function SignUpPage() {
         </div>
 
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-foreground">Create account</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t('createAccount')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Start your fitness journey together
+            {language === 'en' 
+              ? 'Start your fitness journey together'
+              : 'Rozpocznij swoją drogę do formy'
+            }
           </p>
         </div>
 
@@ -92,8 +123,9 @@ export default function SignUpPage() {
           >
             <User className={`size-6 mx-auto mb-2 ${accountType === 'single' ? 'text-primary' : 'text-muted-foreground'}`} />
             <p className={`text-sm font-medium ${accountType === 'single' ? 'text-foreground' : 'text-muted-foreground'}`}>
-              Solo
+              {t('solo')}
             </p>
+            <p className="text-[10px] text-muted-foreground mt-1">{t('soloDesc')}</p>
           </button>
           <button
             type="button"
@@ -106,20 +138,21 @@ export default function SignUpPage() {
           >
             <Users className={`size-6 mx-auto mb-2 ${accountType === 'couple' ? 'text-primary' : 'text-muted-foreground'}`} />
             <p className={`text-sm font-medium ${accountType === 'couple' ? 'text-foreground' : 'text-muted-foreground'}`}>
-              Couple
+              {t('couple')}
             </p>
+            <p className="text-[10px] text-muted-foreground mt-1">{t('coupleDesc')}</p>
           </button>
         </div>
 
         <form onSubmit={handleSignUp} className="flex flex-col gap-4">
           <div>
             <label htmlFor="name" className="text-sm font-medium text-foreground mb-1.5 block">
-              Name
+              {t('yourName')}
             </label>
             <Input
               id="name"
               type="text"
-              placeholder="Your name"
+              placeholder={language === 'en' ? 'Your name' : 'Twoje imię'}
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -129,12 +162,12 @@ export default function SignUpPage() {
 
           <div>
             <label htmlFor="email" className="text-sm font-medium text-foreground mb-1.5 block">
-              Email
+              {t('email')}
             </label>
             <Input
               id="email"
               type="email"
-              placeholder="you@example.com"
+              placeholder={language === 'en' ? 'you@example.com' : 'ty@example.com'}
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -144,12 +177,12 @@ export default function SignUpPage() {
 
           <div>
             <label htmlFor="password" className="text-sm font-medium text-foreground mb-1.5 block">
-              Password
+              {t('password')}
             </label>
             <Input
               id="password"
               type="password"
-              placeholder="Min. 6 characters"
+              placeholder={language === 'en' ? 'Min. 6 characters' : 'Min. 6 znaków'}
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -159,12 +192,12 @@ export default function SignUpPage() {
 
           <div>
             <label htmlFor="repeat-password" className="text-sm font-medium text-foreground mb-1.5 block">
-              Confirm Password
+              {t('confirmPassword')}
             </label>
             <Input
               id="repeat-password"
               type="password"
-              placeholder="Repeat your password"
+              placeholder={language === 'en' ? 'Repeat your password' : 'Powtórz hasło'}
               required
               value={repeatPassword}
               onChange={(e) => setRepeatPassword(e.target.value)}
@@ -179,14 +212,17 @@ export default function SignUpPage() {
           )}
 
           <Button type="submit" className="w-full mt-2" disabled={isLoading}>
-            {isLoading ? 'Creating account...' : 'Create account'}
+            {isLoading 
+              ? (language === 'en' ? 'Creating account...' : 'Tworzenie konta...') 
+              : t('signUp')
+            }
           </Button>
         </form>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
-          Already have an account?{' '}
+          {t('haveAccount')}{' '}
           <Link href="/auth/login" className="text-primary font-medium hover:underline">
-            Sign in
+            {t('login')}
           </Link>
         </p>
       </div>
