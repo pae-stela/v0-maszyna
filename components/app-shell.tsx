@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { TopBar } from "@/components/top-bar"
 import { BottomNav, type Tab } from "@/components/bottom-nav"
 import { DashboardScreen } from "@/components/screens/dashboard-screen"
 import { KitchenScreen } from "@/components/screens/kitchen-screen"
@@ -46,12 +45,22 @@ export function AppShell() {
     }
   }
 
+  const getScreenSubtitle = () => {
+    if (activeTab === "dashboard") {
+      return new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+    }
+    return null
+  }
+
   return (
     <div className="min-h-screen bg-background">
-      <TopBar />
-      
-      <main className="pt-[72px] pb-[100px] px-4">
-        <h1 className="text-2xl font-bold text-foreground mb-6">{getScreenTitle()}</h1>
+      <main className="pt-6 pb-[100px] px-4">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-foreground">{getScreenTitle()}</h1>
+          {getScreenSubtitle() && (
+            <p className="text-sm text-muted-foreground mt-0.5">{getScreenSubtitle()}</p>
+          )}
+        </div>
         <div className="transition-all duration-300">
           {renderScreen()}
         </div>

@@ -5,8 +5,9 @@ import { useUser } from "@/lib/user-context"
 import { 
   TrendingUp, TrendingDown, Minus, Ruler, Scale, Utensils, Dumbbell, 
   ChevronRight, Clock, Flame, Plus, Camera, Trophy, Zap, Target, 
-  Calendar, Award, Star, Heart, CheckCircle2
+  Calendar, Award, Star, Heart, CheckCircle2, Settings
 } from "lucide-react"
+import { SettingsModal, WhiteCat, BlackCat } from "@/components/top-bar"
 
 type ProfileTab = "measurements" | "logs" | "achievements"
 
@@ -16,6 +17,7 @@ export function ProfileScreen() {
   const [logsSubTab, setLogsSubTab] = useState<"meals" | "workouts">("meals")
   const [expandedLog, setExpandedLog] = useState<string | null>(null)
   const [showAddMeasurement, setShowAddMeasurement] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
 
   const userMealLogs = mealLogs.filter(log => log.user === activeUser)
   const userWorkoutLogs = workoutLogs.filter(log => log.user === activeUser)
@@ -128,6 +130,27 @@ export function ProfileScreen() {
 
   return (
     <div className="flex flex-col gap-4 pb-24">
+      {/* Profile Header */}
+      <div className="flex items-center justify-between -mt-2 mb-2">
+        <div className="flex items-center gap-3">
+          <div className={`size-12 rounded-full flex items-center justify-center ${
+            activeUser === "patrycja" ? "bg-emerald-500" : "bg-blue-500"
+          }`}>
+            {activeUser === "patrycja" ? <WhiteCat /> : <BlackCat />}
+          </div>
+          <div>
+            <p className="text-lg font-semibold text-foreground capitalize">{activeUser}</p>
+            <p className="text-xs text-muted-foreground">Member since Jan 2024</p>
+          </div>
+        </div>
+        <button 
+          onClick={() => setShowSettings(true)}
+          className="p-2.5 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors"
+        >
+          <Settings className="size-5 text-foreground" />
+        </button>
+      </div>
+
       {/* Tab Navigation */}
       <div className="flex gap-1 p-1 bg-secondary rounded-xl">
         {[
@@ -575,6 +598,9 @@ export function ProfileScreen() {
           </div>
         </div>
       )}
+
+      {/* Settings Modal */}
+      <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
     </div>
   )
 }

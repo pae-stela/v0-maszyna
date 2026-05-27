@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useUser } from "@/lib/user-context"
 import { Settings, X, Users, User, Calculator, Sparkles, Footprints } from "lucide-react"
 
-function WhiteCat() {
+export function WhiteCat() {
   return (
     <svg viewBox="0 0 24 24" className="size-5" fill="none">
       <ellipse cx="12" cy="13" rx="8" ry="7" fill="#f5f5f5" />
@@ -19,7 +19,7 @@ function WhiteCat() {
   )
 }
 
-function BlackCat() {
+export function BlackCat() {
   return (
     <svg viewBox="0 0 24 24" className="size-5" fill="none">
       <ellipse cx="12" cy="13" rx="8" ry="7" fill="#1a1a1a" />
@@ -36,9 +36,13 @@ function BlackCat() {
   )
 }
 
-export function TopBar() {
+interface SettingsModalProps {
+  isOpen: boolean
+  onClose: () => void
+}
+
+export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const { activeUser, setActiveUser, getWeeklyAvgSteps } = useUser()
-  const [showSettings, setShowSettings] = useState(false)
   const [settingsTab, setSettingsTab] = useState<"couple" | "profile">("couple")
   const [marcinRatio, setMarcinRatio] = useState(2)
   const [patrycjaRatio, setPatrycjaRatio] = useState(1)
@@ -124,41 +128,23 @@ export function TopBar() {
   
   const currentGoals = macroGoals[activeUser]
 
+  if (!isOpen) return null
+
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 bg-card/80 backdrop-blur-xl border-b border-border">
-        <div className="flex items-center gap-2">
-          {activeUser === "patrycja" ? <WhiteCat /> : <BlackCat />}
-          <div>
-            <p className="text-sm font-semibold text-foreground capitalize">{activeUser}</p>
-            <p className="text-[10px] text-muted-foreground">
-              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
-            </p>
-          </div>
-        </div>
-
-        <button 
-          onClick={() => setShowSettings(true)}
-          className="p-2 rounded-full hover:bg-secondary transition-colors"
-        >
-          <Settings className="size-5 text-foreground" />
-        </button>
-      </header>
-
       {/* Settings Modal */}
-      {showSettings && (
-        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-[60] p-4 pb-24">
-          <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden max-h-[70vh] flex flex-col">
-            {/* Header */}
-            <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
-              <h3 className="font-semibold text-foreground">Settings</h3>
-              <button 
-                onClick={() => setShowSettings(false)}
-                className="p-1 rounded-lg hover:bg-secondary"
-              >
-                <X className="size-5 text-muted-foreground" />
-              </button>
-            </div>
+      <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-[60] p-4 pb-24">
+        <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden max-h-[70vh] flex flex-col">
+          {/* Header */}
+          <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
+            <h3 className="font-semibold text-foreground">Settings</h3>
+            <button 
+              onClick={onClose}
+              className="p-1 rounded-lg hover:bg-secondary"
+            >
+              <X className="size-5 text-muted-foreground" />
+            </button>
+          </div>
 
             {/* Tab Toggle */}
             <div className="p-4 border-b border-border shrink-0">
