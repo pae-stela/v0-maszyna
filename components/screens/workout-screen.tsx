@@ -181,8 +181,23 @@ function JournalView() {
 
   const toggleSet = (exerciseId: string, setIndex: number) => {
     const currentExpanded = expandedSet?.exerciseId === exerciseId && expandedSet?.setIndex === setIndex
+    const exercise = exercises.find(ex => ex.id === exerciseId)
+    const isCompleted = exercise?.sets[setIndex]?.completed
+
     if (currentExpanded) {
+      // Collapse and unmark
+      setExercises(exercises.map(ex => {
+        if (ex.id === exerciseId) {
+          const newSets = [...ex.sets]
+          newSets[setIndex] = { ...newSets[setIndex], completed: false, difficulty: null }
+          return { ...ex, sets: newSets }
+        }
+        return ex
+      }))
       setExpandedSet(null)
+    } else if (isCompleted) {
+      // Already completed, just expand to edit
+      setExpandedSet({ exerciseId, setIndex })
     } else {
       // Mark as completed and expand
       setExercises(exercises.map(ex => {
