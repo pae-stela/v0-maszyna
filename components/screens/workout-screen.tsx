@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useUser } from "@/lib/user-context"
 import { Play, Plus, ChevronRight, Timer, Flame, Dumbbell, Search, X, Check, Link2, Trash2 } from "lucide-react"
 
@@ -144,11 +144,18 @@ function JournalView() {
   const [showPlanPicker, setShowPlanPicker] = useState(false)
   const [exercises, setExercises] = useState<JournalExercise[]>([])
   const [expandedSet, setExpandedSet] = useState<{exerciseId: string, setIndex: number} | null>(null)
-  const [workoutStartTime] = useState(Date.now())
+  const [workoutStartTime, setWorkoutStartTime] = useState<number | null>(null)
   const [elapsedTime, setElapsedTime] = useState("00:00")
+  const [isWorkoutActive, setIsWorkoutActive] = useState(false)
+  
+  // Rest timer state
+  const [restTimerActive, setRestTimerActive] = useState(false)
+  const [restTimeRemaining, setRestTimeRemaining] = useState(0)
+  const [restDuration] = useState(90) // Default 90 seconds, could come from settings
 
-  // Timer
-  useState(() => {
+  // Workout timer effect
+  useEffect(() => {
+    if (!isWorkoutActive || !workoutStartTime) return
     const interval = setInterval(() => {
       const elapsed = Date.now() - workoutStartTime
       const mins = Math.floor(elapsed / 60000)
@@ -156,7 +163,37 @@ function JournalView() {
       setElapsedTime(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`)
     }, 1000)
     return () => clearInterval(interval)
-  })
+  }, [isWorkoutActive, workoutStartTime])
+
+  // Rest timer effect
+  useEffect(() => {
+    if (!restTimerActive || restTimeRemaining <= 0) return
+    const interval = setInterval(() => {
+      setRestTimeRemaining(prev => {
+        if (prev <= 1) {
+          setRestTimerActive(false)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [restTimerActive, restTimeRemaining])
+
+  const startWorkout = () => {
+    setWorkoutStartTime(Date.now())
+    setIsWorkoutActive(true)
+  }
+
+  const startRestTimer = () => {
+    setRestTimeRemaining(restDuration)
+    setRestTimerActive(true)
+  }
+
+  const skipRestTimer = () => {
+    setRestTimerActive(false)
+    setRestTimeRemaining(0)
+  }
 
   const selectPlan = (planId: string) => {
     const plan = availablePlans.find(p => p.id === planId)
@@ -209,6 +246,8 @@ function JournalView() {
         return ex
       }))
       setExpandedSet({ exerciseId, setIndex })
+      // Start rest timer
+      startRestTimer()
     }
   }
 
@@ -286,10 +325,20 @@ function JournalView() {
                 <p className="text-lg font-bold text-foreground">{estimatedCalories}</p>
               </div>
             </div>
-            <div className="flex items-center gap-1.5 text-primary">
-              <Timer className="size-4" />
-              <span className="text-sm font-mono font-medium">{elapsedTime}</span>
-            </div>
+            {isWorkoutActive ? (
+              <div className="flex items-center gap-1.5 text-primary">
+                <Timer className="size-4" />
+                <span className="text-sm font-mono font-medium">{elapsedTime}</span>
+              </div>
+            ) : (
+              <button
+                onClick={startWorkout}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary rounded-lg text-primary-foreground text-xs font-medium active:scale-95 transition-transform"
+              >
+                <Play className="size-3.5" />
+                Start
+              </button>
+            )}
           </div>
           
           {/* Progress Bar */}
@@ -302,6 +351,54 @@ function JournalView() {
           <p className="text-[10px] text-muted-foreground text-center mt-1.5">
             {Math.round(progress)}% complete
           </p>
+        </div>
+      )}
+
+      {/* Rest Timer */}
+      {restTimerActive && (
+        <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-2xl p-4 border border-blue-500/20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="relative size-12">
+                <svg className="size-12 -rotate-90">
+                  <circle
+                    cx="24"
+                    cy="24"
+                    r="20"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    className="text-secondary"
+                  />
+                  <circle
+                    cx="24"
+                    cy="24"
+                    r="20"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    strokeDasharray={125.6}
+                    strokeDashoffset={125.6 * (1 - restTimeRemaining / restDuration)}
+                    strokeLinecap="round"
+                    className="text-primary transition-all duration-1000"
+                  />
+                </svg>
+                <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-foreground">
+                  {restTimeRemaining}
+                </span>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">Rest Time</p>
+                <p className="text-xs text-muted-foreground">Recover before next set</p>
+              </div>
+            </div>
+            <button
+              onClick={skipRestTimer}
+              className="px-3 py-1.5 rounded-lg bg-secondary text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Skip
+            </button>
+          </div>
         </div>
       )}
 

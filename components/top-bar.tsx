@@ -42,6 +42,7 @@ export function TopBar() {
   const [settingsTab, setSettingsTab] = useState<"couple" | "profile">("couple")
   const [marcinRatio, setMarcinRatio] = useState(2)
   const [patrycjaRatio, setPatrycjaRatio] = useState(1)
+  const [restTimerDuration, setRestTimerDuration] = useState(90)
 
   return (
     <>
@@ -286,6 +287,35 @@ export function TopBar() {
                         <div className="w-11 h-6 bg-primary rounded-full relative cursor-pointer">
                           <div className="absolute right-0.5 top-0.5 size-5 bg-white rounded-full shadow-sm" />
                         </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Workout Settings */}
+                  <div className="bg-secondary/50 rounded-xl p-4">
+                    <h4 className="text-sm font-semibold text-foreground mb-1">Workout Settings</h4>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Customize your workout experience
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-sm text-foreground">Rest Timer</span>
+                        <p className="text-[10px] text-muted-foreground">Between sets</p>
+                      </div>
+                      <div className="flex items-center bg-background rounded-lg">
+                        <button
+                          onClick={() => setRestTimerDuration(Math.max(15, restTimerDuration - 15))}
+                          className="px-2.5 py-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          -
+                        </button>
+                        <span className="w-10 text-center text-sm font-medium text-foreground">{restTimerDuration}s</span>
+                        <button
+                          onClick={() => setRestTimerDuration(Math.min(300, restTimerDuration + 15))}
+                          className="px-2.5 py-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          +
+                        </button>
                       </div>
                     </div>
                   </div>
