@@ -11,8 +11,10 @@ interface Exercise {
   name: string
   muscleGroup: string
   equipment: string
-  type: "compound" | "isolation"
+  type: "compound" | "isolation" | "cardio" | "flexibility"
   antagonistPairsWith?: string[] // muscle groups it pairs well with
+  caloriesPerMinute?: number // for cardio/flexibility activities
+  isTimeBased?: boolean // true for duration-based activities
 }
 
 interface PlanExercise {
@@ -21,6 +23,7 @@ interface PlanExercise {
   sets: number
   reps: number
   weight: string
+  duration?: number // minutes, for time-based exercises
   pairedWith?: string // exerciseId of antagonist pair
 }
 
@@ -54,6 +57,19 @@ const exerciseLibrary: Exercise[] = [
   { id: "e21", name: "Planks", muscleGroup: "Core", equipment: "Bodyweight", type: "isolation" },
   { id: "e22", name: "Cable Crunches", muscleGroup: "Core", equipment: "Cable", type: "isolation" },
   { id: "e23", name: "Hanging Leg Raises", muscleGroup: "Core", equipment: "Bodyweight", type: "isolation" },
+  // Cardio
+  { id: "e24", name: "Running", muscleGroup: "Cardio", equipment: "Treadmill/Outdoor", type: "cardio", caloriesPerMinute: 10, isTimeBased: true },
+  { id: "e25", name: "Swimming", muscleGroup: "Cardio", equipment: "Pool", type: "cardio", caloriesPerMinute: 8, isTimeBased: true },
+  { id: "e26", name: "Rowing Machine", muscleGroup: "Cardio", equipment: "Machine", type: "cardio", caloriesPerMinute: 7, isTimeBased: true },
+  { id: "e27", name: "Cycling", muscleGroup: "Cardio", equipment: "Bike/Stationary", type: "cardio", caloriesPerMinute: 6, isTimeBased: true },
+  { id: "e28", name: "Jump Rope", muscleGroup: "Cardio", equipment: "Jump Rope", type: "cardio", caloriesPerMinute: 12, isTimeBased: true },
+  { id: "e29", name: "Stair Climber", muscleGroup: "Cardio", equipment: "Machine", type: "cardio", caloriesPerMinute: 9, isTimeBased: true },
+  // Flexibility & Recovery
+  { id: "e30", name: "Yoga Flow", muscleGroup: "Flexibility", equipment: "Mat", type: "flexibility", caloriesPerMinute: 3, isTimeBased: true },
+  { id: "e31", name: "Static Stretching", muscleGroup: "Flexibility", equipment: "None", type: "flexibility", caloriesPerMinute: 2, isTimeBased: true },
+  { id: "e32", name: "Dynamic Stretching", muscleGroup: "Flexibility", equipment: "None", type: "flexibility", caloriesPerMinute: 3, isTimeBased: true },
+  { id: "e33", name: "Foam Rolling", muscleGroup: "Flexibility", equipment: "Foam Roller", type: "flexibility", caloriesPerMinute: 2, isTimeBased: true },
+  { id: "e34", name: "Pilates", muscleGroup: "Flexibility", equipment: "Mat", type: "flexibility", caloriesPerMinute: 4, isTimeBased: true },
 ]
 
 export function WorkoutScreen() {
@@ -691,9 +707,10 @@ function PlansView() {
     setPlanExercises([...planExercises, {
       exerciseId: exercise.id,
       exercise,
-      sets: 3,
-      reps: 10,
-      weight: ""
+      sets: exercise.isTimeBased ? 1 : 3,
+      reps: exercise.isTimeBased ? 1 : 10,
+      weight: "",
+      duration: exercise.isTimeBased ? 30 : undefined
     }])
     setShowExercisePicker(false)
     setExerciseSearch("")
@@ -724,6 +741,12 @@ function PlansView() {
   const updateExerciseWeight = (exerciseId: string, weight: string) => {
     setPlanExercises(planExercises.map(pe => 
       pe.exerciseId === exerciseId ? { ...pe, weight } : pe
+    ))
+  }
+
+  const updateExerciseDuration = (exerciseId: string, duration: number) => {
+    setPlanExercises(planExercises.map(pe => 
+      pe.exerciseId === exerciseId ? { ...pe, duration: Math.max(5, duration) } : pe
     ))
   }
 
@@ -925,54 +948,85 @@ function PlansView() {
                             </button>
                           )}
 
-                          <div className="grid grid-cols-3 gap-2">
-                            <div>
-                              <label className="text-[10px] text-muted-foreground mb-1 block">Sets</label>
-                              <div className="flex items-center bg-background rounded-lg">
-                                <button
-                                  onClick={() => updateExerciseSets(pe.exerciseId, pe.sets - 1)}
-                                  className="px-2 py-1.5 text-muted-foreground hover:text-foreground"
-                                >
-                                  -
-                                </button>
-                                <span className="flex-1 text-center text-sm font-medium">{pe.sets}</span>
-                                <button
-                                  onClick={() => updateExerciseSets(pe.exerciseId, pe.sets + 1)}
-                                  className="px-2 py-1.5 text-muted-foreground hover:text-foreground"
-                                >
-                                  +
-                                </button>
+                          {/* Time-based exercise controls */}
+                          {pe.exercise.isTimeBased ? (
+                            <div className="flex gap-2">
+                              <div className="flex-1">
+                                <label className="text-[10px] text-muted-foreground mb-1 block">Duration</label>
+                                <div className="flex items-center bg-background rounded-lg">
+                                  <button
+                                    onClick={() => updateExerciseDuration(pe.exerciseId, (pe.duration || 30) - 5)}
+                                    className="px-2 py-1.5 text-muted-foreground hover:text-foreground"
+                                  >
+                                    -
+                                  </button>
+                                  <span className="flex-1 text-center text-sm font-medium">{pe.duration || 30} min</span>
+                                  <button
+                                    onClick={() => updateExerciseDuration(pe.exerciseId, (pe.duration || 30) + 5)}
+                                    className="px-2 py-1.5 text-muted-foreground hover:text-foreground"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="flex-1">
+                                <label className="text-[10px] text-muted-foreground mb-1 block">Est. Calories</label>
+                                <div className="bg-background rounded-lg px-2 py-1.5 text-sm text-center text-orange-400 font-medium">
+                                  ~{(pe.duration || 30) * (pe.exercise.caloriesPerMinute || 5)} kcal
+                                </div>
                               </div>
                             </div>
-                            <div>
-                              <label className="text-[10px] text-muted-foreground mb-1 block">Reps</label>
-                              <div className="flex items-center bg-background rounded-lg">
-                                <button
-                                  onClick={() => updateExerciseReps(pe.exerciseId, pe.reps - 1)}
-                                  className="px-2 py-1.5 text-muted-foreground hover:text-foreground"
-                                >
-                                  -
-                                </button>
-                                <span className="flex-1 text-center text-sm font-medium">{pe.reps}</span>
-                                <button
-                                  onClick={() => updateExerciseReps(pe.exerciseId, pe.reps + 1)}
-                                  className="px-2 py-1.5 text-muted-foreground hover:text-foreground"
-                                >
-                                  +
-                                </button>
+                          ) : (
+                            /* Sets/Reps/Weight controls */
+                            <div className="grid grid-cols-3 gap-2">
+                              <div>
+                                <label className="text-[10px] text-muted-foreground mb-1 block">Sets</label>
+                                <div className="flex items-center bg-background rounded-lg">
+                                  <button
+                                    onClick={() => updateExerciseSets(pe.exerciseId, pe.sets - 1)}
+                                    className="px-2 py-1.5 text-muted-foreground hover:text-foreground"
+                                  >
+                                    -
+                                  </button>
+                                  <span className="flex-1 text-center text-sm font-medium">{pe.sets}</span>
+                                  <button
+                                    onClick={() => updateExerciseSets(pe.exerciseId, pe.sets + 1)}
+                                    className="px-2 py-1.5 text-muted-foreground hover:text-foreground"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </div>
+                              <div>
+                                <label className="text-[10px] text-muted-foreground mb-1 block">Reps</label>
+                                <div className="flex items-center bg-background rounded-lg">
+                                  <button
+                                    onClick={() => updateExerciseReps(pe.exerciseId, pe.reps - 1)}
+                                    className="px-2 py-1.5 text-muted-foreground hover:text-foreground"
+                                  >
+                                    -
+                                  </button>
+                                  <span className="flex-1 text-center text-sm font-medium">{pe.reps}</span>
+                                  <button
+                                    onClick={() => updateExerciseReps(pe.exerciseId, pe.reps + 1)}
+                                    className="px-2 py-1.5 text-muted-foreground hover:text-foreground"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </div>
+                              <div>
+                                <label className="text-[10px] text-muted-foreground mb-1 block">Weight</label>
+                                <input
+                                  type="text"
+                                  value={pe.weight}
+                                  onChange={(e) => updateExerciseWeight(pe.exerciseId, e.target.value)}
+                                  className="w-full bg-background rounded-lg px-2 py-1.5 text-sm text-center text-foreground focus:outline-none"
+                                  placeholder="kg"
+                                />
                               </div>
                             </div>
-                            <div>
-                              <label className="text-[10px] text-muted-foreground mb-1 block">Weight</label>
-                              <input
-                                type="text"
-                                value={pe.weight}
-                                onChange={(e) => updateExerciseWeight(pe.exerciseId, e.target.value)}
-                                className="w-full bg-background rounded-lg px-2 py-1.5 text-sm text-center text-foreground focus:outline-none"
-                                placeholder="kg"
-                              />
-                            </div>
-                          </div>
+                          )}
                         </div>
                       )
                     })}
@@ -1085,7 +1139,7 @@ function ExercisesView() {
     name: "",
     muscleGroup: "",
     equipment: "",
-    type: "compound" as "compound" | "isolation"
+    type: "compound" as "compound" | "isolation" | "cardio" | "flexibility"
   })
 
   const muscleGroups = [...new Set(exerciseLibrary.map(e => e.muscleGroup))]
@@ -1157,35 +1211,55 @@ function ExercisesView() {
           <div key={muscleGroup}>
             <h3 className="text-xs text-muted-foreground uppercase tracking-wider mb-2 px-1">{muscleGroup}</h3>
             <div className="flex flex-col gap-2">
-              {exercises.map(exercise => (
-                <div
-                  key={exercise.id}
-                  className="bg-card rounded-xl p-3 border border-border flex items-center gap-3"
-                >
-                  <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Dumbbell className="size-5 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-foreground">{exercise.name}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs text-muted-foreground">{exercise.equipment}</span>
-                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${
-                        exercise.type === "compound" 
-                          ? "bg-amber-500/20 text-amber-500" 
-                          : "bg-blue-500/20 text-blue-500"
-                      }`}>
-                        {exercise.type}
-                      </span>
-                      {exercise.antagonistPairsWith && (
-                        <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-500 text-[9px] font-medium flex items-center gap-0.5">
-                          <Link2 className="size-2.5" />
-                          {exercise.antagonistPairsWith.join(", ")}
+              {exercises.map(exercise => {
+                const typeColors: Record<string, string> = {
+                  compound: "bg-amber-500/20 text-amber-500",
+                  isolation: "bg-blue-500/20 text-blue-500",
+                  cardio: "bg-rose-500/20 text-rose-500",
+                  flexibility: "bg-purple-500/20 text-purple-500"
+                }
+                const iconBg = exercise.type === "cardio" 
+                  ? "bg-rose-500/10" 
+                  : exercise.type === "flexibility" 
+                    ? "bg-purple-500/10" 
+                    : "bg-primary/10"
+                const iconColor = exercise.type === "cardio" 
+                  ? "text-rose-500" 
+                  : exercise.type === "flexibility" 
+                    ? "text-purple-500" 
+                    : "text-primary"
+
+                return (
+                  <div
+                    key={exercise.id}
+                    className="bg-card rounded-xl p-3 border border-border flex items-center gap-3"
+                  >
+                    <div className={`size-10 rounded-lg ${iconBg} flex items-center justify-center`}>
+                      <Dumbbell className={`size-5 ${iconColor}`} />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-foreground">{exercise.name}</p>
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        <span className="text-xs text-muted-foreground">{exercise.equipment}</span>
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${typeColors[exercise.type]}`}>
+                          {exercise.type}
                         </span>
-                      )}
+                        {exercise.isTimeBased && (
+                          <span className="text-[9px] text-muted-foreground">
+                            ~{exercise.caloriesPerMinute} kcal/min
+                          </span>
+                        )}
+                        {exercise.antagonistPairsWith && (
+                          <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-500 text-[9px] font-medium flex items-center gap-0.5">
+                            <Link2 className="size-2.5" />
+                            {exercise.antagonistPairsWith.join(", ")}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         ))}
@@ -1263,10 +1337,10 @@ function ExercisesView() {
 
               <div>
                 <label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">Type</label>
-                <div className="flex gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => setNewExercise({ ...newExercise, type: "compound" })}
-                    className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    className={`py-2.5 rounded-lg text-sm font-medium transition-colors ${
                       newExercise.type === "compound" 
                         ? "bg-amber-500/20 text-amber-500 border border-amber-500/30" 
                         : "bg-secondary text-muted-foreground"
@@ -1276,13 +1350,33 @@ function ExercisesView() {
                   </button>
                   <button
                     onClick={() => setNewExercise({ ...newExercise, type: "isolation" })}
-                    className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    className={`py-2.5 rounded-lg text-sm font-medium transition-colors ${
                       newExercise.type === "isolation" 
                         ? "bg-blue-500/20 text-blue-500 border border-blue-500/30" 
                         : "bg-secondary text-muted-foreground"
                     }`}
                   >
                     Isolation
+                  </button>
+                  <button
+                    onClick={() => setNewExercise({ ...newExercise, type: "cardio" })}
+                    className={`py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      newExercise.type === "cardio" 
+                        ? "bg-rose-500/20 text-rose-500 border border-rose-500/30" 
+                        : "bg-secondary text-muted-foreground"
+                    }`}
+                  >
+                    Cardio
+                  </button>
+                  <button
+                    onClick={() => setNewExercise({ ...newExercise, type: "flexibility" })}
+                    className={`py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      newExercise.type === "flexibility" 
+                        ? "bg-purple-500/20 text-purple-500 border border-purple-500/30" 
+                        : "bg-secondary text-muted-foreground"
+                    }`}
+                  >
+                    Flexibility
                   </button>
                 </div>
               </div>
