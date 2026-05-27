@@ -92,12 +92,21 @@ function isSameDay(d1: Date, d2: Date): boolean {
 
 // Preset workouts (would normally come from training screen)
 const presetWorkouts = [
-  { id: "w1", name: "Leg Day", details: "Squats, Lunges, Leg Press, Calf Raises" },
-  { id: "w2", name: "Upper Body", details: "Bench Press, Rows, Shoulder Press, Bicep Curls" },
-  { id: "w3", name: "Push Day", details: "Chest Press, Tricep Dips, Shoulder Raises" },
-  { id: "w4", name: "Pull Day", details: "Deadlifts, Pull-ups, Rows, Bicep Curls" },
-  { id: "w5", name: "Full Body", details: "Squats, Deadlifts, Bench Press, Rows" },
-  { id: "w6", name: "Core & Abs", details: "Planks, Crunches, Russian Twists, Leg Raises" },
+  // Weights
+  { id: "w1", name: "Leg Day", type: "weights" as const, details: "Squats, Lunges, Leg Press, Calf Raises" },
+  { id: "w2", name: "Upper Body", type: "weights" as const, details: "Bench Press, Rows, Shoulder Press, Bicep Curls" },
+  { id: "w3", name: "Push Day", type: "weights" as const, details: "Chest Press, Tricep Dips, Shoulder Raises" },
+  { id: "w4", name: "Pull Day", type: "weights" as const, details: "Deadlifts, Pull-ups, Rows, Bicep Curls" },
+  // Cardio
+  { id: "w5", name: "HIIT Running", type: "cardio" as const, details: "30 min intervals" },
+  { id: "w6", name: "Pool Session", type: "cardio" as const, details: "45 min swimming" },
+  { id: "w7", name: "Rowing Intervals", type: "cardio" as const, details: "25 min rowing machine" },
+  { id: "w8", name: "Cardio Mix", type: "cardio" as const, details: "Running, cycling, jump rope" },
+  // Flexibility
+  { id: "w9", name: "Morning Yoga", type: "flexibility" as const, details: "30 min yoga flow" },
+  { id: "w10", name: "Recovery Stretch", type: "flexibility" as const, details: "Static stretching, foam rolling" },
+  { id: "w11", name: "Pilates Core", type: "flexibility" as const, details: "45 min pilates session" },
+  { id: "w12", name: "Pre-Workout Warmup", type: "flexibility" as const, details: "10 min dynamic stretching" },
 ]
 
 // Preset dishes (would normally come from kitchen screen)
@@ -135,6 +144,7 @@ function CalendarView() {
   const [newEvent, setNewEvent] = useState({ title: "", time: "12:00", details: "" })
   const [inputMode, setInputMode] = useState<"preset" | "custom">("preset")
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null)
+  const [workoutTypeFilter, setWorkoutTypeFilter] = useState<"weights" | "cardio" | "flexibility">("weights")
 
   const dates = getDateRange(baseDate, viewMode)
   const today = new Date()
@@ -154,16 +164,24 @@ function CalendarView() {
     let title = ""
     let details = ""
     
-    if (inputMode === "preset" && selectedPreset) {
-      const presets = addType === "meal" ? presetDishes : presetWorkouts
-      const preset = presets.find(p => p.id === selectedPreset)
+    if (addType === "training" && selectedPreset) {
+      // Training always uses preset selection
+      const preset = presetWorkouts.find(p => p.id === selectedPreset)
       if (preset) {
         title = preset.name
         details = preset.details
       }
-    } else if (inputMode === "custom" && newEvent.title.trim()) {
-      title = newEvent.title
-      details = newEvent.details
+    } else if (addType === "meal") {
+      if (inputMode === "preset" && selectedPreset) {
+        const preset = presetDishes.find(p => p.id === selectedPreset)
+        if (preset) {
+          title = preset.name
+          details = preset.details
+        }
+      } else if (inputMode === "custom" && newEvent.title.trim()) {
+        title = newEvent.title
+        details = newEvent.details
+      }
     }
     
     if (!title) return
@@ -449,54 +467,88 @@ function CalendarView() {
             </div>
 
             <div className="p-4 flex flex-col gap-4">
-              {/* Preset / Custom Toggle */}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setInputMode("preset")
-                    setNewEvent({ ...newEvent, title: "", details: "" })
-                  }}
-                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-                    inputMode === "preset"
-                      ? "bg-secondary text-foreground border border-primary/50"
-                      : "bg-secondary/50 text-muted-foreground border border-transparent"
-                  }`}
-                >
-                  Select {addType === "meal" ? "Dish" : "Workout"}
-                </button>
-                <button
-                  onClick={() => {
-                    setInputMode("custom")
-                    setSelectedPreset(null)
-                  }}
-                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-                    inputMode === "custom"
-                      ? "bg-secondary text-foreground border border-primary/50"
-                      : "bg-secondary/50 text-muted-foreground border border-transparent"
-                  }`}
-                >
-                  Custom
-                </button>
-              </div>
+              {/* For meals: Preset / Custom Toggle */}
+              {addType === "meal" && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setInputMode("preset")
+                      setNewEvent({ ...newEvent, title: "", details: "" })
+                    }}
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
+                      inputMode === "preset"
+                        ? "bg-secondary text-foreground border border-primary/50"
+                        : "bg-secondary/50 text-muted-foreground border border-transparent"
+                    }`}
+                  >
+                    Select Dish
+                  </button>
+                  <button
+                    onClick={() => {
+                      setInputMode("custom")
+                      setSelectedPreset(null)
+                    }}
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
+                      inputMode === "custom"
+                        ? "bg-secondary text-foreground border border-primary/50"
+                        : "bg-secondary/50 text-muted-foreground border border-transparent"
+                    }`}
+                  >
+                    Custom
+                  </button>
+                </div>
+              )}
 
-              {/* Preset Selection */}
-              {inputMode === "preset" && (
+              {/* For training: Workout Type Filter */}
+              {addType === "training" && (
+                <div className="flex gap-2 p-1 bg-secondary rounded-xl">
+                  <button
+                    onClick={() => setWorkoutTypeFilter("weights")}
+                    className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
+                      workoutTypeFilter === "weights"
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    Weights
+                  </button>
+                  <button
+                    onClick={() => setWorkoutTypeFilter("cardio")}
+                    className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
+                      workoutTypeFilter === "cardio"
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    Cardio
+                  </button>
+                  <button
+                    onClick={() => setWorkoutTypeFilter("flexibility")}
+                    className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
+                      workoutTypeFilter === "flexibility"
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    Flexibility
+                  </button>
+                </div>
+              )}
+
+              {/* Meal Preset Selection */}
+              {addType === "meal" && inputMode === "preset" && (
                 <div className="flex flex-col gap-2 max-h-48 overflow-y-auto">
-                  {(addType === "meal" ? presetDishes : presetWorkouts).map((preset) => (
+                  {presetDishes.map((preset) => (
                     <button
                       key={preset.id}
                       onClick={() => setSelectedPreset(preset.id)}
                       className={`p-3 rounded-xl text-left transition-all ${
                         selectedPreset === preset.id
-                          ? addType === "meal" 
-                            ? "bg-emerald-500/20 border border-emerald-500"
-                            : "bg-primary/20 border border-primary"
+                          ? "bg-emerald-500/20 border border-emerald-500"
                           : "bg-secondary border border-transparent hover:border-border"
                       }`}
                     >
-                      <p className={`text-sm font-medium ${
-                        selectedPreset === preset.id ? "text-foreground" : "text-foreground"
-                      }`}>
+                      <p className="text-sm font-medium text-foreground">
                         {preset.name}
                       </p>
                       <p className="text-xs text-muted-foreground mt-0.5 truncate">
@@ -507,12 +559,38 @@ function CalendarView() {
                 </div>
               )}
 
-              {/* Custom Input */}
-              {inputMode === "custom" && (
+              {/* Workout Preset Selection (filtered by type) */}
+              {addType === "training" && (
+                <div className="flex flex-col gap-2 max-h-48 overflow-y-auto">
+                  {presetWorkouts
+                    .filter(workout => workout.type === workoutTypeFilter)
+                    .map((preset) => (
+                      <button
+                        key={preset.id}
+                        onClick={() => setSelectedPreset(preset.id)}
+                        className={`p-3 rounded-xl text-left transition-all ${
+                          selectedPreset === preset.id
+                            ? "bg-primary/20 border border-primary"
+                            : "bg-secondary border border-transparent hover:border-border"
+                        }`}
+                      >
+                        <p className="text-sm font-medium text-foreground">
+                          {preset.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                          {preset.details}
+                        </p>
+                      </button>
+                    ))}
+                </div>
+              )}
+
+              {/* Custom Input (meals only) */}
+              {addType === "meal" && inputMode === "custom" && (
                 <>
                   <input
                     type="text"
-                    placeholder={addType === "meal" ? "e.g. Homemade pasta, Restaurant dinner..." : "e.g. Running, Swimming, Yoga..."}
+                    placeholder="e.g. Homemade pasta, Restaurant dinner..."
                     value={newEvent.title}
                     onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
                     className="bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
