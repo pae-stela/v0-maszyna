@@ -270,6 +270,7 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
   const [useUnits, setUseUnits] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [saveName, setSaveName] = useState("")
+  const [servingOccasions, setServingOccasions] = useState(1)
 
   const suggestions = Object.keys(ingredientDatabase).filter(
     (name) => name.toLowerCase().includes(searchTerm.toLowerCase()) && searchTerm.length > 0
@@ -353,6 +354,32 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
     }),
     { calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0 }
   )
+
+  // Smart Splitter: Patrycja gets 1/3, Marcin gets 2/3 (ratio 1:2)
+  // Per serving occasion (when both eat together)
+  const perOccasion = {
+    calories: totals.calories / servingOccasions,
+    protein: totals.protein / servingOccasions,
+    carbs: totals.carbs / servingOccasions,
+    fats: totals.fats / servingOccasions,
+    fiber: totals.fiber / servingOccasions,
+  }
+  
+  const marcinPortion = {
+    calories: perOccasion.calories * (2/3),
+    protein: perOccasion.protein * (2/3),
+    carbs: perOccasion.carbs * (2/3),
+    fats: perOccasion.fats * (2/3),
+    fiber: perOccasion.fiber * (2/3),
+  }
+  
+  const patrycjaPortion = {
+    calories: perOccasion.calories * (1/3),
+    protein: perOccasion.protein * (1/3),
+    carbs: perOccasion.carbs * (1/3),
+    fats: perOccasion.fats * (1/3),
+    fiber: perOccasion.fiber * (1/3),
+  }
 
   const handleSaveComponent = () => {
     if (selectedIngredients.length > 0 && saveName.trim()) {
@@ -543,6 +570,113 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
             <div className="bg-background/50 rounded-lg px-2 py-2 text-center">
               <p className="text-[10px] text-muted-foreground">Fib</p>
               <p className="text-sm font-bold text-emerald-400">{Math.round(totals.fiber * 10) / 10}g</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Smart Splitter - always visible */}
+      <div className="bg-card rounded-2xl p-4 border border-border">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-semibold">Smart Splitter</h3>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Servings:</span>
+            <div className="flex items-center bg-secondary rounded-lg">
+              <button
+                onClick={() => setServingOccasions(Math.max(1, servingOccasions - 1))}
+                className="px-2.5 py-1.5 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                -
+              </button>
+              <input
+                type="number"
+                min="1"
+                value={servingOccasions}
+                onChange={(e) => setServingOccasions(Math.max(1, parseInt(e.target.value) || 1))}
+                className="w-10 text-center bg-transparent text-sm font-medium text-foreground focus:outline-none"
+              />
+              <button
+                onClick={() => setServingOccasions(servingOccasions + 1)}
+                className="px-2.5 py-1.5 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                +
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <p className="text-xs text-muted-foreground mb-4">
+          Split per serving occasion (Marcin 2/3, Patrycja 1/3)
+        </p>
+
+        {/* Visual Split Bar */}
+        <div className="h-3 rounded-full overflow-hidden flex mb-4">
+          <div className="bg-blue-500 h-full" style={{ width: '66.67%' }} />
+          <div className="bg-emerald-500 h-full" style={{ width: '33.33%' }} />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          {/* Marcin's Portion */}
+          <div className="bg-blue-500/10 rounded-xl p-3 border border-blue-500/30">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="size-6 rounded-full bg-blue-500 flex items-center justify-center">
+                <span className="text-xs font-bold text-white">M</span>
+              </div>
+              <span className="text-sm font-medium text-foreground">Marcin</span>
+            </div>
+            <div className="space-y-1">
+              <div className="flex justify-between">
+                <span className="text-xs text-muted-foreground">kcal</span>
+                <span className="text-xs font-semibold text-foreground">{Math.round(marcinPortion.calories)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-xs text-muted-foreground">Protein</span>
+                <span className="text-xs font-semibold text-primary">{Math.round(marcinPortion.protein * 10) / 10}g</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-xs text-muted-foreground">Carbs</span>
+                <span className="text-xs font-semibold text-amber-500">{Math.round(marcinPortion.carbs * 10) / 10}g</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-xs text-muted-foreground">Fats</span>
+                <span className="text-xs font-semibold text-rose-400">{Math.round(marcinPortion.fats * 10) / 10}g</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-xs text-muted-foreground">Fiber</span>
+                <span className="text-xs font-semibold text-emerald-400">{Math.round(marcinPortion.fiber * 10) / 10}g</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Patrycja's Portion */}
+          <div className="bg-emerald-500/10 rounded-xl p-3 border border-emerald-500/30">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="size-6 rounded-full bg-emerald-500 flex items-center justify-center">
+                <span className="text-xs font-bold text-white">P</span>
+              </div>
+              <span className="text-sm font-medium text-foreground">Patrycja</span>
+            </div>
+            <div className="space-y-1">
+              <div className="flex justify-between">
+                <span className="text-xs text-muted-foreground">kcal</span>
+                <span className="text-xs font-semibold text-foreground">{Math.round(patrycjaPortion.calories)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-xs text-muted-foreground">Protein</span>
+                <span className="text-xs font-semibold text-primary">{Math.round(patrycjaPortion.protein * 10) / 10}g</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-xs text-muted-foreground">Carbs</span>
+                <span className="text-xs font-semibold text-amber-500">{Math.round(patrycjaPortion.carbs * 10) / 10}g</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-xs text-muted-foreground">Fats</span>
+                <span className="text-xs font-semibold text-rose-400">{Math.round(patrycjaPortion.fats * 10) / 10}g</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-xs text-muted-foreground">Fiber</span>
+                <span className="text-xs font-semibold text-emerald-400">{Math.round(patrycjaPortion.fiber * 10) / 10}g</span>
+              </div>
             </div>
           </div>
         </div>
