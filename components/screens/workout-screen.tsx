@@ -19,7 +19,7 @@ interface PlanExercise {
   exerciseId: string
   exercise: Exercise
   sets: number
-  reps: string
+  reps: number
   weight: string
   pairedWith?: string // exerciseId of antagonist pair
 }
@@ -211,7 +211,7 @@ function PlansView() {
       exerciseId: exercise.id,
       exercise,
       sets: 3,
-      reps: "8-12",
+      reps: 10,
       weight: ""
     }])
     setShowExercisePicker(false)
@@ -233,7 +233,8 @@ function PlansView() {
     ))
   }
 
-  const updateExerciseReps = (exerciseId: string, reps: string) => {
+  const updateExerciseReps = (exerciseId: string, reps: number) => {
+    if (reps < 1) return
     setPlanExercises(planExercises.map(pe => 
       pe.exerciseId === exerciseId ? { ...pe, reps } : pe
     ))
@@ -464,13 +465,21 @@ function PlansView() {
                             </div>
                             <div>
                               <label className="text-[10px] text-muted-foreground mb-1 block">Reps</label>
-                              <input
-                                type="text"
-                                value={pe.reps}
-                                onChange={(e) => updateExerciseReps(pe.exerciseId, e.target.value)}
-                                className="w-full bg-background rounded-lg px-2 py-1.5 text-sm text-center text-foreground focus:outline-none"
-                                placeholder="8-12"
-                              />
+                              <div className="flex items-center bg-background rounded-lg">
+                                <button
+                                  onClick={() => updateExerciseReps(pe.exerciseId, pe.reps - 1)}
+                                  className="px-2 py-1.5 text-muted-foreground hover:text-foreground"
+                                >
+                                  -
+                                </button>
+                                <span className="flex-1 text-center text-sm font-medium">{pe.reps}</span>
+                                <button
+                                  onClick={() => updateExerciseReps(pe.exerciseId, pe.reps + 1)}
+                                  className="px-2 py-1.5 text-muted-foreground hover:text-foreground"
+                                >
+                                  +
+                                </button>
+                              </div>
                             </div>
                             <div>
                               <label className="text-[10px] text-muted-foreground mb-1 block">Weight</label>
