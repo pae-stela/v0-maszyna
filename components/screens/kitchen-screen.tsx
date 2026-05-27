@@ -270,7 +270,8 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
   const [useUnits, setUseUnits] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [saveName, setSaveName] = useState("")
-  const [servingOccasions, setServingOccasions] = useState(1)
+  const [marcinServings, setMarcinServings] = useState(1)
+  const [patrycjaServings, setPatrycjaServings] = useState(1)
 
   const suggestions = Object.keys(ingredientDatabase).filter(
     (name) => name.toLowerCase().includes(searchTerm.toLowerCase()) && searchTerm.length > 0
@@ -355,31 +356,41 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
     { calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0 }
   )
 
-  // Smart Splitter: Patrycja gets 1/3, Marcin gets 2/3 (ratio 1:2)
-  // Per serving occasion (when both eat together)
-  const perOccasion = {
-    calories: totals.calories / servingOccasions,
-    protein: totals.protein / servingOccasions,
-    carbs: totals.carbs / servingOccasions,
-    fats: totals.fats / servingOccasions,
-    fiber: totals.fiber / servingOccasions,
-  }
+  // Smart Splitter: Independent servings for each person
+  // Marcin gets 2 parts, Patrycja gets 1 part per serving
+  const totalParts = (marcinServings * 2) + (patrycjaServings * 1)
   
-  const marcinPortion = {
-    calories: perOccasion.calories * (2/3),
-    protein: perOccasion.protein * (2/3),
-    carbs: perOccasion.carbs * (2/3),
-    fats: perOccasion.fats * (2/3),
-    fiber: perOccasion.fiber * (2/3),
-  }
+  const marcinPortion = totalParts > 0 ? {
+    calories: (totals.calories / totalParts) * marcinServings * 2,
+    protein: (totals.protein / totalParts) * marcinServings * 2,
+    carbs: (totals.carbs / totalParts) * marcinServings * 2,
+    fats: (totals.fats / totalParts) * marcinServings * 2,
+    fiber: (totals.fiber / totalParts) * marcinServings * 2,
+  } : { calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0 }
   
-  const patrycjaPortion = {
-    calories: perOccasion.calories * (1/3),
-    protein: perOccasion.protein * (1/3),
-    carbs: perOccasion.carbs * (1/3),
-    fats: perOccasion.fats * (1/3),
-    fiber: perOccasion.fiber * (1/3),
-  }
+  const patrycjaPortion = totalParts > 0 ? {
+    calories: (totals.calories / totalParts) * patrycjaServings * 1,
+    protein: (totals.protein / totalParts) * patrycjaServings * 1,
+    carbs: (totals.carbs / totalParts) * patrycjaServings * 1,
+    fats: (totals.fats / totalParts) * patrycjaServings * 1,
+    fiber: (totals.fiber / totalParts) * patrycjaServings * 1,
+  } : { calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0 }
+
+  const marcinPerServing = marcinServings > 0 ? {
+    calories: marcinPortion.calories / marcinServings,
+    protein: marcinPortion.protein / marcinServings,
+    carbs: marcinPortion.carbs / marcinServings,
+    fats: marcinPortion.fats / marcinServings,
+    fiber: marcinPortion.fiber / marcinServings,
+  } : { calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0 }
+
+  const patrycjaPerServing = patrycjaServings > 0 ? {
+    calories: patrycjaPortion.calories / patrycjaServings,
+    protein: patrycjaPortion.protein / patrycjaServings,
+    carbs: patrycjaPortion.carbs / patrycjaServings,
+    fats: patrycjaPortion.fats / patrycjaServings,
+    fiber: patrycjaPortion.fiber / patrycjaServings,
+  } : { calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0 }
 
   const handleSaveComponent = () => {
     if (selectedIngredients.length > 0 && saveName.trim()) {
@@ -397,11 +408,17 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Add Ingredients */}
-      <div className="bg-card rounded-2xl p-5 border border-border">
-        <h3 className="text-base font-semibold mb-4">Add Ingredients</h3>
-        <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-6">
+      {/* Step 1: Add Ingredients */}
+      <div className="bg-card rounded-2xl border border-border overflow-hidden">
+        <div className="bg-primary/10 px-5 py-3 border-b border-border flex items-center gap-3">
+          <div className="size-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">1</div>
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Build Your Recipe</h3>
+            <p className="text-xs text-muted-foreground">Add ingredients to calculate macros</p>
+          </div>
+        </div>
+        <div className="p-5 flex flex-col gap-3">
           <div className="relative">
             <div className="flex items-center gap-2">
               <input
@@ -478,11 +495,13 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
 
       {/* Ingredients List */}
       <div className="flex flex-col gap-3">
-        <h3 className="text-base font-semibold">Meal Breakdown</h3>
-        
         {ingredients.length === 0 ? (
-          <div className="bg-card rounded-2xl p-6 border border-border text-center">
-            <p className="text-sm text-muted-foreground">Add ingredients to start building your meal</p>
+          <div className="bg-card rounded-2xl p-6 border border-dashed border-border text-center">
+            <div className="size-12 rounded-full bg-secondary mx-auto mb-3 flex items-center justify-center">
+              <Plus className="size-5 text-muted-foreground" />
+            </div>
+            <p className="text-sm text-muted-foreground">Your recipe is empty</p>
+            <p className="text-xs text-muted-foreground mt-1">Search and add ingredients above</p>
           </div>
         ) : (
           /* Ingredient Cards */
@@ -547,9 +566,9 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
           ))
         )}
         
-        {/* Totals Card - always visible */}
-        <div className="bg-primary/10 rounded-2xl p-4 border border-primary/30">
-          <p className="text-sm font-semibold text-foreground mb-3">Total</p>
+        {/* Totals Card */}
+        <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-2xl p-4 border border-primary/20">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Recipe Total</p>
           <div className="grid grid-cols-5 gap-2">
             <div className="bg-background/50 rounded-lg px-2 py-2 text-center">
               <p className="text-[10px] text-muted-foreground">kcal</p>
@@ -575,155 +594,256 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
         </div>
       </div>
 
-      {/* Smart Splitter - always visible */}
-      <div className="bg-card rounded-2xl p-4 border border-border">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-semibold">Smart Splitter</h3>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Servings:</span>
-            <div className="flex items-center bg-secondary rounded-lg">
-              <button
-                onClick={() => setServingOccasions(Math.max(1, servingOccasions - 1))}
-                className="px-2.5 py-1.5 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                -
-              </button>
-              <input
-                type="number"
-                min="1"
-                value={servingOccasions}
-                onChange={(e) => setServingOccasions(Math.max(1, parseInt(e.target.value) || 1))}
-                className="w-10 text-center bg-transparent text-sm font-medium text-foreground focus:outline-none"
-              />
-              <button
-                onClick={() => setServingOccasions(servingOccasions + 1)}
-                className="px-2.5 py-1.5 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                +
-              </button>
-            </div>
+      {/* Step 2: Smart Splitter */}
+      <div className="bg-card rounded-2xl border border-border overflow-hidden">
+        <div className="bg-secondary/50 px-5 py-3 border-b border-border flex items-center gap-3">
+          <div className="size-7 rounded-full bg-foreground text-background flex items-center justify-center text-sm font-bold">2</div>
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Split Into Portions</h3>
+            <p className="text-xs text-muted-foreground">Divide between Marcin and Patrycja</p>
           </div>
         </div>
 
-        <p className="text-xs text-muted-foreground mb-4">
-          Split per serving occasion (Marcin 2/3, Patrycja 1/3)
-        </p>
-
-        {/* Visual Split Bar */}
-        <div className="h-3 rounded-full overflow-hidden flex mb-4">
-          <div className="bg-blue-500 h-full" style={{ width: '66.67%' }} />
-          <div className="bg-emerald-500 h-full" style={{ width: '33.33%' }} />
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          {/* Marcin's Portion */}
-          <div className="bg-blue-500/10 rounded-xl p-3 border border-blue-500/30">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="size-6 rounded-full bg-blue-500 flex items-center justify-center">
-                <span className="text-xs font-bold text-white">M</span>
+        <div className="p-5">
+          {/* Serving Controls */}
+          <div className="grid grid-cols-2 gap-4 mb-5">
+            {/* Marcin Servings */}
+            <div className="bg-blue-500/10 rounded-xl p-3 border border-blue-500/20">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="size-6 rounded-full bg-blue-500 flex items-center justify-center">
+                  <span className="text-[10px] font-bold text-white">M</span>
+                </div>
+                <span className="text-xs font-medium text-foreground">Marcin</span>
               </div>
-              <span className="text-sm font-medium text-foreground">Marcin</span>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-muted-foreground">Servings</span>
+                <div className="flex items-center bg-background rounded-lg">
+                  <button
+                    onClick={() => setMarcinServings(Math.max(0, marcinServings - 1))}
+                    className="px-2 py-1 text-muted-foreground hover:text-foreground transition-colors text-sm"
+                  >
+                    -
+                  </button>
+                  <span className="w-6 text-center text-sm font-semibold text-foreground">{marcinServings}</span>
+                  <button
+                    onClick={() => setMarcinServings(marcinServings + 1)}
+                    className="px-2 py-1 text-muted-foreground hover:text-foreground transition-colors text-sm"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
             </div>
-            <div className="space-y-1">
-              <div className="flex justify-between">
-                <span className="text-xs text-muted-foreground">kcal</span>
-                <span className="text-xs font-semibold text-foreground">{Math.round(marcinPortion.calories)}</span>
+
+            {/* Patrycja Servings */}
+            <div className="bg-emerald-500/10 rounded-xl p-3 border border-emerald-500/20">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="size-6 rounded-full bg-emerald-500 flex items-center justify-center">
+                  <span className="text-[10px] font-bold text-white">P</span>
+                </div>
+                <span className="text-xs font-medium text-foreground">Patrycja</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-xs text-muted-foreground">Protein</span>
-                <span className="text-xs font-semibold text-primary">{Math.round(marcinPortion.protein * 10) / 10}g</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-xs text-muted-foreground">Carbs</span>
-                <span className="text-xs font-semibold text-amber-500">{Math.round(marcinPortion.carbs * 10) / 10}g</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-xs text-muted-foreground">Fats</span>
-                <span className="text-xs font-semibold text-rose-400">{Math.round(marcinPortion.fats * 10) / 10}g</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-xs text-muted-foreground">Fiber</span>
-                <span className="text-xs font-semibold text-emerald-400">{Math.round(marcinPortion.fiber * 10) / 10}g</span>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-muted-foreground">Servings</span>
+                <div className="flex items-center bg-background rounded-lg">
+                  <button
+                    onClick={() => setPatrycjaServings(Math.max(0, patrycjaServings - 1))}
+                    className="px-2 py-1 text-muted-foreground hover:text-foreground transition-colors text-sm"
+                  >
+                    -
+                  </button>
+                  <span className="w-6 text-center text-sm font-semibold text-foreground">{patrycjaServings}</span>
+                  <button
+                    onClick={() => setPatrycjaServings(patrycjaServings + 1)}
+                    className="px-2 py-1 text-muted-foreground hover:text-foreground transition-colors text-sm"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Patrycja's Portion */}
-          <div className="bg-emerald-500/10 rounded-xl p-3 border border-emerald-500/30">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="size-6 rounded-full bg-emerald-500 flex items-center justify-center">
-                <span className="text-xs font-bold text-white">P</span>
+          {/* Visual Split Bar */}
+          {totalParts > 0 && (
+            <div className="mb-5">
+              <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+                <span>Distribution</span>
+                <span>{Math.round((marcinServings * 2 / totalParts) * 100)}% / {Math.round((patrycjaServings * 1 / totalParts) * 100)}%</span>
               </div>
-              <span className="text-sm font-medium text-foreground">Patrycja</span>
+              <div className="h-2.5 rounded-full overflow-hidden flex bg-secondary">
+                {marcinServings > 0 && (
+                  <div 
+                    className="bg-blue-500 h-full transition-all duration-300" 
+                    style={{ width: `${(marcinServings * 2 / totalParts) * 100}%` }} 
+                  />
+                )}
+                {patrycjaServings > 0 && (
+                  <div 
+                    className="bg-emerald-500 h-full transition-all duration-300" 
+                    style={{ width: `${(patrycjaServings * 1 / totalParts) * 100}%` }} 
+                  />
+                )}
+              </div>
             </div>
-            <div className="space-y-1">
-              <div className="flex justify-between">
-                <span className="text-xs text-muted-foreground">kcal</span>
-                <span className="text-xs font-semibold text-foreground">{Math.round(patrycjaPortion.calories)}</span>
+          )}
+
+          {/* Portion Details */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Marcin's Portion */}
+            <div className="bg-blue-500/5 rounded-xl p-3 border border-blue-500/10">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
+                {marcinServings > 1 ? `Per serving (${marcinServings}x)` : "Total"}
+              </p>
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Calories</span>
+                  <span className="text-sm font-bold text-foreground">{Math.round(marcinServings > 1 ? marcinPerServing.calories : marcinPortion.calories)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Protein</span>
+                  <span className="text-xs font-semibold text-primary">{Math.round((marcinServings > 1 ? marcinPerServing.protein : marcinPortion.protein) * 10) / 10}g</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Carbs</span>
+                  <span className="text-xs font-semibold text-amber-500">{Math.round((marcinServings > 1 ? marcinPerServing.carbs : marcinPortion.carbs) * 10) / 10}g</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Fats</span>
+                  <span className="text-xs font-semibold text-rose-400">{Math.round((marcinServings > 1 ? marcinPerServing.fats : marcinPortion.fats) * 10) / 10}g</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Fiber</span>
+                  <span className="text-xs font-semibold text-emerald-400">{Math.round((marcinServings > 1 ? marcinPerServing.fiber : marcinPortion.fiber) * 10) / 10}g</span>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-xs text-muted-foreground">Protein</span>
-                <span className="text-xs font-semibold text-primary">{Math.round(patrycjaPortion.protein * 10) / 10}g</span>
+              {marcinServings > 1 && (
+                <div className="mt-2 pt-2 border-t border-blue-500/10">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] text-muted-foreground">All {marcinServings} servings</span>
+                    <span className="text-xs font-bold text-foreground">{Math.round(marcinPortion.calories)} kcal</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Patrycja's Portion */}
+            <div className="bg-emerald-500/5 rounded-xl p-3 border border-emerald-500/10">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
+                {patrycjaServings > 1 ? `Per serving (${patrycjaServings}x)` : "Total"}
+              </p>
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Calories</span>
+                  <span className="text-sm font-bold text-foreground">{Math.round(patrycjaServings > 1 ? patrycjaPerServing.calories : patrycjaPortion.calories)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Protein</span>
+                  <span className="text-xs font-semibold text-primary">{Math.round((patrycjaServings > 1 ? patrycjaPerServing.protein : patrycjaPortion.protein) * 10) / 10}g</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Carbs</span>
+                  <span className="text-xs font-semibold text-amber-500">{Math.round((patrycjaServings > 1 ? patrycjaPerServing.carbs : patrycjaPortion.carbs) * 10) / 10}g</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Fats</span>
+                  <span className="text-xs font-semibold text-rose-400">{Math.round((patrycjaServings > 1 ? patrycjaPerServing.fats : patrycjaPortion.fats) * 10) / 10}g</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Fiber</span>
+                  <span className="text-xs font-semibold text-emerald-400">{Math.round((patrycjaServings > 1 ? patrycjaPerServing.fiber : patrycjaPortion.fiber) * 10) / 10}g</span>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-xs text-muted-foreground">Carbs</span>
-                <span className="text-xs font-semibold text-amber-500">{Math.round(patrycjaPortion.carbs * 10) / 10}g</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-xs text-muted-foreground">Fats</span>
-                <span className="text-xs font-semibold text-rose-400">{Math.round(patrycjaPortion.fats * 10) / 10}g</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-xs text-muted-foreground">Fiber</span>
-                <span className="text-xs font-semibold text-emerald-400">{Math.round(patrycjaPortion.fiber * 10) / 10}g</span>
-              </div>
+              {patrycjaServings > 1 && (
+                <div className="mt-2 pt-2 border-t border-emerald-500/10">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] text-muted-foreground">All {patrycjaServings} servings</span>
+                    <span className="text-xs font-bold text-foreground">{Math.round(patrycjaPortion.calories)} kcal</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
+
+          <p className="text-[10px] text-muted-foreground text-center mt-4">
+            Ratio: Marcin gets 2 parts, Patrycja gets 1 part per serving
+          </p>
         </div>
       </div>
 
-      {/* Save Options - always visible */}
-      <div className="bg-card rounded-2xl p-5 border border-border">
-        <h3 className="text-base font-semibold mb-4">Save Options</h3>
+      {/* Step 3: Save Options */}
+      <div className="bg-card rounded-2xl border border-border overflow-hidden">
+        <div className="bg-emerald-500/10 px-5 py-3 border-b border-border flex items-center gap-3">
+          <div className="size-7 rounded-full bg-emerald-500 text-white flex items-center justify-center text-sm font-bold">3</div>
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Save Your Creation</h3>
+            <p className="text-xs text-muted-foreground">Store as a dish or reusable component</p>
+          </div>
+        </div>
         
-        <input
-          type="text"
-          placeholder="Name..."
-          value={saveName}
-          onChange={(e) => setSaveName(e.target.value)}
-          className="w-full bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 mb-4"
-        />
+        <div className="p-5">
+          <div className="mb-5">
+            <label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">Recipe Name</label>
+            <input
+              type="text"
+              placeholder="Give your creation a name..."
+              value={saveName}
+              onChange={(e) => setSaveName(e.target.value)}
+              className="w-full bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+          </div>
 
-        <div className="flex flex-col gap-3">
-          {/* Save Selected as Component */}
-          <button
-            onClick={handleSaveComponent}
-            disabled={selectedIngredients.length === 0 || !saveName.trim()}
-            className="w-full py-3 rounded-xl bg-secondary text-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-50 disabled:active:scale-100"
-          >
-            <ChefHat className="size-4" />
-            Save Selected as Component ({selectedIngredients.length})
-          </button>
-          <p className="text-xs text-muted-foreground -mt-1 mb-1">
-            {selectedIngredients.length > 0 
-              ? `${Math.round(selectedTotals.calories)} kcal - bulk preparation with recipe steps`
-              : "Select ingredients above to create a component"}
-          </p>
+          <div className="flex flex-col gap-3">
+            {/* Save Selected as Component */}
+            <div className="bg-secondary/50 rounded-xl p-4">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="size-9 rounded-lg bg-secondary flex items-center justify-center">
+                  <ChefHat className="size-4 text-muted-foreground" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-foreground">Save as Component</p>
+                  <p className="text-[10px] text-muted-foreground">Reusable building block for dishes</p>
+                </div>
+              </div>
+              <button
+                onClick={handleSaveComponent}
+                disabled={selectedIngredients.length === 0 || !saveName.trim()}
+                className="w-full py-2.5 rounded-lg bg-secondary text-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-40 disabled:active:scale-100 mt-2"
+              >
+                Save {selectedIngredients.length} selected ingredient{selectedIngredients.length !== 1 ? "s" : ""}
+              </button>
+              {selectedIngredients.length > 0 && (
+                <p className="text-[10px] text-muted-foreground text-center mt-2">
+                  {Math.round(selectedTotals.calories)} kcal total
+                </p>
+              )}
+            </div>
 
-          {/* Save All as Dish */}
-          <button
-            onClick={handleSaveDish}
-            disabled={ingredients.length === 0 || !saveName.trim()}
-            className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-50 disabled:active:scale-100"
-          >
-            <UtensilsCrossed className="size-4" />
-            Save All as Dish
-          </button>
-          <p className="text-xs text-muted-foreground -mt-1">
-            {ingredients.length > 0 
-              ? `${Math.round(totals.calories)} kcal - complete dish ready to log`
-              : "Add ingredients to save as dish"}
-          </p>
+            {/* Save All as Dish */}
+            <div className="bg-primary/10 rounded-xl p-4 border border-primary/20">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="size-9 rounded-lg bg-primary/20 flex items-center justify-center">
+                  <UtensilsCrossed className="size-4 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-foreground">Save as Dish</p>
+                  <p className="text-[10px] text-muted-foreground">Complete meal ready to log</p>
+                </div>
+              </div>
+              <button
+                onClick={handleSaveDish}
+                disabled={ingredients.length === 0 || !saveName.trim()}
+                className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-40 disabled:active:scale-100 mt-2"
+              >
+                Save entire recipe
+              </button>
+              {ingredients.length > 0 && (
+                <p className="text-[10px] text-muted-foreground text-center mt-2">
+                  {Math.round(totals.calories)} kcal total
+                </p>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
