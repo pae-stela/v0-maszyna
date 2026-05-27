@@ -20,6 +20,7 @@ interface PlanExercise {
   exercise: Exercise
   sets: number
   reps: string
+  weight: string
   pairedWith?: string // exerciseId of antagonist pair
 }
 
@@ -210,7 +211,8 @@ function PlansView() {
       exerciseId: exercise.id,
       exercise,
       sets: 3,
-      reps: "8-12"
+      reps: "8-12",
+      weight: ""
     }])
     setShowExercisePicker(false)
     setExerciseSearch("")
@@ -234,6 +236,12 @@ function PlansView() {
   const updateExerciseReps = (exerciseId: string, reps: string) => {
     setPlanExercises(planExercises.map(pe => 
       pe.exerciseId === exerciseId ? { ...pe, reps } : pe
+    ))
+  }
+
+  const updateExerciseWeight = (exerciseId: string, weight: string) => {
+    setPlanExercises(planExercises.map(pe => 
+      pe.exerciseId === exerciseId ? { ...pe, weight } : pe
     ))
   }
 
@@ -435,33 +443,43 @@ function PlansView() {
                             </button>
                           )}
 
-                          <div className="flex gap-2">
-                            <div className="flex-1">
+                          <div className="grid grid-cols-3 gap-2">
+                            <div>
                               <label className="text-[10px] text-muted-foreground mb-1 block">Sets</label>
                               <div className="flex items-center bg-background rounded-lg">
                                 <button
                                   onClick={() => updateExerciseSets(pe.exerciseId, pe.sets - 1)}
-                                  className="px-2.5 py-1.5 text-muted-foreground hover:text-foreground"
+                                  className="px-2 py-1.5 text-muted-foreground hover:text-foreground"
                                 >
                                   -
                                 </button>
                                 <span className="flex-1 text-center text-sm font-medium">{pe.sets}</span>
                                 <button
                                   onClick={() => updateExerciseSets(pe.exerciseId, pe.sets + 1)}
-                                  className="px-2.5 py-1.5 text-muted-foreground hover:text-foreground"
+                                  className="px-2 py-1.5 text-muted-foreground hover:text-foreground"
                                 >
                                   +
                                 </button>
                               </div>
                             </div>
-                            <div className="flex-1">
+                            <div>
                               <label className="text-[10px] text-muted-foreground mb-1 block">Reps</label>
                               <input
                                 type="text"
                                 value={pe.reps}
                                 onChange={(e) => updateExerciseReps(pe.exerciseId, e.target.value)}
-                                className="w-full bg-background rounded-lg px-3 py-1.5 text-sm text-center text-foreground focus:outline-none"
+                                className="w-full bg-background rounded-lg px-2 py-1.5 text-sm text-center text-foreground focus:outline-none"
                                 placeholder="8-12"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] text-muted-foreground mb-1 block">Weight</label>
+                              <input
+                                type="text"
+                                value={pe.weight}
+                                onChange={(e) => updateExerciseWeight(pe.exerciseId, e.target.value)}
+                                className="w-full bg-background rounded-lg px-2 py-1.5 text-sm text-center text-foreground focus:outline-none"
+                                placeholder="kg"
                               />
                             </div>
                           </div>
