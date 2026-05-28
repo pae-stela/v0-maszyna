@@ -6,63 +6,69 @@ export function MaszynaLogo({ className = "w-20 h-20" }: { className?: string })
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* Soft background glow */}
+      {/* Soft background circle */}
       <circle cx="40" cy="40" r="36" fill="var(--color-navy)" opacity="0.06" />
 
-      {/* Machine: simple hex nut / cog outline */}
+      {/* ===== LEAVES (organic, full shapes) ===== */}
+      {/* Left leaf */}
       <path
-        d="M40 16 L52.4 23.2 L52.4 37.6 L40 44.8 L27.6 37.6 L27.6 23.2 Z"
-        fill="var(--color-navy)"
-        opacity="0.12"
-      />
-      <path
-        d="M40 20 L49.2 25.4 L49.2 36.2 L40 41.6 L30.8 36.2 L30.8 25.4 Z"
-        stroke="var(--color-navy)"
-        strokeWidth="2"
-        strokeLinejoin="round"
-        fill="none"
-      />
-      {/* Center hole of the nut */}
-      <circle cx="40" cy="33.5" r="4" stroke="var(--color-navy)" strokeWidth="2" fill="none" />
-
-      {/* Small bolt head detail */}
-      <circle cx="40" cy="33.5" r="1.5" fill="var(--color-navy)" opacity="0.5" />
-
-      {/* Leaves growing out — minimal, light strokes */}
-      <path
-        d="M40 41.6 Q40 52 36 58"
-        stroke="var(--color-sage)"
-        strokeWidth="2"
-        strokeLinecap="round"
-        fill="none"
-      />
-      <path
-        d="M36 58 Q30 54 28 50 Q32 52 36 58"
+        d="M28 48 Q18 42 16 34 Q22 36 28 42 Q34 36 30 30 Q28 38 28 48"
         fill="var(--color-sage)"
         opacity="0.7"
       />
       <path
-        d="M36 58 Q42 54 44 50 Q40 52 36 58"
+        d="M28 48 Q28 38 30 30"
+        stroke="var(--color-sage-dark)"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        fill="none"
+        opacity="0.4"
+      />
+
+      {/* Right leaf */}
+      <path
+        d="M52 48 Q62 42 64 34 Q58 36 52 42 Q46 36 50 30 Q52 38 52 48"
         fill="var(--color-moss)"
         opacity="0.6"
       />
-
-      {/* Second small leaf */}
       <path
-        d="M40 41.6 Q44 48 48 52"
-        stroke="var(--color-sage)"
-        strokeWidth="1.5"
+        d="M52 48 Q52 38 50 30"
+        stroke="var(--color-sage-dark)"
+        strokeWidth="1.2"
         strokeLinecap="round"
         fill="none"
+        opacity="0.4"
       />
+
+      {/* Bottom center leaf */}
       <path
-        d="M48 52 Q44 50 42 47 Q46 48 48 52"
+        d="M40 54 Q32 58 28 52 Q34 52 40 48 Q46 52 52 52 Q48 58 40 54"
         fill="var(--color-sage)"
         opacity="0.5"
       />
 
-      {/* Tiny accent dot — seed */}
-      <circle cx="40" cy="33.5" r="1" fill="var(--color-terracotta)" opacity="0.6" />
+      {/* ===== HEX NUT (centered) ===== */}
+      {/* Hex body fill */}
+      <path
+        d="M40 26 L49.5 31.5 L49.5 42.5 L40 48 L30.5 42.5 L30.5 31.5 Z"
+        fill="var(--color-navy)"
+        opacity="0.08"
+      />
+      {/* Hex outline */}
+      <path
+        d="M40 26 L49.5 31.5 L49.5 42.5 L40 48 L30.5 42.5 L30.5 31.5 Z"
+        stroke="var(--color-navy)"
+        strokeWidth="2.2"
+        strokeLinejoin="round"
+        fill="none"
+      />
+      {/* Center hole */}
+      <circle cx="40" cy="37" r="5" stroke="var(--color-navy)" strokeWidth="2" fill="none" />
+      {/* Small inner detail */}
+      <circle cx="40" cy="37" r="2" fill="var(--color-navy)" opacity="0.35" />
+
+      {/* Seed accent */}
+      <circle cx="40" cy="37" r="1" fill="var(--color-terracotta)" opacity="0.6" />
     </svg>
   )
 }
@@ -78,48 +84,38 @@ export function MaszynaIcon({ className = "w-8 h-8" }: { className?: string }) {
       {/* Soft background */}
       <circle cx="20" cy="20" r="18" fill="var(--color-navy)" opacity="0.08" />
 
-      {/* Machine: hex outline */}
+      {/* Leaves (full shapes) */}
       <path
-        d="M20 8 L26.9 12 L26.9 20 L20 24 L13.1 20 L13.1 12 Z"
-        stroke="var(--color-navy)"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-        fill="none"
-      />
-      <circle cx="20" cy="16" r="2" stroke="var(--color-navy)" strokeWidth="1.5" fill="none" />
-
-      {/* Leaves */}
-      <path
-        d="M20 24 Q20 30 17 34"
-        stroke="var(--color-sage)"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        fill="none"
-      />
-      <path
-        d="M17 34 Q14 31 13 29 Q15 30 17 34"
+        d="M14 24 Q8 21 7 17 Q11 18 14 22 Q17 18 15 15 Q14 19 14 24"
         fill="var(--color-sage)"
         opacity="0.7"
       />
       <path
-        d="M17 34 Q20 31 21 29 Q19 30 17 34"
+        d="M26 24 Q32 21 33 17 Q29 18 26 22 Q23 18 25 15 Q26 19 26 24"
         fill="var(--color-moss)"
         opacity="0.6"
       />
-
-      {/* Second leaf */}
       <path
-        d="M20 24 Q23 28 25 31"
-        stroke="var(--color-sage)"
-        strokeWidth="1"
-        strokeLinecap="round"
-        fill="none"
-      />
-      <path
-        d="M25 31 Q23 29 22 28 Q24 28 25 31"
+        d="M20 27 Q14 29 12 26 Q16 26 20 24 Q24 26 28 26 Q26 29 20 27"
         fill="var(--color-sage)"
         opacity="0.5"
       />
+
+      {/* Hex nut (centered) */}
+      <path
+        d="M20 13 L26.5 16.75 L26.5 23.25 L20 27 L13.5 23.25 L13.5 16.75 Z"
+        fill="var(--color-navy)"
+        opacity="0.1"
+      />
+      <path
+        d="M20 13 L26.5 16.75 L26.5 23.25 L20 27 L13.5 23.25 L13.5 16.75 Z"
+        stroke="var(--color-navy)"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+        fill="none"
+      />
+      <circle cx="20" cy="20" r="2.5" stroke="var(--color-navy)" strokeWidth="1.5" fill="none" />
+      <circle cx="20" cy="20" r="1" fill="var(--color-navy)" opacity="0.35" />
     </svg>
   )
 }
