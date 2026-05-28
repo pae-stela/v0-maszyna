@@ -666,6 +666,7 @@ function ShoppingView() {
   const [newItemName, setNewItemName] = useState("")
   const [newItemAmount, setNewItemAmount] = useState("")
   const [newItemNote, setNewItemNote] = useState("")
+  const [showAddForm, setShowAddForm] = useState(false)
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null)
   const [plannerChanged, setPlannerChanged] = useState(true) // Simulated planner change warning
   const [showImportModal, setShowImportModal] = useState(false)

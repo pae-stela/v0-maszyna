@@ -684,7 +684,7 @@ function JournalView() {
                 .filter(plan => plan.type === planTypeFilter)
                 .map((plan) => {
                   const isTimeBased = plan.exercises.some(e => 'duration' in e && e.duration)
-                  const totalDuration = plan.exercises.reduce((sum, e) => sum + (e.duration || 0), 0)
+                  const totalDuration = (plan.exercises as any[]).reduce((sum: number, e: any) => sum + (e.duration || 0), 0)
                   
                   return (
                     <button
