@@ -6,56 +6,63 @@ export function MaszynaLogo({ className = "w-20 h-20" }: { className?: string })
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* Outer organic ring - like a leaf or seed */}
-      <circle cx="40" cy="40" r="38" fill="var(--color-navy)" opacity="0.08" />
-      <circle cx="40" cy="40" r="34" fill="var(--color-navy)" opacity="0.12" />
+      {/* Soft background glow */}
+      <circle cx="40" cy="40" r="36" fill="var(--color-navy)" opacity="0.06" />
 
-      {/* Gear/cog - the machine */}
-      <g fill="var(--color-navy)">
-        <circle cx="40" cy="40" r="16" />
-        {/* Gear teeth */}
-        <rect x="38" y="4" width="4" height="12" rx="1" />
-        <rect x="38" y="64" width="4" height="12" rx="1" />
-        <rect x="4" y="38" width="12" height="4" rx="1" />
-        <rect x="64" y="38" width="12" height="4" rx="1" />
-        <rect x="13.5" y="13.5" width="8" height="4" rx="1" transform="rotate(-45 17.5 15.5)" />
-        <rect x="58.5" y="13.5" width="8" height="4" rx="1" transform="rotate(45 62.5 15.5)" />
-        <rect x="13.5" y="58.5" width="8" height="4" rx="1" transform="rotate(45 17.5 60.5)" />
-        <rect x="58.5" y="58.5" width="8" height="4" rx="1" transform="rotate(-45 62.5 60.5)" />
-      </g>
-
-      {/* Inner gear detail */}
-      <circle cx="40" cy="40" r="10" fill="var(--color-cream)" />
-      <circle cx="40" cy="40" r="4" fill="var(--color-navy)" />
-
-      {/* Organic leaves growing from the gear */}
+      {/* Machine: simple hex nut / cog outline */}
       <path
-        d="M40 24 C40 24 38 14 32 10 C34 14 36 20 38 24"
+        d="M40 16 L52.4 23.2 L52.4 37.6 L40 44.8 L27.6 37.6 L27.6 23.2 Z"
+        fill="var(--color-navy)"
+        opacity="0.12"
+      />
+      <path
+        d="M40 20 L49.2 25.4 L49.2 36.2 L40 41.6 L30.8 36.2 L30.8 25.4 Z"
+        stroke="var(--color-navy)"
+        strokeWidth="2"
+        strokeLinejoin="round"
+        fill="none"
+      />
+      {/* Center hole of the nut */}
+      <circle cx="40" cy="33.5" r="4" stroke="var(--color-navy)" strokeWidth="2" fill="none" />
+
+      {/* Small bolt head detail */}
+      <circle cx="40" cy="33.5" r="1.5" fill="var(--color-navy)" opacity="0.5" />
+
+      {/* Leaves growing out — minimal, light strokes */}
+      <path
+        d="M40 41.6 Q40 52 36 58"
+        stroke="var(--color-sage)"
+        strokeWidth="2"
+        strokeLinecap="round"
+        fill="none"
+      />
+      <path
+        d="M36 58 Q30 54 28 50 Q32 52 36 58"
         fill="var(--color-sage)"
+        opacity="0.7"
       />
       <path
-        d="M40 24 C40 24 42 14 48 10 C46 14 44 20 42 24"
+        d="M36 58 Q42 54 44 50 Q40 52 36 58"
         fill="var(--color-moss)"
-      />
-      <path
-        d="M56 40 C56 40 66 38 70 32 C66 34 60 36 56 38"
-        fill="var(--color-sage)"
-      />
-      <path
-        d="M56 40 C56 40 66 42 70 48 C66 46 60 44 56 42"
-        fill="var(--color-moss)"
-      />
-      <path
-        d="M40 56 C40 56 42 66 48 70 C46 66 44 60 42 56"
-        fill="var(--color-sage)"
-      />
-      <path
-        d="M24 40 C24 40 14 42 10 48 C14 46 20 44 24 42"
-        fill="var(--color-moss)"
+        opacity="0.6"
       />
 
-      {/* Small accent dots - seeds */}
-      <circle cx="40" cy="40" r="2.5" fill="var(--color-terracotta)" opacity="0.7" />
+      {/* Second small leaf */}
+      <path
+        d="M40 41.6 Q44 48 48 52"
+        stroke="var(--color-sage)"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        fill="none"
+      />
+      <path
+        d="M48 52 Q44 50 42 47 Q46 48 48 52"
+        fill="var(--color-sage)"
+        opacity="0.5"
+      />
+
+      {/* Tiny accent dot — seed */}
+      <circle cx="40" cy="33.5" r="1" fill="var(--color-terracotta)" opacity="0.6" />
     </svg>
   )
 }
@@ -68,18 +75,51 @@ export function MaszynaIcon({ className = "w-8 h-8" }: { className?: string }) {
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <circle cx="20" cy="20" r="18" fill="var(--color-navy)" opacity="0.1" />
-      <g fill="var(--color-navy)">
-        <circle cx="20" cy="20" r="8" />
-        <rect x="19" y="2" width="2" height="6" rx="0.5" />
-        <rect x="19" y="32" width="2" height="6" rx="0.5" />
-        <rect x="2" y="19" width="6" height="2" rx="0.5" />
-        <rect x="32" y="19" width="6" height="2" rx="0.5" />
-      </g>
-      <circle cx="20" cy="20" r="5" fill="var(--color-cream)" />
-      <path d="M20 12 C20 12 19 7 16 5 C17 7 18 10 19 12" fill="var(--color-sage)" />
-      <path d="M20 12 C20 12 21 7 24 5 C23 7 22 10 21 12" fill="var(--color-moss)" />
-      <circle cx="20" cy="20" r="1.5" fill="var(--color-terracotta)" opacity="0.7" />
+      {/* Soft background */}
+      <circle cx="20" cy="20" r="18" fill="var(--color-navy)" opacity="0.08" />
+
+      {/* Machine: hex outline */}
+      <path
+        d="M20 8 L26.9 12 L26.9 20 L20 24 L13.1 20 L13.1 12 Z"
+        stroke="var(--color-navy)"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+        fill="none"
+      />
+      <circle cx="20" cy="16" r="2" stroke="var(--color-navy)" strokeWidth="1.5" fill="none" />
+
+      {/* Leaves */}
+      <path
+        d="M20 24 Q20 30 17 34"
+        stroke="var(--color-sage)"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        fill="none"
+      />
+      <path
+        d="M17 34 Q14 31 13 29 Q15 30 17 34"
+        fill="var(--color-sage)"
+        opacity="0.7"
+      />
+      <path
+        d="M17 34 Q20 31 21 29 Q19 30 17 34"
+        fill="var(--color-moss)"
+        opacity="0.6"
+      />
+
+      {/* Second leaf */}
+      <path
+        d="M20 24 Q23 28 25 31"
+        stroke="var(--color-sage)"
+        strokeWidth="1"
+        strokeLinecap="round"
+        fill="none"
+      />
+      <path
+        d="M25 31 Q23 29 22 28 Q24 28 25 31"
+        fill="var(--color-sage)"
+        opacity="0.5"
+      />
     </svg>
   )
 }
