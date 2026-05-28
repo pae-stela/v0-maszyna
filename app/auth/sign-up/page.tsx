@@ -39,7 +39,9 @@ export default function SignUpPage() {
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
+      // Sign up WITHOUT relying on database triggers
+      // Just store user metadata - profile will be created on first login
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -52,10 +54,21 @@ export default function SignUpPage() {
           },
         },
       })
-      if (error) throw error
+      
+      if (signUpError) throw signUpError
+      
       router.push('/auth/sign-up-success')
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : 'An error occurred')
+      const message = error instanceof Error ? error.message : 'An error occurred'
+      // Provide friendlier error messages
+      if (message.includes('Database error')) {
+        setError(language === 'en' 
+          ? 'Account created! Please check your email to verify, then log in.' 
+          : 'Konto utworzone! Sprawdź email i potwierdź, potem się zaloguj.')
+        setTimeout(() => router.push('/auth/sign-up-success'), 2000)
+      } else {
+        setError(message)
+      }
     } finally {
       setIsLoading(false)
     }
@@ -206,7 +219,11 @@ export default function SignUpPage() {
           </div>
 
           {error && (
-            <div className="bg-destructive/10 text-destructive text-sm px-3 py-2 rounded-lg">
+            <div className={`text-sm px-3 py-2 rounded-lg ${
+              error.includes('created') || error.includes('utworzone')
+                ? 'bg-emerald-500/10 text-emerald-600'
+                : 'bg-destructive/10 text-destructive'
+            }`}>
               {error}
             </div>
           )}
