@@ -1,4 +1,4 @@
-# FitCouple
+# Maszyna
 
 A shared fitness and nutrition tracking app for couples (and solo users) — track macros, workouts, step counts, and plan meals together.
 

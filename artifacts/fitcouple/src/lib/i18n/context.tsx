@@ -16,7 +16,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Load saved language preference
-    const saved = localStorage.getItem("fitcouple-language") as Language
+    const saved = localStorage.getItem("maszyna-language") as Language
     if (saved && (saved === "en" || saved === "pl")) {
       setLanguageState(saved)
     }
@@ -24,7 +24,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang)
-    localStorage.setItem("fitcouple-language", lang)
+    localStorage.setItem("maszyna-language", lang)
   }
 
   const t = (key: TranslationKey): string => {

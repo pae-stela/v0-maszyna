@@ -15,7 +15,7 @@ export default function LandingPage() {
         </div>
 
         <h1 className="text-3xl font-bold text-foreground mb-3">
-          FitCouple
+          Maszyna
         </h1>
         <p className="text-muted-foreground max-w-xs mb-8">
           Track nutrition and workouts together. Stay healthy as a team, or go solo.
