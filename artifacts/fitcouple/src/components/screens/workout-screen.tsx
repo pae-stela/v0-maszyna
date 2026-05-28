@@ -391,7 +391,7 @@ function JournalView() {
   const estimatedCalories = completedSets * 8 // rough estimate
 
   const difficultyLabels = ["Easy", "OK", "Mod", "Hard", "Max"]
-  const difficultyColors = ["text-emerald-500", "text-blue-500", "text-amber-500", "text-orange-500", "text-red-500"]
+  const difficultyColors = ["text-sage", "text-navy", "text-wheat", "text-terracotta", "text-terracotta"]
 
   const currentPlan = availablePlans.find(p => p.id === selectedPlan)
 
@@ -432,13 +432,13 @@ function JournalView() {
               </div>
               <div className="w-px h-8 bg-border" />
               <div className="text-center flex items-center gap-1">
-                <Flame className="size-4 text-orange-400" />
+                <Flame className="size-4 text-terracotta/70" />
                 <p className="text-lg font-bold text-foreground">{estimatedCalories}</p>
               </div>
             </div>
             {isWorkoutActive ? (
               <div className="flex items-center gap-2">
-                <div className={`flex items-center gap-1.5 ${isWorkoutPaused ? "text-amber-500" : "text-primary"}`}>
+                <div className={`flex items-center gap-1.5 ${isWorkoutPaused ? "text-wheat" : "text-primary"}`}>
                   <Timer className="size-4" />
                   <span className="text-sm font-mono font-medium">{elapsedTime}</span>
                 </div>
@@ -460,7 +460,7 @@ function JournalView() {
                   )}
                   <button
                     onClick={() => setShowFinishModal(true)}
-                    className="p-1.5 bg-emerald-500 rounded-lg text-white active:scale-95 transition-transform"
+                    className="p-1.5 bg-sage rounded-lg text-background active:scale-95 transition-transform"
                   >
                     <Square className="size-3.5" />
                   </button>
@@ -492,7 +492,7 @@ function JournalView() {
 
       {/* Rest Timer */}
       {restTimerActive && (
-        <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-2xl p-4 border border-blue-500/20">
+        <div className="bg-gradient-to-r from-navy/10 to-sand/10 rounded-2xl p-4 border border-navy/20">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="relative size-12">
@@ -721,8 +721,8 @@ function JournalView() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-card rounded-2xl w-full max-w-sm overflow-hidden">
             <div className="p-5 text-center">
-              <div className="size-14 rounded-full bg-emerald-500/20 mx-auto mb-4 flex items-center justify-center">
-                <Check className="size-7 text-emerald-500" />
+              <div className="size-14 rounded-full bg-sage/20 mx-auto mb-4 flex items-center justify-center">
+                <Check className="size-7 text-sage" />
               </div>
               <h3 className="font-semibold text-lg text-foreground mb-1">Finish Workout?</h3>
               <p className="text-sm text-muted-foreground mb-2">
@@ -1053,7 +1053,7 @@ function PlansView() {
                               </div>
                               <div className="flex-1">
                                 <label className="text-[10px] text-muted-foreground mb-1 block">Est. Calories</label>
-                                <div className="bg-background rounded-lg px-2 py-1.5 text-sm text-center text-orange-400 font-medium">
+                                <div className="bg-background rounded-lg px-2 py-1.5 text-sm text-center text-terracotta/70 font-medium">
                                   ~{(pe.duration || 30) * (pe.exercise.caloriesPerMinute || 5)} kcal
                                 </div>
                               </div>
@@ -1295,20 +1295,20 @@ function ExercisesView() {
             <div className="flex flex-col gap-2">
               {exercises.map(exercise => {
                 const typeColors: Record<string, string> = {
-                  compound: "bg-amber-500/20 text-amber-500",
-                  isolation: "bg-blue-500/20 text-blue-500",
-                  cardio: "bg-rose-500/20 text-rose-500",
-                  flexibility: "bg-purple-500/20 text-purple-500"
+                  compound: "bg-wheat/20 text-wheat",
+                  isolation: "bg-navy/20 text-navy",
+                  cardio: "bg-terracotta/20 text-terracotta",
+                  flexibility: "bg-sand/20 text-sand"
                 }
                 const iconBg = exercise.type === "cardio" 
-                  ? "bg-rose-500/10" 
+                  ? "bg-terracotta/10" 
                   : exercise.type === "flexibility" 
-                    ? "bg-purple-500/10" 
+                    ? "bg-sand/10" 
                     : "bg-primary/10"
                 const iconColor = exercise.type === "cardio" 
-                  ? "text-rose-500" 
+                  ? "text-terracotta" 
                   : exercise.type === "flexibility" 
-                    ? "text-purple-500" 
+                    ? "text-sand" 
                     : "text-primary"
 
                 return (
@@ -1332,7 +1332,7 @@ function ExercisesView() {
                           </span>
                         )}
                         {exercise.antagonistPairsWith && (
-                          <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-500 text-[9px] font-medium flex items-center gap-0.5">
+                          <span className="px-1.5 py-0.5 rounded bg-sage/20 text-sage text-[9px] font-medium flex items-center gap-0.5">
                             <Link2 className="size-2.5" />
                             {exercise.antagonistPairsWith.join(", ")}
                           </span>
@@ -1424,7 +1424,7 @@ function ExercisesView() {
                     onClick={() => setNewExercise({ ...newExercise, type: "compound" })}
                     className={`py-2.5 rounded-lg text-sm font-medium transition-colors ${
                       newExercise.type === "compound" 
-                        ? "bg-amber-500/20 text-amber-500 border border-amber-500/30" 
+                        ? "bg-wheat/20 text-wheat border border-wheat/30" 
                         : "bg-secondary text-muted-foreground"
                     }`}
                   >
@@ -1434,7 +1434,7 @@ function ExercisesView() {
                     onClick={() => setNewExercise({ ...newExercise, type: "isolation" })}
                     className={`py-2.5 rounded-lg text-sm font-medium transition-colors ${
                       newExercise.type === "isolation" 
-                        ? "bg-blue-500/20 text-blue-500 border border-blue-500/30" 
+                        ? "bg-navy/20 text-navy border border-navy/30" 
                         : "bg-secondary text-muted-foreground"
                     }`}
                   >
@@ -1444,7 +1444,7 @@ function ExercisesView() {
                     onClick={() => setNewExercise({ ...newExercise, type: "cardio" })}
                     className={`py-2.5 rounded-lg text-sm font-medium transition-colors ${
                       newExercise.type === "cardio" 
-                        ? "bg-rose-500/20 text-rose-500 border border-rose-500/30" 
+                        ? "bg-terracotta/20 text-terracotta border border-terracotta/30" 
                         : "bg-secondary text-muted-foreground"
                     }`}
                   >
@@ -1454,7 +1454,7 @@ function ExercisesView() {
                     onClick={() => setNewExercise({ ...newExercise, type: "flexibility" })}
                     className={`py-2.5 rounded-lg text-sm font-medium transition-colors ${
                       newExercise.type === "flexibility" 
-                        ? "bg-purple-500/20 text-purple-500 border border-purple-500/30" 
+                        ? "bg-sand/20 text-sand border border-sand/30" 
                         : "bg-secondary text-muted-foreground"
                     }`}
                   >

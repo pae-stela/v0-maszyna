@@ -569,15 +569,15 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
                 </div>
                 <div className="bg-secondary rounded-lg px-2 py-2 text-center">
                   <p className="text-[10px] text-muted-foreground">C</p>
-                  <p className="text-sm font-semibold text-amber-500">{ing.carbs}g</p>
+                  <p className="text-sm font-semibold text-wheat">{ing.carbs}g</p>
                 </div>
                 <div className="bg-secondary rounded-lg px-2 py-2 text-center">
                   <p className="text-[10px] text-muted-foreground">F</p>
-                  <p className="text-sm font-semibold text-rose-400">{ing.fats}g</p>
+                  <p className="text-sm font-semibold text-terracotta/70">{ing.fats}g</p>
                 </div>
                 <div className="bg-secondary rounded-lg px-2 py-2 text-center">
                   <p className="text-[10px] text-muted-foreground">Fib</p>
-                  <p className="text-sm font-semibold text-emerald-400">{ing.fiber}g</p>
+                  <p className="text-sm font-semibold text-sage/70">{ing.fiber}g</p>
                 </div>
               </div>
             </div>
@@ -598,15 +598,15 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
             </div>
             <div className="bg-background/50 rounded-lg px-2 py-2 text-center">
               <p className="text-[10px] text-muted-foreground">C</p>
-              <p className="text-sm font-bold text-amber-500">{Math.round(totals.carbs * 10) / 10}g</p>
+              <p className="text-sm font-bold text-wheat">{Math.round(totals.carbs * 10) / 10}g</p>
             </div>
             <div className="bg-background/50 rounded-lg px-2 py-2 text-center">
               <p className="text-[10px] text-muted-foreground">F</p>
-              <p className="text-sm font-bold text-rose-400">{Math.round(totals.fats * 10) / 10}g</p>
+              <p className="text-sm font-bold text-terracotta/70">{Math.round(totals.fats * 10) / 10}g</p>
             </div>
             <div className="bg-background/50 rounded-lg px-2 py-2 text-center">
               <p className="text-[10px] text-muted-foreground">Fib</p>
-              <p className="text-sm font-bold text-emerald-400">{Math.round(totals.fiber * 10) / 10}g</p>
+              <p className="text-sm font-bold text-sage/70">{Math.round(totals.fiber * 10) / 10}g</p>
             </div>
           </div>
         </div>
@@ -626,10 +626,10 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
           {/* Serving Controls */}
           <div className="grid grid-cols-2 gap-4 mb-5">
             {/* Marcin Servings */}
-            <div className="bg-blue-500/10 rounded-xl p-3 border border-blue-500/20">
+            <div className="bg-navy/10 rounded-xl p-3 border border-navy/20">
               <div className="flex items-center gap-2 mb-2">
-                <div className="size-6 rounded-full bg-blue-500 flex items-center justify-center">
-                  <span className="text-[10px] font-bold text-white">M</span>
+                <div className="size-6 rounded-full bg-navy flex items-center justify-center">
+                  <span className="text-[10px] font-bold text-background">M</span>
                 </div>
                 <span className="text-xs font-medium text-foreground">Marcin</span>
               </div>
@@ -654,10 +654,10 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
             </div>
 
             {/* Patrycja Servings */}
-            <div className="bg-emerald-500/10 rounded-xl p-3 border border-emerald-500/20">
+            <div className="bg-sage/10 rounded-xl p-3 border border-sage/20">
               <div className="flex items-center gap-2 mb-2">
-                <div className="size-6 rounded-full bg-emerald-500 flex items-center justify-center">
-                  <span className="text-[10px] font-bold text-white">P</span>
+                <div className="size-6 rounded-full bg-sage flex items-center justify-center">
+                  <span className="text-[10px] font-bold text-background">P</span>
                 </div>
                 <span className="text-xs font-medium text-foreground">Patrycja</span>
               </div>
@@ -692,13 +692,13 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
               <div className="h-2.5 rounded-full overflow-hidden flex bg-secondary">
                 {marcinServings > 0 && (
                   <div 
-                    className="bg-blue-500 h-full transition-all duration-300" 
+                    className="bg-navy h-full transition-all duration-300" 
                     style={{ width: `${(marcinServings * 2 / totalParts) * 100}%` }} 
                   />
                 )}
                 {patrycjaServings > 0 && (
                   <div 
-                    className="bg-emerald-500 h-full transition-all duration-300" 
+                    className="bg-sage h-full transition-all duration-300" 
                     style={{ width: `${(patrycjaServings * 1 / totalParts) * 100}%` }} 
                   />
                 )}
@@ -709,7 +709,7 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
           {/* Portion Details */}
           <div className="grid grid-cols-2 gap-3">
             {/* Marcin's Portion */}
-            <div className="bg-blue-500/5 rounded-xl p-3 border border-blue-500/10">
+            <div className="bg-navy/5 rounded-xl p-3 border border-navy/10">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
                 {marcinServings > 1 ? `Per serving (${marcinServings}x)` : "Total"}
               </p>
@@ -724,19 +724,19 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">Carbs</span>
-                  <span className="text-xs font-semibold text-amber-500">{Math.round((marcinServings > 1 ? marcinPerServing.carbs : marcinPortion.carbs) * 10) / 10}g</span>
+                  <span className="text-xs font-semibold text-wheat">{Math.round((marcinServings > 1 ? marcinPerServing.carbs : marcinPortion.carbs) * 10) / 10}g</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">Fats</span>
-                  <span className="text-xs font-semibold text-rose-400">{Math.round((marcinServings > 1 ? marcinPerServing.fats : marcinPortion.fats) * 10) / 10}g</span>
+                  <span className="text-xs font-semibold text-terracotta/70">{Math.round((marcinServings > 1 ? marcinPerServing.fats : marcinPortion.fats) * 10) / 10}g</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">Fiber</span>
-                  <span className="text-xs font-semibold text-emerald-400">{Math.round((marcinServings > 1 ? marcinPerServing.fiber : marcinPortion.fiber) * 10) / 10}g</span>
+                  <span className="text-xs font-semibold text-sage/70">{Math.round((marcinServings > 1 ? marcinPerServing.fiber : marcinPortion.fiber) * 10) / 10}g</span>
                 </div>
               </div>
               {marcinServings > 1 && (
-                <div className="mt-2 pt-2 border-t border-blue-500/10">
+                <div className="mt-2 pt-2 border-t border-navy/10">
                   <div className="flex justify-between items-center">
                     <span className="text-[10px] text-muted-foreground">All {marcinServings} servings</span>
                     <span className="text-xs font-bold text-foreground">{Math.round(marcinPortion.calories)} kcal</span>
@@ -746,7 +746,7 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
             </div>
 
             {/* Patrycja's Portion */}
-            <div className="bg-emerald-500/5 rounded-xl p-3 border border-emerald-500/10">
+            <div className="bg-sage/5 rounded-xl p-3 border border-sage/10">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
                 {patrycjaServings > 1 ? `Per serving (${patrycjaServings}x)` : "Total"}
               </p>
@@ -761,19 +761,19 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">Carbs</span>
-                  <span className="text-xs font-semibold text-amber-500">{Math.round((patrycjaServings > 1 ? patrycjaPerServing.carbs : patrycjaPortion.carbs) * 10) / 10}g</span>
+                  <span className="text-xs font-semibold text-wheat">{Math.round((patrycjaServings > 1 ? patrycjaPerServing.carbs : patrycjaPortion.carbs) * 10) / 10}g</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">Fats</span>
-                  <span className="text-xs font-semibold text-rose-400">{Math.round((patrycjaServings > 1 ? patrycjaPerServing.fats : patrycjaPortion.fats) * 10) / 10}g</span>
+                  <span className="text-xs font-semibold text-terracotta/70">{Math.round((patrycjaServings > 1 ? patrycjaPerServing.fats : patrycjaPortion.fats) * 10) / 10}g</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">Fiber</span>
-                  <span className="text-xs font-semibold text-emerald-400">{Math.round((patrycjaServings > 1 ? patrycjaPerServing.fiber : patrycjaPortion.fiber) * 10) / 10}g</span>
+                  <span className="text-xs font-semibold text-sage/70">{Math.round((patrycjaServings > 1 ? patrycjaPerServing.fiber : patrycjaPortion.fiber) * 10) / 10}g</span>
                 </div>
               </div>
               {patrycjaServings > 1 && (
-                <div className="mt-2 pt-2 border-t border-emerald-500/10">
+                <div className="mt-2 pt-2 border-t border-sage/10">
                   <div className="flex justify-between items-center">
                     <span className="text-[10px] text-muted-foreground">All {patrycjaServings} servings</span>
                     <span className="text-xs font-bold text-foreground">{Math.round(patrycjaPortion.calories)} kcal</span>
@@ -791,8 +791,8 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
 
       {/* Step 3: Save Options */}
       <div className="bg-card rounded-2xl border border-border overflow-hidden">
-        <div className="bg-emerald-500/10 px-5 py-3 border-b border-border flex items-center gap-3">
-          <div className="size-7 rounded-full bg-emerald-500 text-white flex items-center justify-center text-sm font-bold">3</div>
+        <div className="bg-sage/10 px-5 py-3 border-b border-border flex items-center gap-3">
+          <div className="size-7 rounded-full bg-sage text-background flex items-center justify-center text-sm font-bold">3</div>
           <div>
             <h3 className="text-sm font-semibold text-foreground">Save Your Creation</h3>
             <p className="text-xs text-muted-foreground">Store as a dish or reusable component</p>
@@ -1098,12 +1098,12 @@ function IngredientsView() {
                     {ingredient.isComponent && (ingredient.marcinServings || ingredient.patrycjaServings) && (
                       <div className="flex items-center gap-1">
                         {ingredient.marcinServings && (
-                          <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-500 text-[9px] font-medium">
+                          <span className="px-1.5 py-0.5 rounded bg-navy/20 text-navy text-[9px] font-medium">
                             M:{ingredient.marcinServings}
                           </span>
                         )}
                         {ingredient.patrycjaServings && (
-                          <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-500 text-[9px] font-medium">
+                          <span className="px-1.5 py-0.5 rounded bg-sage/20 text-sage text-[9px] font-medium">
                             P:{ingredient.patrycjaServings}
                           </span>
                         )}
@@ -1300,12 +1300,12 @@ function DishesView() {
                       {(dish.marcinServings || dish.patrycjaServings) && (
                         <div className="flex items-center gap-1">
                           {dish.marcinServings && (
-                            <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-500 text-[9px] font-medium">
+                            <span className="px-1.5 py-0.5 rounded bg-navy/20 text-navy text-[9px] font-medium">
                               M:{dish.marcinServings}
                             </span>
                           )}
                           {dish.patrycjaServings && (
-                            <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-500 text-[9px] font-medium">
+                            <span className="px-1.5 py-0.5 rounded bg-sage/20 text-sage text-[9px] font-medium">
                               P:{dish.patrycjaServings}
                             </span>
                           )}
@@ -1330,15 +1330,15 @@ function DishesView() {
                     </div>
                     <div className="bg-secondary rounded-lg px-2 py-2 text-center">
                       <p className="text-[10px] text-muted-foreground">C</p>
-                      <p className="text-sm font-semibold text-amber-500">{dish.totalCarbs}g</p>
+                      <p className="text-sm font-semibold text-wheat">{dish.totalCarbs}g</p>
                     </div>
                     <div className="bg-secondary rounded-lg px-2 py-2 text-center">
                       <p className="text-[10px] text-muted-foreground">F</p>
-                      <p className="text-sm font-semibold text-rose-400">{dish.totalFats}g</p>
+                      <p className="text-sm font-semibold text-terracotta/70">{dish.totalFats}g</p>
                     </div>
                     <div className="bg-secondary rounded-lg px-2 py-2 text-center">
                       <p className="text-[10px] text-muted-foreground">Fib</p>
-                      <p className="text-sm font-semibold text-emerald-400">{dish.totalFiber}g</p>
+                      <p className="text-sm font-semibold text-sage/70">{dish.totalFiber}g</p>
                     </div>
                   </div>
 

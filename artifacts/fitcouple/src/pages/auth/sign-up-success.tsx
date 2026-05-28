@@ -1,17 +1,13 @@
-import { Dumbbell, Utensils, Mail } from 'lucide-react'
+import { Mail } from 'lucide-react'
 import { Link } from 'wouter'
+import { MaszynaIcon } from '@/components/logo'
 
 export default function SignUpSuccessPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-sm text-center">
-        <div className="flex items-center justify-center gap-2 mb-8">
-          <div className="size-12 rounded-2xl bg-primary flex items-center justify-center">
-            <Dumbbell className="size-6 text-primary-foreground" />
-          </div>
-          <div className="size-12 rounded-2xl bg-emerald-500 flex items-center justify-center">
-            <Utensils className="size-6 text-white" />
-          </div>
+        <div className="flex items-center justify-center mb-8">
+          <MaszynaIcon className="w-12 h-12" />
         </div>
 
         <div className="size-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">

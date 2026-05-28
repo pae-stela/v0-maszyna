@@ -217,7 +217,7 @@ export function DashboardScreen() {
       <div className="bg-card rounded-2xl p-4 border border-border">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Droplets className="size-5 text-blue-400" />
+            <Droplets className="size-5 text-navy/70" />
             <span className="text-sm font-semibold text-foreground">Water</span>
           </div>
           <span className="text-sm text-muted-foreground">
@@ -226,26 +226,26 @@ export function DashboardScreen() {
         </div>
         <div className="h-2 bg-secondary rounded-full overflow-hidden mb-3">
           <div 
-            className="h-full bg-blue-400 rounded-full transition-all duration-500"
+            className="h-full bg-navy/70 rounded-full transition-all duration-500"
             style={{ width: `${Math.min((water / data.waterTarget) * 100, 100)}%` }}
           />
         </div>
         <div className="flex gap-2">
           <button 
             onClick={() => addWater(300)}
-            className="flex-1 py-2.5 rounded-xl bg-blue-500/10 text-blue-400 text-sm font-medium active:scale-[0.98] transition-transform"
+            className="flex-1 py-2.5 rounded-xl bg-navy/10 text-navy/70 text-sm font-medium active:scale-[0.98] transition-transform"
           >
             +300ml
           </button>
           <button 
             onClick={() => addWater(500)}
-            className="flex-1 py-2.5 rounded-xl bg-blue-500/10 text-blue-400 text-sm font-medium active:scale-[0.98] transition-transform"
+            className="flex-1 py-2.5 rounded-xl bg-navy/10 text-navy/70 text-sm font-medium active:scale-[0.98] transition-transform"
           >
             +500ml
           </button>
           <button 
             onClick={() => addWater(1000)}
-            className="flex-1 py-2.5 rounded-xl bg-blue-500/10 text-blue-400 text-sm font-medium active:scale-[0.98] transition-transform"
+            className="flex-1 py-2.5 rounded-xl bg-navy/10 text-navy/70 text-sm font-medium active:scale-[0.98] transition-transform"
           >
             +1L
           </button>
@@ -256,7 +256,7 @@ export function DashboardScreen() {
       <div className="bg-card rounded-2xl p-4 border border-border">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Footprints className="size-5 text-emerald-400" />
+            <Footprints className="size-5 text-sage/70" />
             <span className="text-sm font-semibold text-foreground">Steps</span>
           </div>
           <button
@@ -283,7 +283,7 @@ export function DashboardScreen() {
 
         <div className="h-2 bg-secondary rounded-full overflow-hidden">
           <div 
-            className="h-full bg-emerald-400 rounded-full transition-all duration-500"
+            className="h-full bg-sage/70 rounded-full transition-all duration-500"
             style={{ width: `${Math.min((todaySteps / stepGoal) * 100, 100)}%` }}
           />
         </div>
@@ -371,8 +371,8 @@ export function DashboardScreen() {
                   <div className="flex items-center gap-3 mt-2 text-[10px]">
                     <span className="text-foreground font-medium">{recipe.calories} kcal</span>
                     <span className="text-primary">{recipe.protein}g P</span>
-                    <span className="text-amber-500">{recipe.carbs}g C</span>
-                    <span className="text-rose-400">{recipe.fats}g F</span>
+                    <span className="text-wheat">{recipe.carbs}g C</span>
+                    <span className="text-terracotta/70">{recipe.fats}g F</span>
                   </div>
                 </div>
               ))}
@@ -392,9 +392,9 @@ export function DashboardScreen() {
         >
           <div className="flex items-center gap-3">
             <div className={`size-10 rounded-xl flex items-center justify-center ${
-              partnerUser === "marcin" ? "bg-blue-500/20" : "bg-emerald-500/20"
+              partnerUser === "marcin" ? "bg-navy/20" : "bg-sage/20"
             }`}>
-              <Users className={`size-5 ${partnerUser === "marcin" ? "text-blue-500" : "text-emerald-500"}`} />
+              <Users className={`size-5 ${partnerUser === "marcin" ? "text-navy" : "text-sage"}`} />
             </div>
             <div className="text-left">
               <p className="text-sm font-semibold text-foreground capitalize">{partnerUser}&apos;s Day</p>
@@ -422,13 +422,13 @@ export function DashboardScreen() {
                   item.type === "meal" 
                     ? "bg-primary/20" 
                     : item.type === "training"
-                    ? "bg-orange-500/20"
-                    : "bg-purple-500/20"
+                    ? "bg-terracotta/20"
+                    : "bg-sand/20"
                 }`}>
                   {item.type === "meal" ? (
                     <div className="size-2.5 rounded-full bg-primary" />
                   ) : item.type === "training" ? (
-                    <Dumbbell className="size-3 text-orange-400" />
+                    <Dumbbell className="size-3 text-terracotta/70" />
                   ) : (
                     <Pill className="size-3 text-purple-400" />
                   )}
@@ -468,13 +468,13 @@ export function DashboardScreen() {
                   item.type === "meal" 
                     ? "bg-primary/20" 
                     : item.type === "training"
-                    ? "bg-orange-500/20"
-                    : "bg-purple-500/20"
+                    ? "bg-terracotta/20"
+                    : "bg-sand/20"
                 }`}>
                   {item.type === "meal" ? (
                     <div className="size-4 rounded-full bg-primary" />
                   ) : item.type === "training" ? (
-                    <Dumbbell className="size-4 text-orange-400" />
+                    <Dumbbell className="size-4 text-terracotta/70" />
                   ) : (
                     <Pill className="size-4 text-purple-400" />
                   )}

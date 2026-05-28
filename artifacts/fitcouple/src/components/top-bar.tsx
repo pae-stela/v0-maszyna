@@ -189,10 +189,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
                     <div className="flex gap-4 mb-4">
                       {/* Marcin Ratio */}
-                      <div className="flex-1 bg-blue-500/10 rounded-xl p-3 border border-blue-500/20">
+                      <div className="flex-1 bg-navy/10 rounded-xl p-3 border border-navy/20">
                         <div className="flex items-center gap-2 mb-2">
-                          <div className="size-6 rounded-full bg-blue-500 flex items-center justify-center">
-                            <span className="text-[10px] font-bold text-white">M</span>
+                          <div className="size-6 rounded-full bg-navy flex items-center justify-center">
+                            <span className="text-[10px] font-bold text-background">M</span>
                           </div>
                           <span className="text-xs font-medium text-foreground">Marcin</span>
                         </div>
@@ -217,10 +217,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       </div>
 
                       {/* Patrycja Ratio */}
-                      <div className="flex-1 bg-emerald-500/10 rounded-xl p-3 border border-emerald-500/20">
+                      <div className="flex-1 bg-sage/10 rounded-xl p-3 border border-sage/20">
                         <div className="flex items-center gap-2 mb-2">
-                          <div className="size-6 rounded-full bg-emerald-500 flex items-center justify-center">
-                            <span className="text-[10px] font-bold text-white">P</span>
+                          <div className="size-6 rounded-full bg-sage flex items-center justify-center">
+                            <span className="text-[10px] font-bold text-background">P</span>
                           </div>
                           <span className="text-xs font-medium text-foreground">Patrycja</span>
                         </div>
@@ -255,11 +255,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       </div>
                       <div className="h-2.5 rounded-full overflow-hidden flex bg-secondary">
                         <div 
-                          className="bg-blue-500 h-full transition-all duration-300" 
+                          className="bg-navy h-full transition-all duration-300" 
                           style={{ width: `${(marcinRatio / (marcinRatio + patrycjaRatio)) * 100}%` }} 
                         />
                         <div 
-                          className="bg-emerald-500 h-full transition-all duration-300" 
+                          className="bg-sage h-full transition-all duration-300" 
                           style={{ width: `${(patrycjaRatio / (marcinRatio + patrycjaRatio)) * 100}%` }} 
                         />
                       </div>
@@ -278,7 +278,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-foreground">Enabled</span>
                       <div className="w-11 h-6 bg-primary rounded-full relative cursor-pointer">
-                        <div className="absolute right-0.5 top-0.5 size-5 bg-white rounded-full shadow-sm" />
+                        <div className="absolute right-0.5 top-0.5 size-5 bg-background rounded-full shadow-sm" />
                       </div>
                     </div>
                   </div>
@@ -293,17 +293,17 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         onClick={() => setActiveUser("patrycja")}
                         className={`flex-1 p-3 rounded-xl flex items-center gap-3 transition-all ${
                           activeUser === "patrycja"
-                            ? "bg-emerald-500/20 border-2 border-emerald-500"
+                            ? "bg-sage/20 border-2 border-sage"
                             : "bg-background border-2 border-transparent hover:border-border"
                         }`}
                       >
-                        <div className="size-10 rounded-full bg-emerald-500 flex items-center justify-center">
+                        <div className="size-10 rounded-full bg-sage flex items-center justify-center">
                           <WhiteCat />
                         </div>
                         <div className="text-left">
                           <p className="text-sm font-medium text-foreground">Patrycja</p>
                           {activeUser === "patrycja" && (
-                            <p className="text-[10px] text-emerald-500">Active</p>
+                            <p className="text-[10px] text-sage">Active</p>
                           )}
                         </div>
                       </button>
@@ -311,17 +311,17 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         onClick={() => setActiveUser("marcin")}
                         className={`flex-1 p-3 rounded-xl flex items-center gap-3 transition-all ${
                           activeUser === "marcin"
-                            ? "bg-blue-500/20 border-2 border-blue-500"
+                            ? "bg-navy/20 border-2 border-navy"
                             : "bg-background border-2 border-transparent hover:border-border"
                         }`}
                       >
-                        <div className="size-10 rounded-full bg-blue-500 flex items-center justify-center">
+                        <div className="size-10 rounded-full bg-navy flex items-center justify-center">
                           <BlackCat />
                         </div>
                         <div className="text-left">
                           <p className="text-sm font-medium text-foreground">Marcin</p>
                           {activeUser === "marcin" && (
-                            <p className="text-[10px] text-blue-500">Active</p>
+                            <p className="text-[10px] text-navy">Active</p>
                           )}
                         </div>
                       </button>
@@ -406,13 +406,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       </div>
                       {/* Carbs */}
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-amber-500">Carbs</span>
+                        <span className="text-sm text-wheat">Carbs</span>
                         <div className="flex items-center bg-background rounded-lg">
                           <button
                             onClick={() => updateMacroGoal("carbs", -10)}
                             className="px-2 py-1 text-muted-foreground hover:text-foreground text-sm"
                           >-</button>
-                          <span className="w-12 text-center text-sm font-medium text-amber-500">{currentGoals.carbs}g</span>
+                          <span className="w-12 text-center text-sm font-medium text-wheat">{currentGoals.carbs}g</span>
                           <button
                             onClick={() => updateMacroGoal("carbs", 10)}
                             className="px-2 py-1 text-muted-foreground hover:text-foreground text-sm"
@@ -421,13 +421,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       </div>
                       {/* Fats */}
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-rose-400">Fats</span>
+                        <span className="text-sm text-terracotta/70">Fats</span>
                         <div className="flex items-center bg-background rounded-lg">
                           <button
                             onClick={() => updateMacroGoal("fats", -5)}
                             className="px-2 py-1 text-muted-foreground hover:text-foreground text-sm"
                           >-</button>
-                          <span className="w-12 text-center text-sm font-medium text-rose-400">{currentGoals.fats}g</span>
+                          <span className="w-12 text-center text-sm font-medium text-terracotta/70">{currentGoals.fats}g</span>
                           <button
                             onClick={() => updateMacroGoal("fats", 5)}
                             className="px-2 py-1 text-muted-foreground hover:text-foreground text-sm"
@@ -444,13 +444,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-foreground">Dark Mode</span>
                         <div className="w-11 h-6 bg-primary rounded-full relative cursor-pointer">
-                          <div className="absolute right-0.5 top-0.5 size-5 bg-white rounded-full shadow-sm" />
+                          <div className="absolute right-0.5 top-0.5 size-5 bg-background rounded-full shadow-sm" />
                         </div>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-foreground">Metric Units</span>
                         <div className="w-11 h-6 bg-primary rounded-full relative cursor-pointer">
-                          <div className="absolute right-0.5 top-0.5 size-5 bg-white rounded-full shadow-sm" />
+                          <div className="absolute right-0.5 top-0.5 size-5 bg-background rounded-full shadow-sm" />
                         </div>
                       </div>
                     </div>
@@ -546,7 +546,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       onClick={() => setUseStepData(!useStepData)}
                       className={`text-[10px] px-2 py-1 rounded-lg transition-all ${
                         useStepData 
-                          ? "bg-emerald-500/20 text-emerald-500" 
+                          ? "bg-sage/20 text-sage" 
                           : "bg-secondary text-muted-foreground"
                       }`}
                     >
@@ -578,9 +578,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   </div>
                 )}
                 {useStepData && weeklyAvgSteps > 0 && (
-                  <div className="bg-emerald-500/10 rounded-xl p-3 flex items-center gap-3">
-                    <div className="size-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                      <Footprints className="size-5 text-emerald-500" />
+                  <div className="bg-sage/10 rounded-xl p-3 flex items-center gap-3">
+                    <div className="size-10 rounded-full bg-sage/20 flex items-center justify-center">
+                      <Footprints className="size-5 text-sage" />
                     </div>
                     <div>
                       <p className="text-sm font-medium text-foreground">{weeklyAvgSteps.toLocaleString()} steps/day</p>
@@ -603,11 +603,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     <p className="text-[9px] text-muted-foreground">protein</p>
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-amber-500">{calculateMacros().carbs}g</p>
+                    <p className="text-sm font-bold text-wheat">{calculateMacros().carbs}g</p>
                     <p className="text-[9px] text-muted-foreground">carbs</p>
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-rose-400">{calculateMacros().fats}g</p>
+                    <p className="text-sm font-bold text-terracotta/70">{calculateMacros().fats}g</p>
                     <p className="text-[9px] text-muted-foreground">fats</p>
                   </div>
                 </div>

@@ -220,14 +220,14 @@ function CalendarView() {
   const getEventColor = (type: EventType, owner: "marcin" | "patrycja") => {
     if (owner === "marcin") {
       switch (type) {
-        case "training": return "bg-blue-500"
-        case "meal": return "bg-blue-400"
-        case "google": return "bg-blue-900"
+        case "training": return "bg-navy"
+        case "meal": return "bg-navy/70"
+        case "google": return "bg-navy"
       }
     } else {
       switch (type) {
-        case "training": return "bg-emerald-500"
-        case "meal": return "bg-emerald-400"
+        case "training": return "bg-sage"
+        case "meal": return "bg-sage/70"
         case "google": return "bg-emerald-900"
       }
     }
@@ -269,7 +269,7 @@ function CalendarView() {
           }}
           className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
             !showBothCalendars && activeUser === "patrycja"
-              ? "bg-emerald-500 text-white"
+              ? "bg-sage text-background"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
@@ -282,7 +282,7 @@ function CalendarView() {
           }}
           className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
             !showBothCalendars && activeUser === "marcin"
-              ? "bg-blue-500 text-white"
+              ? "bg-navy text-background"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
@@ -392,7 +392,7 @@ function CalendarView() {
                     setAddType("meal")
                     setShowAddModal(true)
                   }}
-                  className="flex-1 py-2 text-emerald-600 hover:bg-emerald-500/10 transition-colors flex items-center justify-center gap-1 border-r border-border"
+                  className="flex-1 py-2 text-sage/80 hover:bg-sage/10 transition-colors flex items-center justify-center gap-1 border-r border-border"
                 >
                   <Plus className="size-3" />
                   <UtensilsCrossed className="size-3.5" />
@@ -417,7 +417,7 @@ function CalendarView() {
       {/* Google Calendar Sync */}
       <div className="bg-card rounded-2xl p-4 border border-border">
         <div className="flex items-center gap-3">
-          <div className="size-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
+          <div className="size-10 rounded-xl bg-navy/20 flex items-center justify-center">
             <svg className="size-5" viewBox="0 0 24 24" fill="none">
               <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" fill="#4285F4"/>
               <path d="M12 6v6l4 2" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
@@ -433,7 +433,7 @@ function CalendarView() {
             onClick={() => setGoogleConnected(!googleConnected)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
               googleConnected 
-                ? "bg-emerald-500/20 text-emerald-500" 
+                ? "bg-sage/20 text-sage" 
                 : "bg-primary text-primary-foreground"
             }`}
           >
@@ -455,8 +455,8 @@ function CalendarView() {
             <div className="p-4 border-b border-border flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {addType === "meal" ? (
-                  <div className="size-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                    <UtensilsCrossed className="size-4 text-emerald-500" />
+                  <div className="size-8 rounded-lg bg-sage/20 flex items-center justify-center">
+                    <UtensilsCrossed className="size-4 text-sage" />
                   </div>
                 ) : (
                   <div className="size-8 rounded-lg bg-primary/20 flex items-center justify-center">
@@ -556,7 +556,7 @@ function CalendarView() {
                       onClick={() => setSelectedPreset(preset.id)}
                       className={`p-3 rounded-xl text-left transition-all ${
                         selectedPreset === preset.id
-                          ? "bg-emerald-500/20 border border-emerald-500"
+                          ? "bg-sage/20 border border-sage"
                           : "bg-secondary border border-transparent hover:border-border"
                       }`}
                     >
@@ -916,8 +916,8 @@ function ShoppingView() {
 
       {/* Planner Changed Warning */}
       {plannerChanged && items.some(i => i.source !== "manual") && (
-        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 flex items-center gap-3">
-          <AlertTriangle className="size-5 text-amber-500 shrink-0" />
+        <div className="bg-wheat/10 border border-wheat/30 rounded-xl p-3 flex items-center gap-3">
+          <AlertTriangle className="size-5 text-wheat shrink-0" />
           <div className="flex-1">
             <p className="text-sm text-foreground font-medium">Planner has been edited</p>
             <p className="text-xs text-muted-foreground">Update planner items? Manual items won&apos;t change.</p>
@@ -927,7 +927,7 @@ function ShoppingView() {
               setImportMode("days")
               setShowImportModal(true)
             }}
-            className="px-3 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-medium flex items-center gap-1"
+            className="px-3 py-1.5 rounded-lg bg-wheat text-foreground text-xs font-medium flex items-center gap-1"
           >
             <RefreshCw className="size-3" />
             Update
@@ -1281,10 +1281,10 @@ function ShoppingView() {
                         </p>
                       </div>
                       <div className="flex items-center gap-1">
-                        <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-500 text-[9px] font-medium">
+                        <span className="px-1.5 py-0.5 rounded bg-navy/20 text-navy text-[9px] font-medium">
                           M:{dish.marcinServings || 1}
                         </span>
-                        <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-500 text-[9px] font-medium">
+                        <span className="px-1.5 py-0.5 rounded bg-sage/20 text-sage text-[9px] font-medium">
                           P:{dish.patrycjaServings || 1}
                         </span>
                       </div>
@@ -1316,7 +1316,7 @@ function ShoppingView() {
                     </div>
 
                     {currentBatches > 0 && (
-                      <div className={`mt-2 text-xs ${coversOccasions >= count ? "text-emerald-500" : "text-amber-500"}`}>
+                      <div className={`mt-2 text-xs ${coversOccasions >= count ? "text-sage" : "text-wheat"}`}>
                         {coversOccasions >= count 
                           ? `Covers all ${count} occasion${count !== 1 ? "s" : ""} (${coversOccasions} servings)`
                           : `Only covers ${coversOccasions} of ${count} occasions`

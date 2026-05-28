@@ -3,9 +3,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Link, useLocation } from 'wouter'
 import { useState } from 'react'
-import { Dumbbell, Utensils } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/context'
 import type { Language } from '@/lib/i18n/translations'
+import { MaszynaIcon } from '@/components/logo'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -63,13 +63,8 @@ export default function LoginPage() {
       </div>
 
       <div className="w-full max-w-sm">
-        <div className="flex items-center justify-center gap-2 mb-8">
-          <div className="size-12 rounded-2xl bg-primary flex items-center justify-center">
-            <Dumbbell className="size-6 text-primary-foreground" />
-          </div>
-          <div className="size-12 rounded-2xl bg-emerald-500 flex items-center justify-center">
-            <Utensils className="size-6 text-white" />
-          </div>
+        <div className="flex items-center justify-center mb-8">
+          <MaszynaIcon className="w-12 h-12" />
         </div>
 
         <div className="text-center mb-8">

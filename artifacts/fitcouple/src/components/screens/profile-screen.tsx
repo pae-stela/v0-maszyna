@@ -134,7 +134,7 @@ export function ProfileScreen() {
       <div className="flex items-center justify-between -mt-2 mb-2">
         <div className="flex items-center gap-3">
           <div className={`size-12 rounded-full flex items-center justify-center ${
-            activeUser === "patrycja" ? "bg-emerald-500" : "bg-blue-500"
+            activeUser === "patrycja" ? "bg-sage" : "bg-navy"
           }`}>
             {activeUser === "patrycja" ? <WhiteCat /> : <BlackCat />}
           </div>
@@ -193,9 +193,9 @@ export function ProfileScreen() {
               </div>
               <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
                 weightTrend === "up" 
-                  ? "bg-red-500/20 text-red-400" 
+                  ? "bg-terracotta/20 text-red-400" 
                   : weightTrend === "down"
-                  ? "bg-emerald-500/20 text-emerald-400"
+                  ? "bg-sage/20 text-sage/70"
                   : "bg-secondary text-muted-foreground"
               }`}>
                 {weightTrend === "up" ? (
@@ -274,7 +274,7 @@ export function ProfileScreen() {
                         <span className="text-lg font-bold text-foreground">{m.current}</span>
                         <span className="text-xs text-muted-foreground">{m.unit}</span>
                         {trend !== "stable" && (
-                          <span className={`text-[10px] font-medium ${trend === "up" ? "text-emerald-500" : "text-rose-400"}`}>
+                          <span className={`text-[10px] font-medium ${trend === "up" ? "text-sage" : "text-terracotta/70"}`}>
                             {trend === "up" ? "+" : ""}{change.toFixed(1)}
                           </span>
                         )}
@@ -319,7 +319,7 @@ export function ProfileScreen() {
                 <p className="text-[10px] text-muted-foreground">Avg Protein</p>
               </div>
               <div className="bg-secondary/50 rounded-xl p-3 text-center">
-                <p className="text-xl font-bold text-orange-400">{userWorkoutLogs.length}</p>
+                <p className="text-xl font-bold text-terracotta/70">{userWorkoutLogs.length}</p>
                 <p className="text-[10px] text-muted-foreground">Workouts</p>
               </div>
             </div>
@@ -367,10 +367,10 @@ export function ProfileScreen() {
                       className="w-full p-3 flex items-center gap-3 text-left"
                     >
                       <div className={`size-9 rounded-lg flex items-center justify-center ${
-                        log.type === "breakfast" ? "bg-amber-500/20 text-amber-500" :
-                        log.type === "lunch" ? "bg-blue-500/20 text-blue-500" :
-                        log.type === "dinner" ? "bg-purple-500/20 text-purple-500" :
-                        "bg-emerald-500/20 text-emerald-500"
+                        log.type === "breakfast" ? "bg-wheat/20 text-wheat" :
+                        log.type === "lunch" ? "bg-navy/20 text-navy" :
+                        log.type === "dinner" ? "bg-sand/20 text-sand" :
+                        "bg-sage/20 text-sage"
                       }`}>
                         <Utensils className="size-4" />
                       </div>
@@ -397,15 +397,15 @@ export function ProfileScreen() {
                             <p className="text-[8px] text-muted-foreground">Protein</p>
                           </div>
                           <div className="bg-secondary rounded-lg p-1.5 text-center">
-                            <p className="text-[10px] font-semibold text-amber-500">{log.totalCarbs}g</p>
+                            <p className="text-[10px] font-semibold text-wheat">{log.totalCarbs}g</p>
                             <p className="text-[8px] text-muted-foreground">Carbs</p>
                           </div>
                           <div className="bg-secondary rounded-lg p-1.5 text-center">
-                            <p className="text-[10px] font-semibold text-rose-400">{log.totalFats}g</p>
+                            <p className="text-[10px] font-semibold text-terracotta/70">{log.totalFats}g</p>
                             <p className="text-[8px] text-muted-foreground">Fats</p>
                           </div>
                           <div className="bg-secondary rounded-lg p-1.5 text-center">
-                            <p className="text-[10px] font-semibold text-emerald-500">{log.totalFiber}g</p>
+                            <p className="text-[10px] font-semibold text-sage">{log.totalFiber}g</p>
                             <p className="text-[8px] text-muted-foreground">Fiber</p>
                           </div>
                         </div>
@@ -452,8 +452,8 @@ export function ProfileScreen() {
                           <Clock className="size-3 text-muted-foreground" />
                           <span className="text-[10px] text-muted-foreground">{log.startTime} - {log.endTime}</span>
                           <span className="text-[10px] text-muted-foreground">·</span>
-                          <Flame className="size-3 text-orange-400" />
-                          <span className="text-[10px] font-medium text-orange-400">{log.estimatedCalories}</span>
+                          <Flame className="size-3 text-terracotta/70" />
+                          <span className="text-[10px] font-medium text-terracotta/70">{log.estimatedCalories}</span>
                         </div>
                       </div>
                       <ChevronRight className={`size-4 text-muted-foreground transition-transform ${expandedLog === log.id ? "rotate-90" : ""}`} />
@@ -481,7 +481,7 @@ export function ProfileScreen() {
                               <p className="text-[10px] font-medium text-foreground mb-1">{exercise.name}</p>
                               <div className="flex flex-wrap gap-1">
                                 {exercise.sets.map((set, i) => {
-                                  const diffColors = ["bg-emerald-500", "bg-blue-500", "bg-amber-500", "bg-orange-500", "bg-red-500"]
+                                  const diffColors = ["bg-sage", "bg-navy", "bg-wheat", "bg-terracotta", "bg-terracotta"]
                                   return (
                                     <div key={i} className="flex items-center gap-0.5">
                                       <span className="text-[9px] text-muted-foreground">{set.reps}×{set.weight}</span>
@@ -529,7 +529,7 @@ export function ProfileScreen() {
           {/* Stats Summary */}
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-card rounded-xl p-3 border border-border text-center">
-              <Utensils className="size-5 text-amber-500 mx-auto mb-1" />
+              <Utensils className="size-5 text-wheat mx-auto mb-1" />
               <p className="text-2xl font-bold text-foreground">{userAchievements.totalMealsLogged}</p>
               <p className="text-[10px] text-muted-foreground">Meals Logged</p>
             </div>
@@ -574,8 +574,8 @@ export function ProfileScreen() {
                     </div>
                     {badge.unlocked ? (
                       <div className="flex items-center gap-1 mt-2">
-                        <CheckCircle2 className="size-3 text-emerald-500" />
-                        <span className="text-[9px] text-emerald-500">{badge.date}</span>
+                        <CheckCircle2 className="size-3 text-sage" />
+                        <span className="text-[9px] text-sage">{badge.date}</span>
                       </div>
                     ) : (
                       <div className="mt-2">
