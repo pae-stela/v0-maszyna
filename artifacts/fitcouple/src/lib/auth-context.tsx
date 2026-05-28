@@ -40,9 +40,19 @@ interface AuthContextType {
   updateSettings: (data: Partial<UserSettings>) => Promise<void>
   linkPartner: (inviteCode: string) => Promise<{ success: boolean; error?: string }>
   unlinkPartner: () => Promise<void>
+  ensureProfile: (user: User) => Promise<Profile | null>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+function generateInviteCode(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+  let result = ''
+  for (let i = 0; i < 12; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return result
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -51,6 +61,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [partner, setPartner] = useState<PartnerProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
+
+  const ensureProfile = async (currentUser: User): Promise<Profile | null> => {
+    const { data: existing } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', currentUser.id)
+      .single()
+
+    if (existing) {
+      return existing as Profile
+    }
+
+    // No profile found — create one on demand (no DB trigger required)
+    const name = currentUser.user_metadata?.name || currentUser.email?.split('@')[0] || 'User'
+    const accountType = currentUser.user_metadata?.account_type || 'single'
+    const inviteCode = generateInviteCode()
+
+    const { data: created, error } = await supabase
+      .from('profiles')
+      .insert({
+        id: currentUser.id,
+        name,
+        email: currentUser.email || '',
+        account_type: accountType,
+        partner_invite_code: inviteCode,
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Failed to create profile:', error)
+      return null
+    }
+
+    // Also create default settings row
+    await supabase
+      .from('user_settings')
+      .insert({
+        user_id: currentUser.id,
+        weight: null,
+        height: null,
+        age: null,
+        sex: null,
+        activity_level: 1.55,
+        calorie_goal: 2000,
+        protein_goal: 150,
+        carbs_goal: 200,
+        fats_goal: 65,
+      })
+
+    return created as Profile
+  }
 
   const fetchUserData = async (userId: string) => {
     const { data: profileData } = await supabase
@@ -102,6 +164,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(user)
 
       if (user) {
+        const profile = await ensureProfile(user)
+        if (profile) setProfile(profile)
         await fetchUserData(user.id)
       }
 
@@ -115,6 +179,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null)
 
         if (session?.user) {
+          const profile = await ensureProfile(session.user)
+          if (profile) setProfile(profile)
           await fetchUserData(session.user.id)
         } else {
           setProfile(null)
@@ -283,6 +349,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       updateSettings,
       linkPartner,
       unlinkPartner,
+      ensureProfile,
     }}>
       {children}
     </AuthContext.Provider>
