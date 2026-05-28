@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "FitCouple"
+version = "1.0.0"
+id = "artifacts/fitcouple"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23802
+
+[services.development]
+run = "pnpm --filter @workspace/fitcouple run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/fitcouple", "run", "build" ]
+publicDir = "artifacts/fitcouple/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23802"
+BASE_PATH = "/"
