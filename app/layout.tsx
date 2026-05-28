@@ -10,8 +10,8 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'P+M Machina - Fitness & Nutrition',
-  description: 'A shared fitness and nutrition tracking app for Patrycja and Marcin',
+  title: 'Maszyna',
+  description: 'A shared fitness and nutrition tracking app',
   generator: 'v0.app',
   icons: {
     icon: [
