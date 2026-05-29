@@ -42,6 +42,15 @@ export interface StepLog {
   steps: number
 }
 
+export interface WorkoutPlan {
+  id: string
+  user_id: string
+  name: string
+  type: 'weights' | 'cardio' | 'flexibility'
+  exercises: unknown[]
+  created_at: string
+}
+
 export interface PlannerEvent {
   id: string
   user_id: string
@@ -467,4 +476,94 @@ export function usePlannerEvents(date?: string) {
   }
 
   return { events, loading, addEvent, updateEvent, deleteEvent, refetch: fetchEvents }
+}
+
+// Hook for user workout plans with real-time updates
+export function useWorkoutPlans() {
+  const { user } = useAuth()
+  const [plans, setPlans] = useState<WorkoutPlan[]>([])
+  const [loading, setLoading] = useState(true)
+  const supabase = createClient()
+
+  const fetchPlans = useCallback(async () => {
+    if (!user) return
+
+    const { data } = await supabase
+      .from('user_workout_plans')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+
+    setPlans(data || [])
+    setLoading(false)
+  }, [user, supabase])
+
+  useEffect(() => {
+    fetchPlans()
+  }, [fetchPlans])
+
+  // Real-time subscription
+  useEffect(() => {
+    if (!user) return
+
+    const channel = supabase
+      .channel('user-workout-plans-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_workout_plans',
+        },
+        (payload) => {
+          const record = payload.new as WorkoutPlan
+          if (record?.user_id !== user.id) return
+
+          if (payload.eventType === 'INSERT') {
+            setPlans(prev => [record, ...prev])
+          } else if (payload.eventType === 'UPDATE') {
+            setPlans(prev => prev.map(p => p.id === record.id ? record : p))
+          } else if (payload.eventType === 'DELETE') {
+            const deleted = payload.old as { id: string }
+            setPlans(prev => prev.filter(p => p.id !== deleted.id))
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [user, supabase])
+
+  const addPlan = async (plan: Omit<WorkoutPlan, 'id' | 'user_id' | 'created_at'>) => {
+    if (!user) return
+
+    const { data, error } = await supabase
+      .from('user_workout_plans')
+      .insert({ ...plan, user_id: user.id })
+      .select()
+      .single()
+
+    if (!error && data) {
+      setPlans(prev => [data, ...prev])
+    }
+
+    return { data, error }
+  }
+
+  const deletePlan = async (id: string) => {
+    const { error } = await supabase
+      .from('user_workout_plans')
+      .delete()
+      .eq('id', id)
+
+    if (!error) {
+      setPlans(prev => prev.filter(p => p.id !== id))
+    }
+
+    return { error }
+  }
+
+  return { plans, loading, addPlan, deletePlan, refetch: fetchPlans }
 }

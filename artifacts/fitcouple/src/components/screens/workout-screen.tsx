@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useUser } from "@/lib/user-context"
+import { useWorkoutPlans } from "@/lib/realtime-hooks"
 import { Play, Plus, ChevronRight, Timer, Flame, Dumbbell, Search, X, Check, Link2, Trash2, Pause, Square } from "lucide-react"
 
 type SubTab = "journal" | "plans" | "exercises"
@@ -135,10 +136,9 @@ interface JournalExercise {
   sets: WorkoutSet[]
 }
 
-const availablePlans: { id: string; name: string; type: "weights" | "cardio" | "flexibility"; exercises: { id: string; name: string; sets: number; reps: number; weight: string; duration?: number }[] }[] = []
-
 function JournalView() {
   const { activeUser, addWorkoutLog } = useUser()
+  const { plans: availablePlans } = useWorkoutPlans()
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
   const [showPlanPicker, setShowPlanPicker] = useState(false)
   const [planTypeFilter, setPlanTypeFilter] = useState<"weights" | "cardio" | "flexibility">("weights")
@@ -258,7 +258,15 @@ function JournalView() {
     const plan = availablePlans.find(p => p.id === planId)
     if (plan) {
       const weightMultiplier = activeUser === "patrycja" ? 0.5 : 1
-      setExercises(plan.exercises.map(e => ({
+      const rawExercises = plan.exercises as Array<{
+        id: string
+        name: string
+        sets: number
+        reps: number
+        weight: string
+        duration?: number
+      }>
+      setExercises(rawExercises.map(e => ({
         id: e.id,
         name: e.name,
         targetSets: e.sets,
@@ -631,8 +639,9 @@ function JournalView() {
               {availablePlans
                 .filter(plan => plan.type === planTypeFilter)
                 .map((plan) => {
-                  const isTimeBased = plan.exercises.some(e => 'duration' in e && e.duration)
-                  const totalDuration = (plan.exercises as any[]).reduce((sum: number, e: any) => sum + (e.duration || 0), 0)
+                  const rawExercises = plan.exercises as Array<{ duration?: number }>
+                  const isTimeBased = rawExercises.some(e => e.duration)
+                  const totalDuration = rawExercises.reduce((sum, e) => sum + (e.duration || 0), 0)
                   
                   return (
                     <button
@@ -716,13 +725,9 @@ function PlansView() {
   const [exerciseSearch, setExerciseSearch] = useState("")
   const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<string | null>(null)
   const [pairingMode, setPairingMode] = useState<string | null>(null) // exerciseId being paired
+  const [saving, setSaving] = useState(false)
 
-  const plans = [
-    { name: "Push Day", exercises: 6, duration: "45-60 min", lastDone: "2 days ago" },
-    { name: "Pull Day", exercises: 6, duration: "45-60 min", lastDone: "Yesterday" },
-    { name: "Leg Day", exercises: 7, duration: "50-65 min", lastDone: "3 days ago" },
-    { name: "Upper Body", exercises: 8, duration: "55-70 min", lastDone: "5 days ago" },
-  ]
+  const { plans, loading, addPlan, deletePlan } = useWorkoutPlans()
 
   const muscleGroups = [...new Set(exerciseLibrary.map(e => e.muscleGroup))]
 
@@ -822,13 +827,39 @@ function PlansView() {
     return sourceExercise.antagonistPairsWith.includes(exercise.exercise.muscleGroup)
   }
 
-  const savePlan = () => {
-    if (planName.trim() && planExercises.length > 0) {
-      alert(`Plan "${planName}" saved with ${planExercises.length} exercises!`)
-      setShowCreateModal(false)
-      setPlanName("")
-      setPlanExercises([])
+  const savePlan = async () => {
+    if (!planName.trim() || planExercises.length === 0) return
+    setSaving(true)
+
+    const type = planExercises.every(pe => pe.exercise.isTimeBased)
+      ? 'flexibility'
+      : planExercises.some(pe => pe.exercise.type === 'cardio')
+        ? 'cardio'
+        : 'weights'
+
+    const exercises = planExercises.map(pe => ({
+      id: pe.exercise.id,
+      name: pe.exercise.name,
+      sets: pe.sets,
+      reps: pe.reps,
+      weight: pe.weight,
+      duration: pe.duration,
+      pairedWith: pe.pairedWith,
+      muscleGroup: pe.exercise.muscleGroup,
+    }))
+
+    const result = await addPlan({ name: planName.trim(), type, exercises })
+    setSaving(false)
+    if (result && !result.error) {
+      resetModal()
+    } else {
+      alert('Failed to save plan. Please try again.')
     }
+  }
+
+  const handleDeletePlan = async (id: string) => {
+    if (!confirm('Delete this plan?')) return
+    await deletePlan(id)
   }
 
   const resetModal = () => {
@@ -843,24 +874,53 @@ function PlansView() {
 
   return (
     <div className="flex flex-col gap-3">
-      {plans.map((plan, i) => (
-        <button
-          key={i}
-          className="bg-card rounded-2xl p-4 border border-border flex items-center gap-4 text-left active:scale-[0.98] transition-transform"
-        >
-          <div className="size-14 rounded-xl bg-primary/20 flex items-center justify-center">
-            <Dumbbell className="size-6 text-primary" />
+      {loading && (
+        <div className="text-center py-8 text-muted-foreground text-sm">Loading plans...</div>
+      )}
+      {!loading && plans.length === 0 && (
+        <div className="bg-card rounded-2xl p-8 border border-dashed border-border text-center">
+          <div className="size-14 rounded-full bg-secondary mx-auto mb-4 flex items-center justify-center">
+            <Dumbbell className="size-6 text-muted-foreground" />
           </div>
-          <div className="flex-1">
-            <h4 className="font-medium text-foreground">{plan.name}</h4>
-            <p className="text-sm text-muted-foreground">
-              {plan.exercises} exercises · {plan.duration}
-            </p>
-            <p className="text-xs text-muted-foreground/70 mt-1">{plan.lastDone}</p>
+          <p className="text-sm text-muted-foreground">No plans yet</p>
+          <p className="text-xs text-muted-foreground mt-1">Create your first workout plan below</p>
+        </div>
+      )}
+      {plans.map((plan) => {
+        const exerciseCount = Array.isArray(plan.exercises) ? plan.exercises.length : 0
+        const isTimeBased = plan.type === 'cardio' || plan.type === 'flexibility'
+        const totalDuration = isTimeBased && Array.isArray(plan.exercises)
+          ? (plan.exercises as any[]).reduce((sum: number, e: any) => sum + (e.duration || 0), 0)
+          : 0
+        return (
+          <div
+            key={plan.id}
+            className="bg-card rounded-2xl p-4 border border-border flex items-center gap-4 text-left active:scale-[0.98] transition-transform"
+          >
+            <div className="size-14 rounded-xl bg-primary/20 flex items-center justify-center">
+              <Dumbbell className="size-6 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="font-medium text-foreground">{plan.name}</h4>
+              <p className="text-sm text-muted-foreground">
+                {isTimeBased
+                  ? `${exerciseCount} activities${totalDuration > 0 ? ` · ${totalDuration} min` : ''}`
+                  : `${exerciseCount} exercises`}
+              </p>
+              <span className="inline-block mt-1 text-[10px] uppercase tracking-wider font-medium px-2 py-0.5 rounded bg-secondary text-muted-foreground">
+                {plan.type}
+              </span>
+            </div>
+            <button
+              onClick={() => handleDeletePlan(plan.id)}
+              className="p-2 rounded-lg hover:bg-secondary text-muted-foreground"
+              aria-label="Delete plan"
+            >
+              <Trash2 className="size-4" />
+            </button>
           </div>
-          <ChevronRight className="size-5 text-muted-foreground" />
-        </button>
-      ))}
+        )
+      })}
 
       <button 
         onClick={() => setShowCreateModal(true)}
@@ -1076,10 +1136,10 @@ function PlansView() {
             <div className="p-4 border-t border-border shrink-0">
               <button
                 onClick={savePlan}
-                disabled={!planName.trim() || planExercises.length === 0}
+                disabled={saving || !planName.trim() || planExercises.length === 0}
                 className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform"
               >
-                Save Plan
+                {saving ? 'Saving...' : 'Save Plan'}
               </button>
             </div>
           </div>

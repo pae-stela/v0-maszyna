@@ -222,7 +222,30 @@ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
--- 12. INDEXES
+-- 12. USER WORKOUT PLANS TABLE
+CREATE TABLE IF NOT EXISTS public.user_workout_plans (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  type TEXT NOT NULL DEFAULT 'weights',
+  exercises JSONB DEFAULT '[]',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.user_workout_plans ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "user_plans_all_own" ON public.user_workout_plans;
+CREATE POLICY "user_plans_all_own" ON public.user_workout_plans FOR ALL USING (auth.uid() = user_id);
+
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.user_workout_plans;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+CREATE INDEX IF NOT EXISTS idx_user_workout_plans_user_id ON public.user_workout_plans(user_id);
+
+-- 13. INDEXES
 CREATE INDEX IF NOT EXISTS idx_meal_logs_user_date ON public.meal_logs(user_id, date);
 CREATE INDEX IF NOT EXISTS idx_workout_logs_user_date ON public.workout_logs(user_id, date);
 CREATE INDEX IF NOT EXISTS idx_step_logs_user_date ON public.step_logs(user_id, date);
