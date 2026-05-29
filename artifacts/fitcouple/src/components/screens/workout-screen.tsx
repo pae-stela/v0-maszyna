@@ -109,7 +109,7 @@ export function WorkoutScreen() {
               : "text-muted-foreground"
           }`}
         >
-          <Search className="size-4" />
+          <Dumbbell className="size-4" />
           Exercises
         </button>
       </div>

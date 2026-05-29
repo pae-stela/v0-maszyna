@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useUser } from "@/lib/user-context"
-import { Calculator, Search, Plus, Trash2, Apple, Upload, ChefHat, UtensilsCrossed, FileText, ChevronDown } from "lucide-react"
+import { Calculator, Search, Plus, Trash2, Apple, ChefHat, UtensilsCrossed, FileText, ChevronDown } from "lucide-react"
 
 type SubTab = "calculator" | "ingredients" | "dishes"
 
@@ -813,12 +813,6 @@ function IngredientsView() {
           <Plus className="size-5" />
         </button>
       </div>
-
-      {/* Import from Excel */}
-      <button className="bg-card rounded-2xl p-4 border border-border border-dashed flex items-center justify-center gap-3 text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors active:scale-[0.98]">
-        <Upload className="size-5" />
-        <span className="text-sm font-medium">Import from Excel</span>
-      </button>
 
       {/* Category Filter */}
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
