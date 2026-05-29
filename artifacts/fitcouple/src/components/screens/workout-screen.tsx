@@ -135,59 +135,7 @@ interface JournalExercise {
   sets: WorkoutSet[]
 }
 
-const availablePlans = [
-  // Weights
-  { id: "p1", name: "Push Day", type: "weights" as const, exercises: [
-    { id: "e1", name: "Bench Press", sets: 3, reps: 10, weight: "80kg" },
-    { id: "e2", name: "Incline DB Press", sets: 3, reps: 10, weight: "26kg" },
-    { id: "e3", name: "Cable Flyes", sets: 3, reps: 12, weight: "20kg" },
-    { id: "e14", name: "Tricep Pushdowns", sets: 3, reps: 12, weight: "25kg" },
-  ]},
-  { id: "p2", name: "Pull Day", type: "weights" as const, exercises: [
-    { id: "e5", name: "Pull-ups", sets: 4, reps: 8, weight: "BW" },
-    { id: "e6", name: "Barbell Rows", sets: 3, reps: 10, weight: "60kg" },
-    { id: "e12", name: "Bicep Curls", sets: 3, reps: 12, weight: "14kg" },
-  ]},
-  { id: "p3", name: "Leg Day", type: "weights" as const, exercises: [
-    { id: "e16", name: "Squats", sets: 4, reps: 8, weight: "100kg" },
-    { id: "e18", name: "Romanian Deadlifts", sets: 3, reps: 10, weight: "80kg" },
-    { id: "e19", name: "Leg Curls", sets: 3, reps: 12, weight: "40kg" },
-  ]},
-  { id: "p4", name: "Upper Body", type: "weights" as const, exercises: [
-    { id: "e1", name: "Bench Press", sets: 3, reps: 10, weight: "70kg" },
-    { id: "e5", name: "Pull-ups", sets: 3, reps: 8, weight: "BW" },
-    { id: "e9", name: "Overhead Press", sets: 3, reps: 10, weight: "40kg" },
-  ]},
-  // Cardio
-  { id: "p5", name: "HIIT Running", type: "cardio" as const, exercises: [
-    { id: "e24", name: "Running", sets: 1, reps: 1, weight: "", duration: 30 },
-  ]},
-  { id: "p6", name: "Pool Session", type: "cardio" as const, exercises: [
-    { id: "e25", name: "Swimming", sets: 1, reps: 1, weight: "", duration: 45 },
-  ]},
-  { id: "p7", name: "Rowing Intervals", type: "cardio" as const, exercises: [
-    { id: "e26", name: "Rowing Machine", sets: 1, reps: 1, weight: "", duration: 25 },
-  ]},
-  { id: "p8", name: "Cardio Mix", type: "cardio" as const, exercises: [
-    { id: "e24", name: "Running", sets: 1, reps: 1, weight: "", duration: 15 },
-    { id: "e27", name: "Cycling", sets: 1, reps: 1, weight: "", duration: 15 },
-    { id: "e28", name: "Jump Rope", sets: 1, reps: 1, weight: "", duration: 10 },
-  ]},
-  // Flexibility
-  { id: "p9", name: "Morning Yoga", type: "flexibility" as const, exercises: [
-    { id: "e30", name: "Yoga Flow", sets: 1, reps: 1, weight: "", duration: 30 },
-  ]},
-  { id: "p10", name: "Recovery Stretch", type: "flexibility" as const, exercises: [
-    { id: "e31", name: "Static Stretching", sets: 1, reps: 1, weight: "", duration: 20 },
-    { id: "e33", name: "Foam Rolling", sets: 1, reps: 1, weight: "", duration: 15 },
-  ]},
-  { id: "p11", name: "Pilates Core", type: "flexibility" as const, exercises: [
-    { id: "e34", name: "Pilates", sets: 1, reps: 1, weight: "", duration: 45 },
-  ]},
-  { id: "p12", name: "Pre-Workout Warmup", type: "flexibility" as const, exercises: [
-    { id: "e32", name: "Dynamic Stretching", sets: 1, reps: 1, weight: "", duration: 10 },
-  ]},
-]
+const availablePlans: { id: string; name: string; type: "weights" | "cardio" | "flexibility"; exercises: { id: string; name: string; sets: number; reps: number; weight: string; duration?: number }[] }[] = []
 
 function JournalView() {
   const { activeUser, addWorkoutLog } = useUser()

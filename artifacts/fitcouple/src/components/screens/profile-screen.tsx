@@ -22,63 +22,33 @@ export function ProfileScreen() {
   const userMealLogs = mealLogs.filter(log => log.user === activeUser)
   const userWorkoutLogs = workoutLogs.filter(log => log.user === activeUser)
 
-  // Measurement data with history
+  // Measurement data (empty until user logs)
   const measurementData = {
     patrycja: {
-      weight: { current: 58.5, previous: 59.2, unit: "kg", history: [60, 59.8, 59.5, 59.2, 58.9, 58.7, 58.5] },
-      measurements: [
-        { id: "chest", label: "Chest", current: 88, previous: 89, unit: "cm", history: [90, 89.5, 89, 89, 88.5, 88, 88] },
-        { id: "waist", label: "Waist", current: 68, previous: 69, unit: "cm", history: [71, 70.5, 70, 69.5, 69, 68.5, 68] },
-        { id: "hips", label: "Hips", current: 94, previous: 94, unit: "cm", history: [95, 95, 94.5, 94.5, 94, 94, 94] },
-        { id: "thigh", label: "Thigh", current: 54, previous: 54.5, unit: "cm", history: [55, 55, 54.5, 54.5, 54.5, 54, 54] },
-        { id: "arm", label: "Arm", current: 27, previous: 26.5, unit: "cm", history: [26, 26, 26.5, 26.5, 27, 27, 27] },
-      ],
+      weight: { current: 0, previous: 0, unit: "kg", history: [] as number[] },
+      measurements: [] as { id: string; label: string; current: number; previous: number; unit: string; history: number[] }[],
     },
     marcin: {
-      weight: { current: 85.2, previous: 84.5, unit: "kg", history: [83, 83.5, 84, 84.2, 84.5, 85, 85.2] },
-      measurements: [
-        { id: "chest", label: "Chest", current: 105, previous: 104, unit: "cm", history: [102, 103, 103.5, 104, 104, 104.5, 105] },
-        { id: "waist", label: "Waist", current: 84, previous: 84, unit: "cm", history: [85, 85, 84.5, 84.5, 84, 84, 84] },
-        { id: "hips", label: "Hips", current: 98, previous: 98, unit: "cm", history: [98, 98, 98, 98, 98, 98, 98] },
-        { id: "thigh", label: "Thigh", current: 62, previous: 61, unit: "cm", history: [60, 60.5, 61, 61, 61.5, 62, 62] },
-        { id: "arm", label: "Arm", current: 38, previous: 37, unit: "cm", history: [36, 36.5, 37, 37, 37.5, 38, 38] },
-      ],
+      weight: { current: 0, previous: 0, unit: "kg", history: [] as number[] },
+      measurements: [] as { id: string; label: string; current: number; previous: number; unit: string; history: number[] }[],
     },
   }
 
-  // Achievement data
+  // Achievement data (empty until earned)
   const achievements = {
     patrycja: {
-      currentStreak: 12,
-      longestStreak: 21,
-      totalMealsLogged: 156,
-      totalWorkoutsLogged: 34,
-      badges: [
-        { id: "first-meal", name: "First Bite", description: "Log your first meal", icon: Utensils, unlocked: true, date: "2024-01-15" },
-        { id: "first-workout", name: "First Rep", description: "Complete your first workout", icon: Dumbbell, unlocked: true, date: "2024-01-16" },
-        { id: "week-streak", name: "Week Warrior", description: "7-day logging streak", icon: Zap, unlocked: true, date: "2024-01-22" },
-        { id: "50-meals", name: "Foodie", description: "Log 50 meals", icon: Star, unlocked: true, date: "2024-02-10" },
-        { id: "100-meals", name: "Nutrition Pro", description: "Log 100 meals", icon: Award, unlocked: true, date: "2024-03-05" },
-        { id: "month-streak", name: "Consistent", description: "30-day logging streak", icon: Calendar, unlocked: false, progress: 12, target: 30 },
-        { id: "50-workouts", name: "Gym Rat", description: "Complete 50 workouts", icon: Trophy, unlocked: false, progress: 34, target: 50 },
-        { id: "protein-week", name: "Protein King", description: "Hit protein goal 7 days straight", icon: Target, unlocked: false, progress: 4, target: 7 },
-      ],
+      currentStreak: 0,
+      longestStreak: 0,
+      totalMealsLogged: 0,
+      totalWorkoutsLogged: 0,
+      badges: [] as { id: string; name: string; description: string; icon: typeof Utensils; unlocked: boolean; date?: string; progress?: number; target?: number }[],
     },
     marcin: {
-      currentStreak: 8,
-      longestStreak: 15,
-      totalMealsLogged: 98,
-      totalWorkoutsLogged: 42,
-      badges: [
-        { id: "first-meal", name: "First Bite", description: "Log your first meal", icon: Utensils, unlocked: true, date: "2024-01-15" },
-        { id: "first-workout", name: "First Rep", description: "Complete your first workout", icon: Dumbbell, unlocked: true, date: "2024-01-15" },
-        { id: "week-streak", name: "Week Warrior", description: "7-day logging streak", icon: Zap, unlocked: true, date: "2024-01-23" },
-        { id: "50-meals", name: "Foodie", description: "Log 50 meals", icon: Star, unlocked: true, date: "2024-02-20" },
-        { id: "100-meals", name: "Nutrition Pro", description: "Log 100 meals", icon: Award, unlocked: false, progress: 98, target: 100 },
-        { id: "month-streak", name: "Consistent", description: "30-day logging streak", icon: Calendar, unlocked: false, progress: 8, target: 30 },
-        { id: "50-workouts", name: "Gym Rat", description: "Complete 50 workouts", icon: Trophy, unlocked: false, progress: 42, target: 50 },
-        { id: "protein-week", name: "Protein King", description: "Hit protein goal 7 days straight", icon: Target, unlocked: false, progress: 2, target: 7 },
-      ],
+      currentStreak: 0,
+      longestStreak: 0,
+      totalMealsLogged: 0,
+      totalWorkoutsLogged: 0,
+      badges: [] as { id: string; name: string; description: string; icon: typeof Utensils; unlocked: boolean; date?: string; progress?: number; target?: number }[],
     },
   }
 

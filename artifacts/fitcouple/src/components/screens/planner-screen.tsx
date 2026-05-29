@@ -91,39 +91,10 @@ function isSameDay(d1: Date, d2: Date): boolean {
 }
 
 // Preset workouts (would normally come from training screen)
-const presetWorkouts = [
-  // Weights
-  { id: "w1", name: "Leg Day", type: "weights" as const, details: "Squats, Lunges, Leg Press, Calf Raises" },
-  { id: "w2", name: "Upper Body", type: "weights" as const, details: "Bench Press, Rows, Shoulder Press, Bicep Curls" },
-  { id: "w3", name: "Push Day", type: "weights" as const, details: "Chest Press, Tricep Dips, Shoulder Raises" },
-  { id: "w4", name: "Pull Day", type: "weights" as const, details: "Deadlifts, Pull-ups, Rows, Bicep Curls" },
-  // Cardio
-  { id: "w5", name: "HIIT Running", type: "cardio" as const, details: "30 min intervals" },
-  { id: "w6", name: "Pool Session", type: "cardio" as const, details: "45 min swimming" },
-  { id: "w7", name: "Rowing Intervals", type: "cardio" as const, details: "25 min rowing machine" },
-  { id: "w8", name: "Cardio Mix", type: "cardio" as const, details: "Running, cycling, jump rope" },
-  // Flexibility
-  { id: "w9", name: "Morning Yoga", type: "flexibility" as const, details: "30 min yoga flow" },
-  { id: "w10", name: "Recovery Stretch", type: "flexibility" as const, details: "Static stretching, foam rolling" },
-  { id: "w11", name: "Pilates Core", type: "flexibility" as const, details: "45 min pilates session" },
-  { id: "w12", name: "Pre-Workout Warmup", type: "flexibility" as const, details: "10 min dynamic stretching" },
-]
+const presetWorkouts: { id: string; name: string; type: "weights" | "cardio" | "flexibility"; details: string }[] = []
 
 // Preset dishes with macros (would normally come from kitchen screen)
-const presetDishes = [
-  { id: "d1", name: "Power Breakfast", details: "Eggs, Oats, Banana", calories: 520, protein: 28, carbs: 55, fats: 18 },
-  { id: "d2", name: "Lunch Bowl", details: "Chicken, Rice, Broccoli, Guacamole", calories: 680, protein: 45, carbs: 60, fats: 25 },
-  { id: "d3", name: "Protein Shake", details: "Banana, Greek Yogurt, Almonds", calories: 320, protein: 25, carbs: 30, fats: 12 },
-  { id: "d4", name: "Trail Mix Bites", details: "Almonds, Oats", calories: 180, protein: 6, carbs: 20, fats: 9 },
-  { id: "d5", name: "Grilled Salmon", details: "Salmon, Vegetables, Olive Oil", calories: 450, protein: 38, carbs: 12, fats: 28 },
-  { id: "d6", name: "Chicken Salad", details: "Chicken Breast, Mixed Greens, Dressing", calories: 380, protein: 35, carbs: 15, fats: 20 },
-  { id: "d7", name: "Greek Yogurt Bowl", details: "Greek Yogurt, Berries, Honey, Granola", calories: 290, protein: 18, carbs: 38, fats: 8 },
-  { id: "d8", name: "Tuna Wrap", details: "Tuna, Whole Wheat Wrap, Veggies", calories: 350, protein: 30, carbs: 32, fats: 12 },
-  { id: "d9", name: "Egg White Omelette", details: "Egg Whites, Spinach, Feta", calories: 220, protein: 24, carbs: 6, fats: 10 },
-  { id: "d10", name: "Cottage Cheese Snack", details: "Cottage Cheese, Pineapple", calories: 160, protein: 20, carbs: 15, fats: 3 },
-  { id: "d11", name: "Steak & Vegetables", details: "Sirloin, Asparagus, Sweet Potato", calories: 550, protein: 42, carbs: 35, fats: 22 },
-  { id: "d12", name: "Overnight Oats", details: "Oats, Milk, Chia, Berries", calories: 380, protein: 14, carbs: 55, fats: 12 },
-]
+const presetDishes: { id: string; name: string; details: string; calories: number; protein: number; carbs: number; fats: number }[] = []
 
 export { presetDishes }
 
@@ -137,17 +108,7 @@ function CalendarView() {
   const [activeUser, setActiveUser] = useState<"marcin" | "patrycja">("marcin")
   const [showBothCalendars, setShowBothCalendars] = useState(true)
   
-  const [events, setEvents] = useState<PlannerEvent[]>([
-    { id: "1", date: new Date(), title: "Leg Day", time: "7:00 AM", type: "training", details: "Squats, Lunges, Leg Press", owner: "marcin" },
-    { id: "2", date: new Date(), title: "Power Breakfast", time: "8:30 AM", type: "meal", details: "Eggs, Oats, Banana", owner: "marcin" },
-    { id: "3", date: new Date(), title: "Lunch Bowl", time: "1:00 PM", type: "meal", details: "Chicken, Rice, Broccoli", owner: "marcin" },
-    { id: "4", date: new Date(Date.now() + 86400000), title: "Upper Body", time: "7:00 AM", type: "training", owner: "marcin" },
-    { id: "5", date: new Date(Date.now() + 86400000), title: "Team Meeting", time: "10:00 AM", type: "google", owner: "marcin" },
-    { id: "6", date: new Date(), title: "Yoga", time: "6:30 AM", type: "training", details: "Morning flow", owner: "patrycja" },
-    { id: "7", date: new Date(), title: "Protein Shake", time: "7:30 AM", type: "meal", owner: "patrycja" },
-    { id: "8", date: new Date(), title: "Chicken Salad", time: "12:30 PM", type: "meal", owner: "patrycja" },
-    { id: "9", date: new Date(Date.now() + 86400000), title: "Pilates", time: "6:00 PM", type: "training", owner: "patrycja" },
-  ])
+  const [events, setEvents] = useState<PlannerEvent[]>([])
 
   const [newEvent, setNewEvent] = useState({ title: "", time: "12:00", details: "" })
   const [inputMode, setInputMode] = useState<"preset" | "custom">("preset")
@@ -679,29 +640,10 @@ function ShoppingView() {
   const [selectedDays, setSelectedDays] = useState<number[]>([])
   const [selectedDishes, setSelectedDishes] = useState<string[]>([])
 
-  // Sample data for import options
-  const upcomingDays = [
-    { day: 0, label: "Today", meals: ["Power Breakfast", "Lunch Bowl"] },
-    { day: 1, label: "Tomorrow", meals: ["Protein Shake", "Chicken Salad"] },
-    { day: 2, label: "Day 3", meals: ["Trail Mix Bites"] },
-    { day: 3, label: "Day 4", meals: [] },
-    { day: 4, label: "Day 5", meals: ["Grilled Salmon"] },
-    { day: 5, label: "Day 6", meals: [] },
-    { day: 6, label: "Day 7", meals: ["Power Breakfast"] },
-  ]
+  // Import options (empty until user creates dishes)
+  const upcomingDays: { day: number; label: string; meals: string[] }[] = []
 
-  const dishesAndComponents = [
-    { id: "d1", name: "Power Breakfast", type: "dish", category: "Light", subCategory: "Oats & Granola", ingredients: ["Eggs", "Oats", "Banana"], marcinServings: 1, patrycjaServings: 1 },
-    { id: "d2", name: "Lunch Bowl", type: "dish", category: "Large", subCategory: "Salads & Veggies", ingredients: ["Chicken Breast", "Rice", "Broccoli", "Guacamole"], marcinServings: 2, patrycjaServings: 2 },
-    { id: "d3", name: "Protein Shake", type: "dish", category: "Drinks", subCategory: "Shakes & Smoothies", ingredients: ["Banana", "Greek Yogurt", "Almonds"], marcinServings: 1, patrycjaServings: 1 },
-    { id: "d4", name: "Trail Mix Bites", type: "dish", category: "Snacks", subCategory: "Sweet", ingredients: ["Almonds", "Oats"], marcinServings: 3, patrycjaServings: 2 },
-    { id: "d5", name: "Grilled Salmon", type: "dish", category: "Large", subCategory: "Traditional", ingredients: ["Salmon", "Olive Oil", "Lemon"], marcinServings: 1, patrycjaServings: 1 },
-    { id: "d6", name: "Chicken Salad", type: "dish", category: "Large", subCategory: "Salads & Veggies", ingredients: ["Chicken Breast", "Mixed Greens", "Tomato", "Dressing"], marcinServings: 2, patrycjaServings: 2 },
-    { id: "c1", name: "Guacamole", type: "component", ingredients: ["Avocado", "Tomato", "Onion", "Lime juice"], marcinServings: 2, patrycjaServings: 2 },
-    { id: "c2", name: "Scrambled Eggs", type: "component", ingredients: ["Eggs", "Butter", "Salt"], marcinServings: 1, patrycjaServings: 1 },
-    { id: "c3", name: "Tomato Sauce", type: "component", ingredients: ["Tomato", "Onion", "Garlic", "Olive Oil"], marcinServings: 4, patrycjaServings: 4 },
-    { id: "c4", name: "Pesto", type: "component", ingredients: ["Basil", "Pine Nuts", "Parmesan", "Olive Oil"], marcinServings: 3, patrycjaServings: 3 },
-  ]
+  const dishesAndComponents: { id: string; name: string; type: string; category?: string; subCategory?: string; ingredients: string[]; marcinServings: number; patrycjaServings: number }[] = []
 
   const dishCategories = ["All", "Large", "Light", "Snacks", "Drinks"]
   const [selectedDishCategory, setSelectedDishCategory] = useState("All")

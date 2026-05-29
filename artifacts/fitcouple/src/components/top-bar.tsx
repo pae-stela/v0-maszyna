@@ -64,10 +64,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   
   const weeklyAvgSteps = getWeeklyAvgSteps()
   
-  // Get measurements from profile (simplified - would come from context in real app)
+  // Get measurements from profile (would come from context in real app)
   const measurements = {
-    patrycja: { weight: 62, height: 168, age: 28, sex: "female" as const },
-    marcin: { weight: 85, height: 183, age: 32, sex: "male" as const }
+    patrycja: { weight: 0, height: 0, age: 0, sex: "female" as const },
+    marcin: { weight: 0, height: 0, age: 0, sex: "male" as const }
   }
   
   const calculateMacros = () => {
