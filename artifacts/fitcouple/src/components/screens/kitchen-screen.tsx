@@ -289,7 +289,7 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
   return (
     <div className="flex flex-col gap-6">
       {/* Step 1: Add Ingredients */}
-      <div className="bg-card rounded-2xl border border-border overflow-hidden">
+      <div className="bg-card rounded-2xl border border-border">
         <div className="bg-primary/10 px-5 py-3 border-b border-border flex items-center gap-3">
           <div className="size-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">1</div>
           <div>
@@ -310,32 +310,34 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
                   setShowSuggestions(true)
                 }}
                 onFocus={() => setShowSuggestions(true)}
-                className="flex-1 bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 capitalize"
+                className="flex-1 min-w-0 bg-secondary rounded-xl px-3 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 capitalize"
               />
-              <input
-                type="number"
-                placeholder={useUnits ? "units" : "g"}
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="w-20 bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-              <button
-                onClick={addIngredient}
-                disabled={!selectedIngredient}
-                className="size-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-transform"
-              >
-                <Plus className="size-5" />
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                <input
+                  type="number"
+                  placeholder={useUnits ? "units" : "g"}
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="w-16 bg-secondary rounded-xl px-2 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 text-center"
+                />
+                <button
+                  onClick={addIngredient}
+                  disabled={!selectedIngredient}
+                  className="size-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-transform"
+                >
+                  <Plus className="size-5" />
+                </button>
+              </div>
             </div>
-            
+
             {/* Unit toggle - only show for ingredients with gramsPerUnit */}
             {selectedIngredient && hasUnits && (
               <div className="flex items-center gap-2 mt-2">
                 <button
                   onClick={() => setUseUnits(false)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                    !useUnits 
-                      ? "bg-primary text-primary-foreground" 
+                    !useUnits
+                      ? "bg-primary text-primary-foreground"
                       : "bg-secondary text-muted-foreground"
                   }`}
                 >
@@ -344,8 +346,8 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
                 <button
                   onClick={() => setUseUnits(true)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                    useUnits 
-                      ? "bg-primary text-primary-foreground" 
+                    useUnits
+                      ? "bg-primary text-primary-foreground"
                       : "bg-secondary text-muted-foreground"
                   }`}
                 >
@@ -353,10 +355,10 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
                 </button>
               </div>
             )}
-            
+
             {/* Suggestions dropdown */}
             {showSuggestions && suggestions.length > 0 && !selectedIngredient && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-xl overflow-hidden z-10 shadow-lg">
+              <div className="mt-2 bg-card border border-border rounded-xl overflow-hidden shadow-lg">
                 {suggestions.slice(0, 6).map((name) => (
                   <button
                     key={name}
