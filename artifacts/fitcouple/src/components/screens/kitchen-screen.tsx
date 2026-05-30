@@ -1,7 +1,8 @@
 
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useUser } from "@/lib/user-context"
+import { useIngredients, type DbIngredient } from "@/lib/realtime-hooks"
 import { Calculator, Search, Plus, Trash2, Apple, ChefHat, UtensilsCrossed, FileText, ChevronDown } from "lucide-react"
 
 type SubTab = "calculator" | "ingredients" | "dishes"
@@ -64,23 +65,7 @@ interface CalculatorIngredient {
   selected?: boolean
 }
 
-// Mock ingredient database (per 100g) - gramsPerUnit is optional for countable items
-const ingredientDatabase: Record<string, { calories: number; protein: number; carbs: number; fats: number; fiber: number; gramsPerUnit?: number }> = {
-  "chicken breast": { calories: 165, protein: 31, carbs: 0, fats: 3.6, fiber: 0, gramsPerUnit: 170 },
-  "rice": { calories: 130, protein: 2.7, carbs: 28, fats: 0.3, fiber: 0.4 },
-  "broccoli": { calories: 34, protein: 2.8, carbs: 7, fats: 0.4, fiber: 2.6 },
-  "olive oil": { calories: 884, protein: 0, carbs: 0, fats: 100, fiber: 0 },
-  "eggs": { calories: 155, protein: 13, carbs: 1.1, fats: 11, fiber: 0, gramsPerUnit: 50 },
-  "salmon": { calories: 208, protein: 20, carbs: 0, fats: 13, fiber: 0, gramsPerUnit: 150 },
-  "oats": { calories: 389, protein: 17, carbs: 66, fats: 7, fiber: 10.6 },
-  "banana": { calories: 89, protein: 1.1, carbs: 23, fats: 0.3, fiber: 2.6, gramsPerUnit: 120 },
-  "greek yogurt": { calories: 59, protein: 10, carbs: 3.6, fats: 0.7, fiber: 0 },
-  "almonds": { calories: 579, protein: 21, carbs: 22, fats: 50, fiber: 12.5 },
-  "avocado": { calories: 160, protein: 2, carbs: 9, fats: 15, fiber: 7, gramsPerUnit: 200 },
-  "tomato": { calories: 18, protein: 0.9, carbs: 3.9, fats: 0.2, fiber: 1.2, gramsPerUnit: 120 },
-  "onion": { calories: 40, protein: 1.1, carbs: 9, fats: 0.1, fiber: 1.7, gramsPerUnit: 150 },
-  "lime juice": { calories: 25, protein: 0.4, carbs: 8, fats: 0, fiber: 0.4 },
-}
+// ingredientDatabase removed — now pulling from Supabase 'ingredients' table
 
 // Initial ingredients list (empty until user adds)
 const initialIngredients: IngredientItem[] = []
@@ -150,12 +135,22 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
   const [marcinServings, setMarcinServings] = useState(1)
   const [patrycjaServings, setPatrycjaServings] = useState(1)
 
-  const suggestions = Object.keys(ingredientDatabase).filter(
+  const { ingredients: dbIngredients, loading: dbLoading } = useIngredients()
+
+  const dbMap = useMemo(() => {
+    const map: Record<string, DbIngredient> = {}
+    for (const ing of dbIngredients) {
+      map[ing.name.toLowerCase()] = ing
+    }
+    return map
+  }, [dbIngredients])
+
+  const suggestions = Object.keys(dbMap).filter(
     (name) => name.toLowerCase().includes(searchTerm.toLowerCase()) && searchTerm.length > 0
   )
 
-  const selectedIngredientData = selectedIngredient ? ingredientDatabase[selectedIngredient.toLowerCase()] : null
-  const hasUnits = selectedIngredientData?.gramsPerUnit !== undefined
+  const selectedIngredientData = selectedIngredient ? dbMap[selectedIngredient.toLowerCase()] : null
+  const hasUnits = selectedIngredientData?.average_weight !== null && selectedIngredientData?.average_weight !== undefined
 
   const selectIngredient = (ingredientName: string) => {
     setSelectedIngredient(ingredientName)
@@ -167,18 +162,18 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
 
   const addIngredient = () => {
     if (!selectedIngredient) return
-    
-    const baseNutrition = ingredientDatabase[selectedIngredient.toLowerCase()]
+
+    const baseNutrition = dbMap[selectedIngredient.toLowerCase()]
     if (!baseNutrition) return
 
     let gramsNum: number
-    if (useUnits && baseNutrition.gramsPerUnit) {
+    if (useUnits && baseNutrition.average_weight) {
       const units = parseFloat(amount) || 1
-      gramsNum = units * baseNutrition.gramsPerUnit
+      gramsNum = units * baseNutrition.average_weight
     } else {
       gramsNum = parseFloat(amount) || 100
     }
-    
+
     const multiplier = gramsNum / 100
     const newIngredient: CalculatorIngredient = {
       id: Date.now().toString(),
@@ -186,8 +181,8 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
       grams: gramsNum,
       calories: Math.round(baseNutrition.calories * multiplier),
       protein: Math.round(baseNutrition.protein * multiplier * 10) / 10,
-      carbs: Math.round(baseNutrition.carbs * multiplier * 10) / 10,
-      fats: Math.round(baseNutrition.fats * multiplier * 10) / 10,
+      carbs: Math.round(baseNutrition.carbohydrates * multiplier * 10) / 10,
+      fats: Math.round(baseNutrition.fat * multiplier * 10) / 10,
       fiber: Math.round(baseNutrition.fiber * multiplier * 10) / 10,
       selected: false,
     }
@@ -330,7 +325,7 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
               </div>
             </div>
 
-            {/* Unit toggle - only show for ingredients with gramsPerUnit */}
+            {/* Unit toggle - only show for ingredients with average_weight */}
             {selectedIngredient && hasUnits && (
               <div className="flex items-center gap-2 mt-2">
                 <button
@@ -351,7 +346,7 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
                       : "bg-secondary text-muted-foreground"
                   }`}
                 >
-                  Units ({selectedIngredientData?.gramsPerUnit}g each)
+                  Units ({selectedIngredientData?.average_weight}g each)
                 </button>
               </div>
             )}

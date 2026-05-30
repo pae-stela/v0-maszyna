@@ -567,3 +567,38 @@ export function useWorkoutPlans() {
 
   return { plans, loading, addPlan, deletePlan, refetch: fetchPlans }
 }
+
+// Ingredient from Supabase
+export interface DbIngredient {
+  name: string
+  category: string
+  protein: number
+  fat: number
+  carbohydrates: number
+  fiber: number
+  calories: number
+  average_weight: number | null
+}
+
+// Hook for global ingredients (no user filter, RLS disabled)
+export function useIngredients() {
+  const [ingredients, setIngredients] = useState<DbIngredient[]>([])
+  const [loading, setLoading] = useState(true)
+  const supabase = createClient()
+
+  const fetchIngredients = useCallback(async () => {
+    const { data } = await supabase
+      .from('ingredients')
+      .select('name, category, protein, fat, carbohydrates, fiber, calories, average_weight')
+      .order('name', { ascending: true })
+
+    setIngredients(data || [])
+    setLoading(false)
+  }, [supabase])
+
+  useEffect(() => {
+    fetchIngredients()
+  }, [fetchIngredients])
+
+  return { ingredients, loading }
+}
