@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Maszyna"
+version = "1.0.0"
+id = "artifacts/maszyna"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23023
+
+[services.development]
+run = "pnpm --filter @workspace/maszyna run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/maszyna", "run", "build" ]
+publicDir = "artifacts/maszyna/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23023"
+BASE_PATH = "/"
