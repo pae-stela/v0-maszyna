@@ -570,6 +570,7 @@ export function useWorkoutPlans() {
 
 // Ingredient from Supabase
 export interface DbIngredient {
+  id: string
   name: string
   category: string
   protein: number
@@ -578,6 +579,11 @@ export interface DbIngredient {
   fiber: number
   calories: number
   average_weight: number | null
+  recipe_steps?: string[] | null
+  sub_ingredients?: { ingredient_id: string; name: string; grams: number }[] | null
+  yield_grams?: number | null
+  marcin_servings?: number | null
+  patrycja_servings?: number | null
 }
 
 // Hook for global ingredients (no user filter, RLS disabled)
@@ -587,10 +593,14 @@ export function useIngredients() {
   const supabase = createClient()
 
   const fetchIngredients = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('ingredients')
-      .select('name, category, protein, fat, carbohydrates, fiber, calories, average_weight')
+      .select('id, name, category, protein, fat, carbohydrates, fiber, calories, average_weight, recipe_steps, sub_ingredients, yield_grams, marcin_servings, patrycja_servings')
       .order('name', { ascending: true })
+
+    if (error) {
+      console.error('[useIngredients] fetch error:', error.message, error.code, error.details)
+    }
 
     setIngredients(data || [])
     setLoading(false)
@@ -600,5 +610,156 @@ export function useIngredients() {
     fetchIngredients()
   }, [fetchIngredients])
 
-  return { ingredients, loading }
+  const addIngredient = async (ingredient: Omit<DbIngredient, 'id'>) => {
+    const { data, error } = await supabase
+      .from('ingredients')
+      .insert(ingredient)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('[useIngredients] add error:', error.message, error.code, error.details)
+      return { data, error }
+    }
+
+    if (data) {
+      setIngredients(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)))
+    }
+    return { data, error }
+  }
+
+  const deleteIngredient = async (id: string) => {
+    const { error } = await supabase
+      .from('ingredients')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      console.error('[useIngredients] delete error:', error.message, error.code, error.details)
+      return { error }
+    }
+
+    setIngredients(prev => prev.filter(i => i.id !== id))
+    return { error }
+  }
+
+  return { ingredients, loading, addIngredient, deleteIngredient, refetch: fetchIngredients }
+}
+
+// Dish type from Supabase
+export interface DishItem {
+  id: string
+  name: string
+  elements: { type: "ingredient" | "component"; id: string; name: string; grams: number }[]
+  totalCalories: number
+  totalProtein: number
+  totalCarbs: number
+  totalFats: number
+  totalFiber: number
+  mainCategory: "Large" | "Light" | "Snacks" | "Drinks"
+  subCategory: string
+  marcinServings?: number
+  patrycjaServings?: number
+}
+
+function mapDishFromDb(dbDish: any): DishItem {
+  return {
+    id: dbDish.id,
+    name: dbDish.name,
+    elements: dbDish.elements || [],
+    totalCalories: dbDish.total_calories || 0,
+    totalProtein: dbDish.total_protein || 0,
+    totalCarbs: dbDish.total_carbs || 0,
+    totalFats: dbDish.total_fats || 0,
+    totalFiber: dbDish.total_fiber || 0,
+    mainCategory: dbDish.main_category as "Large" | "Light" | "Snacks" | "Drinks",
+    subCategory: dbDish.sub_category,
+    marcinServings: dbDish.marcin_servings || undefined,
+    patrycjaServings: dbDish.patrycja_servings || undefined,
+  }
+}
+
+function mapDishToDb(dish: Omit<DishItem, 'id' | 'user_id' | 'created_at'>): any {
+  return {
+    name: dish.name,
+    elements: dish.elements,
+    total_calories: dish.totalCalories,
+    total_protein: dish.totalProtein,
+    total_carbs: dish.totalCarbs,
+    total_fats: dish.totalFats,
+    total_fiber: dish.totalFiber,
+    main_category: dish.mainCategory,
+    sub_category: dish.subCategory,
+    marcin_servings: dish.marcinServings,
+    patrycja_servings: dish.patrycjaServings,
+  }
+}
+
+// Hook for user dishes (fetched with user_id filter)
+export function useDishes() {
+  const { user, partner } = useAuth()
+  const [dishes, setDishes] = useState<DishItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const supabase = createClient()
+
+  const fetchDishes = useCallback(async () => {
+    if (!user) return
+
+    const userIds = [user.id]
+    if (partner) userIds.push(partner.id)
+
+    const { data, error } = await supabase
+      .from('dishes')
+      .select('*')
+      .in('user_id', userIds)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('[useDishes] fetch error:', error.message, error.code, error.details)
+    }
+
+    setDishes((data || []).map(mapDishFromDb))
+    setLoading(false)
+  }, [user, partner, supabase])
+
+  useEffect(() => {
+    fetchDishes()
+  }, [fetchDishes])
+
+  const addDish = async (dish: Omit<DishItem, 'id' | 'user_id' | 'created_at'>) => {
+    if (!user) return { data: null, error: new Error('Not logged in') }
+
+    const { data, error } = await supabase
+      .from('dishes')
+      .insert({ ...mapDishToDb(dish), user_id: user.id })
+      .select()
+      .single()
+
+    if (error) {
+      console.error('[useDishes] add error:', error.message, error.code, error.details)
+      return { data, error }
+    }
+
+    if (data) {
+      setDishes(prev => [mapDishFromDb(data), ...prev])
+    }
+    return { data, error }
+  }
+
+  const deleteDish = async (id: string) => {
+    const { error } = await supabase
+      .from('dishes')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      console.error('[useDishes] delete error:', error.message, error.code, error.details)
+      return { error }
+    }
+
+    setDishes(prev => prev.filter(d => d.id !== id))
+    return { error }
+  }
+
+  return { dishes, loading, addDish, deleteDish, refetch: fetchDishes }
 }

@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react"
 import { useUser } from "@/lib/user-context"
-import { useIngredients, type DbIngredient } from "@/lib/realtime-hooks"
+import { useIngredients, useDishes, type DbIngredient } from "@/lib/realtime-hooks"
 import { Calculator, Search, Plus, Trash2, Apple, ChefHat, UtensilsCrossed, FileText, ChevronDown } from "lucide-react"
 
 type SubTab = "calculator" | "ingredients" | "dishes"
@@ -67,11 +67,6 @@ interface CalculatorIngredient {
 
 // ingredientDatabase removed — now pulling from Supabase 'ingredients' table
 
-// Initial ingredients list (empty until user adds)
-const initialIngredients: IngredientItem[] = []
-
-// Initial dishes list (empty until user creates)
-const initialDishes: DishItem[] = []
 
 export function KitchenScreen() {
   const [subTab, setSubTab] = useState<SubTab>("calculator")
@@ -135,7 +130,8 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
   const [marcinServings, setMarcinServings] = useState(1)
   const [patrycjaServings, setPatrycjaServings] = useState(1)
 
-  const { ingredients: dbIngredients, loading: dbLoading } = useIngredients()
+  const { ingredients: dbIngredients, loading: dbLoading, addIngredient } = useIngredients()
+  const { addDish } = useDishes()
 
   const dbMap = useMemo(() => {
     const map: Record<string, DbIngredient> = {}
@@ -160,7 +156,7 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
     setUseUnits(false)
   }
 
-  const addIngredient = () => {
+  const addIngredientToRecipe = () => {
     if (!selectedIngredient) return
 
     const baseNutrition = dbMap[selectedIngredient.toLowerCase()]
@@ -264,20 +260,56 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
     fiber: patrycjaPortion.fiber / patrycjaServings,
   } : { calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0 }
 
-  const handleSaveComponent = () => {
+  const handleSaveComponent = async () => {
     if (selectedIngredients.length > 0 && saveName.trim()) {
-      const servingInfo = `Servings: Marcin ${marcinServings}x (${Math.round(marcinPortion.calories)} kcal each), Patrycja ${patrycjaServings}x (${Math.round(patrycjaPortion.calories)} kcal each)`
-      alert(`Component "${saveName}" saved!\n\n${selectedIngredients.length} ingredients\n${servingInfo}\n\nYou can add recipe steps in the Components tab.`)
-      setSaveName("")
-      setIngredients(ingredients.map((i) => ({ ...i, selected: false })))
+      const component = await addIngredient({
+        name: saveName.trim(),
+        category: "Component",
+        protein: selectedTotals.protein,
+        fat: selectedTotals.fats,
+        carbohydrates: selectedTotals.carbs,
+        fiber: selectedTotals.fiber,
+        calories: selectedTotals.calories,
+        average_weight: null,
+        recipe_steps: [],
+        sub_ingredients: selectedIngredients.map((i) => ({ ingredient_id: i.id, name: i.name, grams: i.grams })),
+        yield_grams: selectedIngredients.reduce((acc, i) => acc + i.grams, 0),
+        marcin_servings: marcinServings,
+        patrycja_servings: patrycjaServings,
+      })
+
+      if (component.error) {
+        alert("Failed to save component. Check the console for details.")
+      } else {
+        setSaveName("")
+        setIngredients(ingredients.map((i) => ({ ...i, selected: false })))
+        alert(`Component "${saveName}" saved successfully!`)
+      }
     }
   }
 
-  const handleSaveDish = () => {
+  const handleSaveDish = async () => {
     if (ingredients.length > 0 && saveName.trim()) {
-      const servingInfo = `Servings: Marcin ${marcinServings}x (${Math.round(marcinPortion.calories)} kcal each), Patrycja ${patrycjaServings}x (${Math.round(patrycjaPortion.calories)} kcal each)`
-      alert(`Dish "${saveName}" saved!\n\n${ingredients.length} ingredients\n${servingInfo}`)
-      setSaveName("")
+      const dish = await addDish({
+        name: saveName.trim(),
+        elements: ingredients.map((i) => ({ type: "ingredient" as const, id: i.id, name: i.name, grams: i.grams })),
+        totalCalories: totals.calories,
+        totalProtein: totals.protein,
+        totalCarbs: totals.carbs,
+        totalFats: totals.fats,
+        totalFiber: totals.fiber,
+        mainCategory: "Large" as const,
+        subCategory: "Custom",
+        marcinServings,
+        patrycjaServings,
+      })
+
+      if (dish.error) {
+        alert("Failed to save dish. Check the console for details.")
+      } else {
+        setSaveName("")
+        alert(`Dish "${saveName}" saved successfully!`)
+      }
     }
   }
 
@@ -316,7 +348,7 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
                   className="w-16 bg-secondary rounded-xl px-2 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 text-center"
                 />
                 <button
-                  onClick={addIngredient}
+                  onClick={addIngredientToRecipe}
                   disabled={!selectedIngredient}
                   className="size-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-transform"
                 >
@@ -729,7 +761,7 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
 const ingredientCategories = ["All", "Protein", "Carbs", "Vegetables", "Fruits", "Dairy", "Fats", "Nuts", "Component"]
 
 function IngredientsView() {
-  const [ingredientsList, setIngredientsList] = useState<IngredientItem[]>(initialIngredients)
+  const { ingredients: dbIngredients, loading, addIngredient, deleteIngredient } = useIngredients()
   const [searchTerm, setSearchTerm] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("All")
   const [showAddForm, setShowAddForm] = useState(false)
@@ -745,30 +777,52 @@ function IngredientsView() {
     instructions: "",
   })
 
+  const ingredientsList = useMemo(() => dbIngredients.map((db): IngredientItem => ({
+    id: db.id,
+    name: db.name,
+    caloriesPer100g: db.calories,
+    proteinPer100g: db.protein,
+    carbsPer100g: db.carbohydrates,
+    fatsPer100g: db.fat,
+    fiberPer100g: db.fiber,
+    category: db.category,
+    isComponent: db.category === "Component",
+    recipeSteps: db.recipe_steps || undefined,
+    subIngredients: db.sub_ingredients?.map((si) => ({
+      ingredientId: si.ingredient_id,
+      name: si.name,
+      grams: si.grams,
+    })),
+    yieldGrams: db.yield_grams || undefined,
+    marcinServings: db.marcin_servings || undefined,
+    patrycjaServings: db.patrycja_servings || undefined,
+  })), [dbIngredients])
+
   const filteredIngredients = ingredientsList.filter((el) => {
     const matchesSearch = el.name.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesCategory = categoryFilter === "All" || el.category === categoryFilter
     return matchesSearch && matchesCategory
   })
 
-  const handleAddIngredient = () => {
-    if (newIngredient.name.trim()) {
-      const isComponent = newIngredient.category === "Component"
-      const ingredient: IngredientItem = {
-        id: Date.now().toString(),
-        name: newIngredient.name,
-        caloriesPer100g: parseFloat(newIngredient.caloriesPer100g) || 0,
-        proteinPer100g: parseFloat(newIngredient.proteinPer100g) || 0,
-        carbsPer100g: parseFloat(newIngredient.carbsPer100g) || 0,
-        fatsPer100g: parseFloat(newIngredient.fatsPer100g) || 0,
-        fiberPer100g: parseFloat(newIngredient.fiberPer100g) || 0,
-        category: newIngredient.category,
-        ...(isComponent && {
-          isComponent: true,
-          recipeSteps: newIngredient.instructions.split('\n').filter(s => s.trim()),
-        }),
-      }
-      setIngredientsList([...ingredientsList, ingredient])
+  const handleAddIngredient = async () => {
+    if (!newIngredient.name.trim()) return
+    const isComponent = newIngredient.category === "Component"
+    const result = await addIngredient({
+      name: newIngredient.name,
+      category: newIngredient.category,
+      protein: parseFloat(newIngredient.proteinPer100g) || 0,
+      fat: parseFloat(newIngredient.fatsPer100g) || 0,
+      carbohydrates: parseFloat(newIngredient.carbsPer100g) || 0,
+      fiber: parseFloat(newIngredient.fiberPer100g) || 0,
+      calories: parseFloat(newIngredient.caloriesPer100g) || 0,
+      average_weight: null,
+      recipe_steps: isComponent ? newIngredient.instructions.split('\n').filter(s => s.trim()) : null,
+      sub_ingredients: null,
+      yield_grams: null,
+      marcin_servings: null,
+      patrycja_servings: null,
+    })
+    if (!result.error) {
       setNewIngredient({
         name: "",
         caloriesPer100g: "",
@@ -783,8 +837,8 @@ function IngredientsView() {
     }
   }
 
-  const handleDeleteIngredient = (id: string) => {
-    setIngredientsList(ingredientsList.filter((el) => el.id !== id))
+  const handleDeleteIngredient = async (id: string) => {
+    await deleteIngredient(id)
   }
 
   return (
@@ -1034,15 +1088,15 @@ function IngredientsView() {
 }
 
 function DishesView() {
-  const [dishes, setDishes] = useState<DishItem[]>(initialDishes)
+  const { dishes, loading, deleteDish } = useDishes()
   const [searchTerm, setSearchTerm] = useState("")
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [mainCategoryFilter, setMainCategoryFilter] = useState<string>("All")
   const [subCategoryFilter, setSubCategoryFilter] = useState<string>("All")
 
   const mainCategories = ["All", "Large", "Light", "Snacks", "Drinks"]
-  const subCategories = mainCategoryFilter === "All" 
-    ? ["All"] 
+  const subCategories = mainCategoryFilter === "All"
+    ? ["All"]
     : ["All", ...(dishCategories[mainCategoryFilter] || [])]
 
   const filteredDishes = dishes.filter((dish) => {
@@ -1052,8 +1106,8 @@ function DishesView() {
     return matchesSearch && matchesMain && matchesSub
   })
 
-  const handleDeleteDish = (id: string) => {
-    setDishes(dishes.filter((d) => d.id !== id))
+  const handleDeleteDish = async (id: string) => {
+    await deleteDish(id)
   }
 
   return (
