@@ -9,7 +9,15 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const handleCallback = async () => {
       const supabase = createClient()
-      const { error } = await supabase.auth.exchangeCodeForSession(window.location.search)
+      const searchParams = new URLSearchParams(window.location.search)
+      const code = searchParams.get('code')
+
+      if (!code) {
+        navigate('/auth/error')
+        return
+      }
+
+      const { error } = await supabase.auth.exchangeCodeForSession(code)
 
       if (error) {
         navigate('/auth/error')
