@@ -39,10 +39,9 @@ export default function SignUpPage() {
       const { data: signUpData, error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          emailRedirectTo:
-            import.meta.env.VITE_DEV_SUPABASE_REDIRECT_URL ??
-            `${window.location.origin}/auth/callback`,
+   options: {
+  emailRedirectTo: `${window.location.origin}/`,
+}
           data: {
             name,
             account_type: accountType,
