@@ -160,29 +160,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        setUser(user)
 
-      if (user) {
-        const profile = await ensureProfile(user)
-        if (profile) setProfile(profile)
-        await fetchUserData(user.id)
+        if (user) {
+          const profile = await ensureProfile(user)
+          if (profile) setProfile(profile)
+          await fetchUserData(user.id)
+        }
+      } catch (err) {
+        console.error('Auth initialization error:', err)
+        setUser(null)
+      } finally {
+        setLoading(false)
       }
-
-      setLoading(false)
     }
 
     getUser()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        setUser(session?.user ?? null)
+        try {
+          setUser(session?.user ?? null)
 
-        if (session?.user) {
-          const profile = await ensureProfile(session.user)
-          if (profile) setProfile(profile)
-          await fetchUserData(session.user.id)
-        } else {
+          if (session?.user) {
+            const profile = await ensureProfile(session.user)
+            if (profile) setProfile(profile)
+            await fetchUserData(session.user.id)
+          } else {
+            setProfile(null)
+            setSettings(null)
+            setPartner(null)
+          }
+        } catch (err) {
+          console.error('Auth state change error:', err)
+          setUser(null)
           setProfile(null)
           setSettings(null)
           setPartner(null)

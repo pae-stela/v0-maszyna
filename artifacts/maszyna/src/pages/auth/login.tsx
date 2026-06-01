@@ -27,10 +27,10 @@ export default function LoginPage() {
         password,
       })
       if (error) throw error
-      navigate('/app')
+      // Force a full client-side navigation to the dashboard
+      window.location.href = '/app'
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'An error occurred')
-    } finally {
       setIsLoading(false)
     }
   }
