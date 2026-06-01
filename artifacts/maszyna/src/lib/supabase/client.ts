@@ -8,6 +8,10 @@ export function createClient() {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
+        detectSessionInUrl: true,
+        // KLUCZOWE DLA MOBILE: Wymuszenie użycia localStorage zamiast samych ciasteczek
+        storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+        storageKey: 'maszyna-auth-token', // własny klucz zapewni, że telefon nie wyczyści sesji
       },
     }
   )
