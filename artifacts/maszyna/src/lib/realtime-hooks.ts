@@ -1,7 +1,7 @@
 
 
 import { useEffect, useState, useCallback } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { supabase } from './supabase/client'
 import { useAuth } from '@/lib/auth-context'
 import { RealtimeChannel } from '@supabase/supabase-js'
 
@@ -69,7 +69,6 @@ export function useMealLogs(date?: string) {
   const { user, partner } = useAuth()
   const [meals, setMeals] = useState<MealLog[]>([])
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
 
   const fetchMeals = useCallback(async () => {
     if (!user) return
@@ -172,8 +171,6 @@ export function useWorkoutLogs(date?: string) {
   const { user, partner } = useAuth()
   const [workouts, setWorkouts] = useState<WorkoutLog[]>([])
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
-
   const fetchWorkouts = useCallback(async () => {
     if (!user) return
 
@@ -260,7 +257,6 @@ export function useStepLogs() {
   const { user, partner } = useAuth()
   const [steps, setSteps] = useState<StepLog[]>([])
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
 
   const fetchSteps = useCallback(async () => {
     if (!user) return
@@ -367,7 +363,6 @@ export function usePlannerEvents(date?: string) {
   const { user, partner } = useAuth()
   const [events, setEvents] = useState<PlannerEvent[]>([])
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
 
   const fetchEvents = useCallback(async () => {
     if (!user) return
@@ -483,7 +478,6 @@ export function useWorkoutPlans() {
   const { user } = useAuth()
   const [plans, setPlans] = useState<WorkoutPlan[]>([])
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
 
   const fetchPlans = useCallback(async () => {
     if (!user) return
@@ -590,7 +584,6 @@ export interface DbIngredient {
 export function useIngredients() {
   const [ingredients, setIngredients] = useState<DbIngredient[]>([])
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
 
   const fetchIngredients = useCallback(async () => {
     const { data, error } = await supabase
@@ -700,8 +693,6 @@ export function useDishes() {
   const { user, partner } = useAuth()
   const [dishes, setDishes] = useState<DishItem[]>([])
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
-
   const fetchDishes = useCallback(async () => {
     if (!user) return
 
