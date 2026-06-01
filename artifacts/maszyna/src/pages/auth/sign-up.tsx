@@ -36,31 +36,27 @@ export default function SignUpPage() {
     }
 
     try {
-      const { data: signUpData, error } = await supabase.auth.signUp({
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
-   options: {
-  emailRedirectTo: `${window.location.origin}/`,
-}
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
           data: {
             name,
             account_type: accountType,
           },
         },
       })
-      if (error) throw error
+      if (signUpError) throw signUpError
 
-      // If Supabase auto-confirms the user (no email confirmation required),
-      // a session is returned immediately. In that case, go straight to the app
-      // and the AuthContext will create the profile on demand via ensureProfile().
       if (signUpData.session) {
         navigate('/app')
         return
       }
 
       navigate('/auth/sign-up-success')
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : 'An error occurred')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
       setIsLoading(false)
     }
@@ -163,7 +159,7 @@ export default function SignUpPage() {
             </label>
             <Input
               id="email"
-              type="email"
+              type="type"
               placeholder={language === 'en' ? 'you@example.com' : 'ty@example.com'}
               required
               value={email}
