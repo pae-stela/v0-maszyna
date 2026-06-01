@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { supabase } from './supabase/client'
 import { User, RealtimeChannel } from '@supabase/supabase-js'
 
 interface Profile {
@@ -60,7 +60,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<UserSettings | null>(null)
   const [partner, setPartner] = useState<PartnerProfile | null>(null)
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
 
   const ensureProfile = async (currentUser: User): Promise<Profile | null> => {
     const { data: existing } = await supabase
