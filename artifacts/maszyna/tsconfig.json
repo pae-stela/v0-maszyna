@@ -19,7 +19,8 @@
     "strict": false,
     "strictNullChecks": false,
     "skipLibCheck": true,
-    "strictPropertyInitialization": false
+    "strictPropertyInitialization": false,
+    "noImplicitReturns": false
   },
   "references": [
     {
