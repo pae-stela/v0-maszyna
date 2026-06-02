@@ -1,0 +1,2 @@
+- [Maszyna DB schema drift](maszyna-schema-drift.md) — Supabase column names drifted from React hook expectations (`carbs` vs `carbohydrates`, `total_calories` vs `calories`, `dishes` vs `recipes` table). Use `select('*')` and fallback mapping, never hardcode column names in queries.
+- [Auth loading guards](auth-loading-guards.md) — All data hooks must wait for `authLoading === false` before querying. Prevents empty-state flickers and silent failures when auth hasn't resolved yet.
