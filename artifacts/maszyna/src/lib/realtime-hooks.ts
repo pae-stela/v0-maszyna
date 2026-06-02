@@ -66,12 +66,17 @@ export interface PlannerEvent {
 
 // Hook for meal logs with real-time updates
 export function useMealLogs(date?: string) {
-  const { user, partner } = useAuth()
+  const { user, partner, loading: authLoading } = useAuth()
   const [meals, setMeals] = useState<MealLog[]>([])
   const [loading, setLoading] = useState(true)
 
   const fetchMeals = useCallback(async () => {
-    if (!user) return
+    if (authLoading) return
+    if (!user) {
+      setMeals([])
+      setLoading(false)
+      return
+    }
 
     let query = supabase
       .from('meal_logs')
@@ -88,10 +93,14 @@ export function useMealLogs(date?: string) {
     if (partner) userIds.push(partner.id)
     query = query.in('user_id', userIds)
 
-    const { data } = await query
+    const { data, error } = await query
+    if (error) {
+      console.error('Supabase Fetch Error:', error)
+      console.error('[useMealLogs] fetch error:', error.message, error.code, error.details)
+    }
     setMeals(data || [])
     setLoading(false)
-  }, [user, partner, date, supabase])
+  }, [user, partner, date, authLoading, supabase])
 
   useEffect(() => {
     fetchMeals()
@@ -168,11 +177,16 @@ export function useMealLogs(date?: string) {
 
 // Hook for workout logs with real-time updates
 export function useWorkoutLogs(date?: string) {
-  const { user, partner } = useAuth()
+  const { user, partner, loading: authLoading } = useAuth()
   const [workouts, setWorkouts] = useState<WorkoutLog[]>([])
   const [loading, setLoading] = useState(true)
   const fetchWorkouts = useCallback(async () => {
-    if (!user) return
+    if (authLoading) return
+    if (!user) {
+      setWorkouts([])
+      setLoading(false)
+      return
+    }
 
     let query = supabase
       .from('workout_logs')
@@ -187,10 +201,14 @@ export function useWorkoutLogs(date?: string) {
     if (partner) userIds.push(partner.id)
     query = query.in('user_id', userIds)
 
-    const { data } = await query
+    const { data, error } = await query
+    if (error) {
+      console.error('Supabase Fetch Error:', error)
+      console.error('[useWorkoutLogs] fetch error:', error.message, error.code, error.details)
+    }
     setWorkouts(data || [])
     setLoading(false)
-  }, [user, partner, date, supabase])
+  }, [user, partner, date, authLoading, supabase])
 
   useEffect(() => {
     fetchWorkouts()
@@ -254,26 +272,35 @@ export function useWorkoutLogs(date?: string) {
 
 // Hook for step logs with real-time updates
 export function useStepLogs() {
-  const { user, partner } = useAuth()
+  const { user, partner, loading: authLoading } = useAuth()
   const [steps, setSteps] = useState<StepLog[]>([])
   const [loading, setLoading] = useState(true)
 
   const fetchSteps = useCallback(async () => {
-    if (!user) return
+    if (authLoading) return
+    if (!user) {
+      setSteps([])
+      setLoading(false)
+      return
+    }
 
     const userIds = [user.id]
     if (partner) userIds.push(partner.id)
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('step_logs')
       .select('*')
       .in('user_id', userIds)
       .order('date', { ascending: false })
       .limit(30)
 
+    if (error) {
+      console.error('Supabase Fetch Error:', error)
+      console.error('[useStepLogs] fetch error:', error.message, error.code, error.details)
+    }
     setSteps(data || [])
     setLoading(false)
-  }, [user, partner, supabase])
+  }, [user, partner, authLoading, supabase])
 
   useEffect(() => {
     fetchSteps()
@@ -360,12 +387,17 @@ export function useStepLogs() {
 
 // Hook for planner events with real-time updates
 export function usePlannerEvents(date?: string) {
-  const { user, partner } = useAuth()
+  const { user, partner, loading: authLoading } = useAuth()
   const [events, setEvents] = useState<PlannerEvent[]>([])
   const [loading, setLoading] = useState(true)
 
   const fetchEvents = useCallback(async () => {
-    if (!user) return
+    if (authLoading) return
+    if (!user) {
+      setEvents([])
+      setLoading(false)
+      return
+    }
 
     let query = supabase
       .from('planner_events')
@@ -380,10 +412,14 @@ export function usePlannerEvents(date?: string) {
     if (partner) userIds.push(partner.id)
     query = query.in('user_id', userIds)
 
-    const { data } = await query
+    const { data, error } = await query
+    if (error) {
+      console.error('Supabase Fetch Error:', error)
+      console.error('[usePlannerEvents] fetch error:', error.message, error.code, error.details)
+    }
     setEvents(data || [])
     setLoading(false)
-  }, [user, partner, date, supabase])
+  }, [user, partner, date, authLoading, supabase])
 
   useEffect(() => {
     fetchEvents()
@@ -475,22 +511,31 @@ export function usePlannerEvents(date?: string) {
 
 // Hook for user workout plans with real-time updates
 export function useWorkoutPlans() {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const [plans, setPlans] = useState<WorkoutPlan[]>([])
   const [loading, setLoading] = useState(true)
 
   const fetchPlans = useCallback(async () => {
-    if (!user) return
+    if (authLoading) return
+    if (!user) {
+      setPlans([])
+      setLoading(false)
+      return
+    }
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('user_workout_plans')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
+    if (error) {
+      console.error('Supabase Fetch Error:', error)
+      console.error('[useWorkoutPlans] fetch error:', error.message, error.code, error.details)
+    }
     setPlans(data || [])
     setLoading(false)
-  }, [user, supabase])
+  }, [user, authLoading, supabase])
 
   useEffect(() => {
     fetchPlans()
@@ -588,14 +633,38 @@ export function useIngredients() {
   const fetchIngredients = useCallback(async () => {
     const { data, error } = await supabase
       .from('ingredients')
-      .select('id, name, category, protein, fat, carbohydrates, fiber, calories, average_weight, recipe_steps, sub_ingredients, yield_grams, marcin_servings, patrycja_servings')
+      .select('*')
       .order('name', { ascending: true })
 
     if (error) {
+      console.error('Supabase Fetch Error:', error)
       console.error('[useIngredients] fetch error:', error.message, error.code, error.details)
+      setIngredients([])
+      setLoading(false)
+      return
     }
 
-    setIngredients(data || [])
+    if (data) {
+      const mapped = data.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        category: item.category,
+        protein: item.protein ?? item.total_protein ?? 0,
+        fat: item.fat ?? item.total_fat ?? 0,
+        carbohydrates: item.carbohydrates ?? item.carbs ?? item.total_carbs ?? 0,
+        fiber: item.fiber ?? item.total_fiber ?? 0,
+        calories: item.calories ?? item.total_calories ?? 0,
+        average_weight: item.average_weight ?? null,
+        recipe_steps: Array.isArray(item.recipe_steps) ? item.recipe_steps : [],
+        sub_ingredients: Array.isArray(item.sub_ingredients) ? item.sub_ingredients : [],
+        yield_grams: item.yield_grams ?? null,
+        marcin_servings: item.marcin_servings ?? null,
+        patrycja_servings: item.patrycja_servings ?? null,
+      }))
+      setIngredients(mapped)
+    } else {
+      setIngredients([])
+    }
     setLoading(false)
   }, [supabase])
 
@@ -604,19 +673,26 @@ export function useIngredients() {
   }, [fetchIngredients])
 
   const addIngredient = async (ingredient: Omit<DbIngredient, 'id'>) => {
+    const payload = {
+      ...ingredient,
+      recipe_steps: Array.isArray(ingredient.recipe_steps) ? ingredient.recipe_steps : [],
+      sub_ingredients: Array.isArray(ingredient.sub_ingredients) ? ingredient.sub_ingredients : [],
+    }
+
     const { data, error } = await supabase
       .from('ingredients')
-      .insert(ingredient)
+      .insert(payload)
       .select()
       .single()
 
     if (error) {
+      console.error('Supabase Insert Error:', error)
       console.error('[useIngredients] add error:', error.message, error.code, error.details)
-      return { data, error }
+      return { data: null, error }
     }
 
     if (data) {
-      setIngredients(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)))
+      setIngredients(prev => [...prev, data as DbIngredient].sort((a, b) => a.name.localeCompare(b.name)))
     }
     return { data, error }
   }
@@ -628,6 +704,7 @@ export function useIngredients() {
       .eq('id', id)
 
     if (error) {
+      console.error('Supabase Delete Error:', error)
       console.error('[useIngredients] delete error:', error.message, error.code, error.details)
       return { error }
     }
@@ -659,23 +736,23 @@ function mapDishFromDb(dbDish: any): DishItem {
   return {
     id: dbDish.id,
     name: dbDish.name,
-    elements: dbDish.elements || [],
-    totalCalories: dbDish.total_calories || 0,
-    totalProtein: dbDish.total_protein || 0,
-    totalCarbs: dbDish.total_carbs || 0,
-    totalFats: dbDish.total_fats || 0,
-    totalFiber: dbDish.total_fiber || 0,
-    mainCategory: dbDish.main_category as "Large" | "Light" | "Snacks" | "Drinks",
-    subCategory: dbDish.sub_category,
-    marcinServings: dbDish.marcin_servings || undefined,
-    patrycjaServings: dbDish.patrycja_servings || undefined,
+    elements: Array.isArray(dbDish.elements) ? dbDish.elements : [],
+    totalCalories: dbDish.total_calories ?? dbDish.calories ?? 0,
+    totalProtein: dbDish.total_protein ?? dbDish.protein ?? 0,
+    totalCarbs: dbDish.total_carbs ?? dbDish.carbs ?? dbDish.carbohydrates ?? 0,
+    totalFats: dbDish.total_fats ?? dbDish.fats ?? dbDish.fat ?? 0,
+    totalFiber: dbDish.total_fiber ?? dbDish.fiber ?? 0,
+    mainCategory: (dbDish.main_category || dbDish.category || "Large") as "Large" | "Light" | "Snacks" | "Drinks",
+    subCategory: dbDish.sub_category || dbDish.subCategory || "Custom",
+    marcinServings: dbDish.marcin_servings ?? dbDish.marcinServings ?? undefined,
+    patrycjaServings: dbDish.patrycja_servings ?? dbDish.patrycjaServings ?? undefined,
   }
 }
 
 function mapDishToDb(dish: Omit<DishItem, 'id' | 'user_id' | 'created_at'>): any {
   return {
     name: dish.name,
-    elements: dish.elements,
+    elements: Array.isArray(dish.elements) ? dish.elements : [],
     total_calories: dish.totalCalories,
     total_protein: dish.totalProtein,
     total_carbs: dish.totalCarbs,
@@ -689,29 +766,53 @@ function mapDishToDb(dish: Omit<DishItem, 'id' | 'user_id' | 'created_at'>): any
 }
 
 // Hook for user dishes (fetched with user_id filter)
+// Tries 'recipes' table first, then falls back to 'dishes'
 export function useDishes() {
-  const { user, partner } = useAuth()
+  const { user, partner, loading: authLoading } = useAuth()
   const [dishes, setDishes] = useState<DishItem[]>([])
   const [loading, setLoading] = useState(true)
+
   const fetchDishes = useCallback(async () => {
-    if (!user) return
+    if (authLoading) return
+    if (!user) {
+      setDishes([])
+      setLoading(false)
+      return
+    }
 
     const userIds = [user.id]
     if (partner) userIds.push(partner.id)
 
-    const { data, error } = await supabase
-      .from('dishes')
+    let tableName = 'recipes'
+    let { data, error } = await supabase
+      .from(tableName)
       .select('*')
       .in('user_id', userIds)
       .order('created_at', { ascending: false })
 
+    if (error && error.code === '42P01') {
+      console.warn('[useDishes] Table "recipes" not found, trying "dishes"...')
+      tableName = 'dishes'
+      const fallback = await supabase
+        .from(tableName)
+        .select('*')
+        .in('user_id', userIds)
+        .order('created_at', { ascending: false })
+      data = fallback.data
+      error = fallback.error
+    }
+
     if (error) {
+      console.error('Supabase Fetch Error:', error)
       console.error('[useDishes] fetch error:', error.message, error.code, error.details)
+      setDishes([])
+      setLoading(false)
+      return
     }
 
     setDishes((data || []).map(mapDishFromDb))
     setLoading(false)
-  }, [user, partner, supabase])
+  }, [user, partner, authLoading, supabase])
 
   useEffect(() => {
     fetchDishes()
@@ -720,15 +821,31 @@ export function useDishes() {
   const addDish = async (dish: Omit<DishItem, 'id' | 'user_id' | 'created_at'>) => {
     if (!user) return { data: null, error: new Error('Not logged in') }
 
-    const { data, error } = await supabase
-      .from('dishes')
-      .insert({ ...mapDishToDb(dish), user_id: user.id })
+    const payload = { ...mapDishToDb(dish), user_id: user.id }
+
+    let tableName = 'recipes'
+    let { data, error } = await supabase
+      .from(tableName)
+      .insert(payload)
       .select()
       .single()
 
+    if (error && error.code === '42P01') {
+      console.warn('[useDishes] Table "recipes" not found for insert, trying "dishes"...')
+      tableName = 'dishes'
+      const fallback = await supabase
+        .from(tableName)
+        .insert(payload)
+        .select()
+        .single()
+      data = fallback.data
+      error = fallback.error
+    }
+
     if (error) {
+      console.error('Supabase Insert Error:', error)
       console.error('[useDishes] add error:', error.message, error.code, error.details)
-      return { data, error }
+      return { data: null, error }
     }
 
     if (data) {
@@ -738,12 +855,23 @@ export function useDishes() {
   }
 
   const deleteDish = async (id: string) => {
-    const { error } = await supabase
-      .from('dishes')
+    let tableName = 'recipes'
+    let { error } = await supabase
+      .from(tableName)
       .delete()
       .eq('id', id)
 
+    if (error && error.code === '42P01') {
+      tableName = 'dishes'
+      const fallback = await supabase
+        .from(tableName)
+        .delete()
+        .eq('id', id)
+      error = fallback.error
+    }
+
     if (error) {
+      console.error('Supabase Delete Error:', error)
       console.error('[useDishes] delete error:', error.message, error.code, error.details)
       return { error }
     }
