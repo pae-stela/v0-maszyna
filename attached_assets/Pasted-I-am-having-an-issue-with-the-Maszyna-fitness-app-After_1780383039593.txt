@@ -1,0 +1,20 @@
+I am having an issue with the "Maszyna" fitness app. After logging in, the calorie calculator (ingredients) and the meals/recipes list (dishes) are completely empty. The data DEFINITELY exists in the Supabase database (the ingredients table is populated with products like Avocado, Egg, Chicken, etc., and Row-Level Security (RLS) is currently DISABLED), but the frontend renders nothing. Furthermore, users cannot add new dishes or ingredients because the frontend calculator doesn't respond or the save requests fail.
+
+The root cause is a strict mismatch between the database schema in Supabase and the property/table names expected by the React hooks (specifically in `src/hooks/realtime-hooks.ts`, `src/hooks/useIngredients.ts`, `src/hooks/useDishes.ts`, or wherever the database queries are handled).
+
+Please analyze the codebase and refactor the files responsible for fetching, mapping, and saving data using the following requirements:
+
+1. **Table and Column Name Alignment (Robust Mapping):**
+   - **Dishes/Recipes:** Check if the database table is named `recipes` while the React code is querying `dishes` (or vice versa). Synchronize the table name to match what is actually in the database, or create a clean mapping fallback.
+   - **Macros/Ingredients:** The React hooks are looking for database columns named `total_calories` and `carbs`. However, the actual Supabase database uses `calories` and `carbohydrates`. Rewrite the queries and data mappers to be fallback-safe, accepting both variations to avoid silent crashes (e.g., `protein: dbIngredient.protein || dbIngredient.total_protein`, `calories: dbIngredient.calories || dbIngredient.total_calories`, `carbs: dbIngredient.carbohydrates || dbIngredient.carbs`).
+
+2. **JSONB Serialization for Nested Data:**
+   - When creating a recipe or adding sub-ingredients to the calculator, data arrays (like `elements` or `sub_ingredients`) are sent. Ensure the mutation payload format matches exactly what a Supabase `jsonb` or relational column expects, preventing unhandled syntax exceptions during an `INSERT`.
+
+3. **Expose Explicit Error Logs (No Silent Failures):**
+   - Inside the `.select('*')` fetch queries and the `.insert()` submission blocks, completely rewrite the catch mechanisms. If a Supabase query returns an `error` object, log it explicitly using `console.error("Supabase Fetch Error:", error)`. Do not silently fallback to an empty array `[]` without printing the exact Postgrest error message to the browser console.
+
+4. **Authentication State Guarding:**
+   - Ensure that the real-time subscriptions and table selectors do not execute or try to filter by `user.id` until the `AuthContext` has completely finished initializing the current session state.
+
+Please provide the corrected code for the data hooks and saving modules to fix this schema conflict.

@@ -1,0 +1,20 @@
+Mam problem z aplikacją "Maszyna". Po zalogowaniu kalkulator kalorii oraz lista dań (przepisów) są całkowicie puste. Dane fizycznie znajdują się w bazie Supabase (tabela ze składnikami ma rekordy, a zabezpieczenia RLS są WYŁĄCZONE), jednak frontend ich nie wyświetla. Co więcej, nie da się dodać nowych dań ani składników, ponieważ aplikacja nie reaguje lub zapytania kończą się niepowodzeniem.
+
+Prawdopodobną przyczyną jest rozbieżność między nazwami tabel i kolumn w kodzie React (szczególnie w hookach `src/hooks/realtime-hooks.ts` lub `src/hooks/useIngredients.ts` / `useDishes.ts`) a rzeczywistą strukturą bazy danych Supabase. 
+
+Przeanalizuj i popraw pliki odpowiedzialne za pobieranie i zapisywanie danych (hooki oraz komponenty kalkulatora i przepisów) według następujących wytycznych:
+
+1. **Nazewnictwo tabel i kolumn (Weryfikacja i mapowanie):**
+   - Upewnij się, czy kod odpytuje właściwą tabelę dla dań. W bazie tabela może nazywać się `recipes`, a w kodzie `dishes` (lub odwrotnie). Zsynchronizuj to.
+   - Sprawdź mapowanie makroskładników w tabeli składników. Kod w hookach próbuje wyciągać kolumny takie jak `total_calories` oraz `carbs`, podczas gdy w bazie danych mogą one nazywać się odpowiednio `calories` oraz `carbohydrates`. Zabezpiecz kod tak, aby poprawnie mapował te pola (np. `dbIngredient.calories || dbIngredient.total_calories`).
+
+2. **Formatowanie danych przy zapisie (Typy złożone/JSONB):**
+   - Podczas tworzenia przepisu lub dodawania składników do kalkulatora, struktura podskładników (np. `elements`, `sub_ingredients`) jest wysyłana jako tablica obiektów. Upewnij się, że kod poprawnie serializuje te dane do formatu akceptowanego przez kolumny typu JSONB w Supabase i nie powoduje błędów składniowych bazy danych.
+
+3. **Dodanie pełnej obsługi błędów (Error Handling & Logging):**
+   - W hookach pobierających dane (`select('*')`) oraz w funkcjach obsługujących wysyłanie formularzy, dodaj dokładne logowanie błędów do konsoli (`console.error("Błąd pobierania składników:", error)`). Jeśli Supabase zwraca jakikolwiek błąd (np. brak kolumny, błąd składni), musimy go wyraźnie widzieć w konsoli przeglądarki, zamiast cichego ustawiania pustej tablicy `[]`.
+
+4. **Stan ładowania i synchronizacja sesji:**
+   - Upewnij się, że zapytania do bazy danych nie wykonują się, zanim sesja użytkownika (Auth Context) zostanie w pełni zainicjalizowana.
+
+Wygeneruj poprawione wersje plików z hookami oraz formularzami zapisu, które rozwiążą ten konflikt strukturalny.
