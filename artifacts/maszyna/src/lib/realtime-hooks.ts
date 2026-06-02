@@ -716,10 +716,11 @@ export function useIngredients() {
   return { ingredients, loading, addIngredient, deleteIngredient, refetch: fetchIngredients }
 }
 
-// Dish type from Supabase
+// Dish type from Supabase (recipes table)
 export interface DishItem {
   id: string
   name: string
+  description?: string | null
   elements: { type: "ingredient" | "component"; id: string; name: string; grams: number }[]
   totalCalories: number
   totalProtein: number
@@ -730,43 +731,62 @@ export interface DishItem {
   subCategory: string
   marcinServings?: number
   patrycjaServings?: number
+  servings?: number
+  prepTime?: number
+  cookTime?: number
+  isCustom?: boolean
+  recipeSteps?: string[] | null
+  steps?: string[] | null
 }
 
 function mapDishFromDb(dbDish: any): DishItem {
   return {
     id: dbDish.id,
-    name: dbDish.name,
+    name: dbDish.name ?? '',
+    description: dbDish.description ?? null,
     elements: Array.isArray(dbDish.elements) ? dbDish.elements : [],
-    totalCalories: dbDish.total_calories ?? dbDish.calories ?? 0,
-    totalProtein: dbDish.total_protein ?? dbDish.protein ?? 0,
-    totalCarbs: dbDish.total_carbs ?? dbDish.carbs ?? dbDish.carbohydrates ?? 0,
-    totalFats: dbDish.total_fats ?? dbDish.fats ?? dbDish.fat ?? 0,
-    totalFiber: dbDish.total_fiber ?? dbDish.fiber ?? 0,
-    mainCategory: (dbDish.main_category || dbDish.category || "Large") as "Large" | "Light" | "Snacks" | "Drinks",
-    subCategory: dbDish.sub_category || dbDish.subCategory || "Custom",
-    marcinServings: dbDish.marcin_servings ?? dbDish.marcinServings ?? undefined,
-    patrycjaServings: dbDish.patrycja_servings ?? dbDish.patrycjaServings ?? undefined,
+    totalCalories: dbDish.total_calories ?? 0,
+    totalProtein: dbDish.total_proteins ?? 0,
+    totalCarbs: dbDish.total_carbs ?? 0,
+    totalFats: dbDish.total_fats ?? 0,
+    totalFiber: dbDish.total_fiber ?? 0,
+    mainCategory: (dbDish.main_category || "Large") as "Large" | "Light" | "Snacks" | "Drinks",
+    subCategory: dbDish.sub_category || "Custom",
+    marcinServings: dbDish.marcin_servings ?? undefined,
+    patrycjaServings: dbDish.patrycja_servings ?? undefined,
+    servings: dbDish.servings ?? undefined,
+    prepTime: dbDish.prep_time ?? undefined,
+    cookTime: dbDish.cook_time ?? undefined,
+    isCustom: dbDish.is_custom ?? false,
+    recipeSteps: Array.isArray(dbDish.recipe_steps) ? dbDish.recipe_steps : null,
+    steps: Array.isArray(dbDish.steps) ? dbDish.steps : null,
   }
 }
 
 function mapDishToDb(dish: Omit<DishItem, 'id' | 'user_id' | 'created_at'>): any {
   return {
     name: dish.name,
+    description: dish.description ?? null,
     elements: Array.isArray(dish.elements) ? dish.elements : [],
     total_calories: dish.totalCalories,
-    total_protein: dish.totalProtein,
+    total_proteins: dish.totalProtein,
     total_carbs: dish.totalCarbs,
     total_fats: dish.totalFats,
     total_fiber: dish.totalFiber,
     main_category: dish.mainCategory,
     sub_category: dish.subCategory,
-    marcin_servings: dish.marcinServings,
-    patrycja_servings: dish.patrycjaServings,
+    marcin_servings: dish.marcinServings ?? null,
+    patrycja_servings: dish.patrycjaServings ?? null,
+    servings: dish.servings ?? null,
+    prep_time: dish.prepTime ?? null,
+    cook_time: dish.cookTime ?? null,
+    is_custom: dish.isCustom ?? false,
+    recipe_steps: Array.isArray(dish.recipeSteps) ? dish.recipeSteps : null,
+    steps: Array.isArray(dish.steps) ? dish.steps : null,
   }
 }
 
-// Hook for user dishes (fetched with user_id filter)
-// Tries 'recipes' table first, then falls back to 'dishes'
+// Hook for user recipes (fetched from the 'recipes' table)
 export function useDishes() {
   const { user, partner, loading: authLoading } = useAuth()
   const [dishes, setDishes] = useState<DishItem[]>([])
@@ -783,24 +803,11 @@ export function useDishes() {
     const userIds = [user.id]
     if (partner) userIds.push(partner.id)
 
-    let tableName = 'recipes'
-    let { data, error } = await supabase
-      .from(tableName)
+    const { data, error } = await supabase
+      .from('recipes')
       .select('*')
       .in('user_id', userIds)
       .order('created_at', { ascending: false })
-
-    if (error && error.code === '42P01') {
-      console.warn('[useDishes] Table "recipes" not found, trying "dishes"...')
-      tableName = 'dishes'
-      const fallback = await supabase
-        .from(tableName)
-        .select('*')
-        .in('user_id', userIds)
-        .order('created_at', { ascending: false })
-      data = fallback.data
-      error = fallback.error
-    }
 
     if (error) {
       console.error('Supabase Fetch Error:', error)
@@ -823,24 +830,11 @@ export function useDishes() {
 
     const payload = { ...mapDishToDb(dish), user_id: user.id }
 
-    let tableName = 'recipes'
-    let { data, error } = await supabase
-      .from(tableName)
+    const { data, error } = await supabase
+      .from('recipes')
       .insert(payload)
       .select()
       .single()
-
-    if (error && error.code === '42P01') {
-      console.warn('[useDishes] Table "recipes" not found for insert, trying "dishes"...')
-      tableName = 'dishes'
-      const fallback = await supabase
-        .from(tableName)
-        .insert(payload)
-        .select()
-        .single()
-      data = fallback.data
-      error = fallback.error
-    }
 
     if (error) {
       console.error('Supabase Insert Error:', error)
@@ -855,20 +849,10 @@ export function useDishes() {
   }
 
   const deleteDish = async (id: string) => {
-    let tableName = 'recipes'
-    let { error } = await supabase
-      .from(tableName)
+    const { error } = await supabase
+      .from('recipes')
       .delete()
       .eq('id', id)
-
-    if (error && error.code === '42P01') {
-      tableName = 'dishes'
-      const fallback = await supabase
-        .from(tableName)
-        .delete()
-        .eq('id', id)
-      error = fallback.error
-    }
 
     if (error) {
       console.error('Supabase Delete Error:', error)
