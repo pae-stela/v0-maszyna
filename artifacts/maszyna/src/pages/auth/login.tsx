@@ -1,11 +1,12 @@
-import { supabase } from '../../lib/supabase/client'
+import { supabase } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Link, useLocation } from 'wouter'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useLanguage } from '@/lib/i18n/context'
 import type { Language } from '@/lib/i18n/translations'
 import { MaszynaIcon } from '@/components/logo'
+import { useAuth } from '@/lib/auth-context'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -14,6 +15,14 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [, navigate] = useLocation()
   const { language, setLanguage, t } = useLanguage()
+  const { user } = useAuth()
+
+  // Redirect to /app when user becomes logged in
+  useEffect(() => {
+    if (user) {
+      navigate('/app')
+    }
+  }, [user])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,8 +35,8 @@ export default function LoginPage() {
         password,
       })
       if (error) throw error
-      // Force a full client-side navigation to the dashboard
-      window.location.href = '/app'
+      // No manual navigation here — the useEffect above will redirect once
+      // the root AuthProvider's onAuthStateChange updates the user state.
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'An error occurred')
       setIsLoading(false)

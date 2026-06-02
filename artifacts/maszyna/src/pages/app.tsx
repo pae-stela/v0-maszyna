@@ -1,5 +1,5 @@
 import { UserProvider } from '@/lib/user-context'
-import { AuthProvider, useAuth } from '@/lib/auth-context'
+import { useAuth } from '@/lib/auth-context'
 import { AppShell } from '@/components/app-shell'
 import { Loader2 } from 'lucide-react'
 
@@ -38,9 +38,5 @@ function AppContent() {
 }
 
 export default function AppPage() {
-  return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
-  )
+  return <AppContent />
 }

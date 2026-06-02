@@ -160,7 +160,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const getUser = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser()
+        // Prefer getSession() on init — it reads from localStorage without a network
+        // round-trip, so it reliably picks up the session stored by signInWithPassword.
+        const { data: { session } } = await supabase.auth.getSession()
+        const user = session?.user ?? null
+        console.log('[Auth] init session:', user ? 'user=' + user.email : 'null')
         setUser(user)
 
         if (user) {
@@ -179,22 +183,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     getUser()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        try {
-          setUser(session?.user ?? null)
+      (event, session) => {
+        console.log('[Auth] onAuthStateChange event:', event, 'user:', session?.user?.email || null)
+        setUser(session?.user ?? null)
 
-          if (session?.user) {
-            const profile = await ensureProfile(session.user)
+        if (session?.user) {
+          // Fire async work separately so setUser is synchronous
+          ensureProfile(session.user).then(profile => {
             if (profile) setProfile(profile)
-            await fetchUserData(session.user.id)
-          } else {
-            setProfile(null)
-            setSettings(null)
-            setPartner(null)
-          }
-        } catch (err) {
-          console.error('Auth state change error:', err)
-          setUser(null)
+          })
+          fetchUserData(session.user.id).catch(err => {
+            console.error('Auth state change error:', err)
+          })
+        } else {
           setProfile(null)
           setSettings(null)
           setPartner(null)
