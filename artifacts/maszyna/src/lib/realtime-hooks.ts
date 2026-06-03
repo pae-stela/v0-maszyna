@@ -713,7 +713,35 @@ export function useIngredients() {
     return { error }
   }
 
-  return { ingredients, loading, addIngredient, deleteIngredient, refetch: fetchIngredients }
+  const updateIngredient = async (id: string, updates: Partial<DbIngredient>) => {
+    const payload: any = { ...updates }
+    if (updates.recipe_steps !== undefined) {
+      payload.recipe_steps = Array.isArray(updates.recipe_steps) ? updates.recipe_steps : []
+    }
+    if (updates.sub_ingredients !== undefined) {
+      payload.sub_ingredients = Array.isArray(updates.sub_ingredients) ? updates.sub_ingredients : []
+    }
+
+    const { data, error } = await supabase
+      .from('ingredients')
+      .update(payload)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Supabase Update Error:', error)
+      console.error('[useIngredients] update error:', error.message, error.code, error.details)
+      return { data: null, error }
+    }
+
+    if (data) {
+      setIngredients(prev => prev.map(i => i.id === id ? data as DbIngredient : i))
+    }
+    return { data, error }
+  }
+
+  return { ingredients, loading, addIngredient, deleteIngredient, updateIngredient, refetch: fetchIngredients }
 }
 
 // Dish type from Supabase (recipes table)
@@ -864,5 +892,45 @@ export function useDishes() {
     return { error }
   }
 
-  return { dishes, loading, addDish, deleteDish, refetch: fetchDishes }
+  const updateDish = async (id: string, updates: Partial<DishItem>) => {
+    const payload: any = {}
+    if (updates.name !== undefined) payload.name = updates.name
+    if (updates.description !== undefined) payload.description = updates.description ?? null
+    if (updates.elements !== undefined) payload.elements = Array.isArray(updates.elements) ? updates.elements : []
+    if (updates.totalCalories !== undefined) payload.total_calories = updates.totalCalories
+    if (updates.totalProtein !== undefined) payload.total_proteins = updates.totalProtein
+    if (updates.totalCarbs !== undefined) payload.total_carbs = updates.totalCarbs
+    if (updates.totalFats !== undefined) payload.total_fats = updates.totalFats
+    if (updates.totalFiber !== undefined) payload.total_fiber = updates.totalFiber
+    if (updates.mainCategory !== undefined) payload.main_category = updates.mainCategory
+    if (updates.subCategory !== undefined) payload.sub_category = updates.subCategory
+    if (updates.marcinServings !== undefined) payload.marcin_servings = updates.marcinServings ?? null
+    if (updates.patrycjaServings !== undefined) payload.patrycja_servings = updates.patrycjaServings ?? null
+    if (updates.servings !== undefined) payload.servings = updates.servings ?? null
+    if (updates.prepTime !== undefined) payload.prep_time = updates.prepTime ?? null
+    if (updates.cookTime !== undefined) payload.cook_time = updates.cookTime ?? null
+    if (updates.isCustom !== undefined) payload.is_custom = updates.isCustom
+    if (updates.recipeSteps !== undefined) payload.recipe_steps = Array.isArray(updates.recipeSteps) ? updates.recipeSteps : null
+    if (updates.steps !== undefined) payload.steps = Array.isArray(updates.steps) ? updates.steps : null
+
+    const { data, error } = await supabase
+      .from('recipes')
+      .update(payload)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Supabase Update Error:', error)
+      console.error('[useDishes] update error:', error.message, error.code, error.details)
+      return { data: null, error }
+    }
+
+    if (data) {
+      setDishes(prev => prev.map(d => d.id === id ? mapDishFromDb(data) : d))
+    }
+    return { data, error }
+  }
+
+  return { dishes, loading, addDish, deleteDish, updateDish, refetch: fetchDishes }
 }

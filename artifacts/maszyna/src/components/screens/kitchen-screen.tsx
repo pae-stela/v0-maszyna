@@ -41,6 +41,8 @@ interface DishItem {
   subCategory: string
   marcinServings?: number
   patrycjaServings?: number
+  recipeSteps?: string[]
+  steps?: string[]
 }
 
 // Category structure for dishes
@@ -127,6 +129,9 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
   const [useUnits, setUseUnits] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [saveName, setSaveName] = useState("")
+  const [saveMainCategory, setSaveMainCategory] = useState<"Large" | "Light" | "Snacks" | "Drinks">("Large")
+  const [saveSubCategory, setSaveSubCategory] = useState("")
+  const [saveRecipeSteps, setSaveRecipeSteps] = useState("")
   const [marcinServings, setMarcinServings] = useState(1)
   const [patrycjaServings, setPatrycjaServings] = useState(1)
 
@@ -290,6 +295,9 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
 
   const handleSaveDish = async () => {
     if (ingredients.length > 0 && saveName.trim()) {
+      const steps = saveRecipeSteps.trim()
+        ? saveRecipeSteps.split('\n').filter(s => s.trim()).map(s => s.trim())
+        : undefined
       const dish = await addDish({
         name: saveName.trim(),
         elements: ingredients.map((i) => ({ type: "ingredient" as const, id: i.id, name: i.name, grams: i.grams })),
@@ -298,16 +306,19 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
         totalCarbs: totals.carbs,
         totalFats: totals.fats,
         totalFiber: totals.fiber,
-        mainCategory: "Large" as const,
-        subCategory: "Custom",
+        mainCategory: saveMainCategory,
+        subCategory: saveSubCategory || "Custom",
         marcinServings,
         patrycjaServings,
+        recipeSteps: steps,
       })
 
       if (dish.error) {
         alert("Failed to save dish. Check the console for details.")
       } else {
         setSaveName("")
+        setSaveSubCategory("")
+        setSaveRecipeSteps("")
         alert(`Dish "${saveName}" saved successfully!`)
       }
     }
@@ -701,6 +712,55 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
             />
           </div>
 
+          {/* Category & Subcategory */}
+          <div className="mb-4 grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 block">Category</label>
+              <select
+                value={saveMainCategory}
+                onChange={(e) => {
+                  const v = e.target.value as "Large" | "Light" | "Snacks" | "Drinks"
+                  setSaveMainCategory(v)
+                  setSaveSubCategory("")
+                }}
+                className="w-full bg-secondary rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              >
+                <option value="Large">Large</option>
+                <option value="Light">Light</option>
+                <option value="Snacks">Snacks</option>
+                <option value="Drinks">Drinks</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 block">Subcategory</label>
+              <select
+                value={saveSubCategory}
+                onChange={(e) => setSaveSubCategory(e.target.value)}
+                className="w-full bg-secondary rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              >
+                <option value="">Select...</option>
+                {(dishCategories[saveMainCategory] || []).map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+                <option value="Custom">Custom</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Recipe Steps (for dishes) */}
+          <div className="mb-4">
+            <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 block">
+              Recipe Steps (optional, one per line)
+            </label>
+            <textarea
+              placeholder="Step 1: Preheat oven...&#10;Step 2: Mix ingredients..."
+              value={saveRecipeSteps}
+              onChange={(e) => setSaveRecipeSteps(e.target.value)}
+              rows={3}
+              className="w-full bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+            />
+          </div>
+
           <div className="flex flex-col gap-3">
             {/* Save Selected as Component */}
             <div className="bg-secondary/50 rounded-xl p-4">
@@ -761,11 +821,22 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
 const ingredientCategories = ["All", "Protein", "Carbs", "Vegetables", "Fruits", "Dairy", "Fats", "Nuts", "Component"]
 
 function IngredientsView() {
-  const { ingredients: dbIngredients, loading, addIngredient, deleteIngredient } = useIngredients()
+  const { ingredients: dbIngredients, loading, addIngredient, deleteIngredient, updateIngredient } = useIngredients()
   const [searchTerm, setSearchTerm] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("All")
   const [showAddForm, setShowAddForm] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState({
+    name: "",
+    caloriesPer100g: "",
+    proteinPer100g: "",
+    carbsPer100g: "",
+    fatsPer100g: "",
+    fiberPer100g: "",
+    category: "Protein",
+    instructions: "",
+  })
   const [newIngredient, setNewIngredient] = useState({
     name: "",
     caloriesPer100g: "",
@@ -839,6 +910,52 @@ function IngredientsView() {
 
   const handleDeleteIngredient = async (id: string) => {
     await deleteIngredient(id)
+  }
+
+  const startEdit = (ingredient: IngredientItem) => {
+    setEditingId(ingredient.id)
+    setEditForm({
+      name: ingredient.name,
+      caloriesPer100g: String(ingredient.caloriesPer100g),
+      proteinPer100g: String(ingredient.proteinPer100g),
+      carbsPer100g: String(ingredient.carbsPer100g),
+      fatsPer100g: String(ingredient.fatsPer100g),
+      fiberPer100g: String(ingredient.fiberPer100g),
+      category: ingredient.category,
+      instructions: ingredient.recipeSteps?.join('\n') || "",
+    })
+    setExpandedId(ingredient.id)
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setEditForm({
+      name: "",
+      caloriesPer100g: "",
+      proteinPer100g: "",
+      carbsPer100g: "",
+      fatsPer100g: "",
+      fiberPer100g: "",
+      category: "Protein",
+      instructions: "",
+    })
+  }
+
+  const handleSaveEdit = async (id: string) => {
+    const isComponent = editForm.category === "Component"
+    const result = await updateIngredient(id, {
+      name: editForm.name,
+      category: editForm.category,
+      calories: parseFloat(editForm.caloriesPer100g) || 0,
+      protein: parseFloat(editForm.proteinPer100g) || 0,
+      fat: parseFloat(editForm.fatsPer100g) || 0,
+      carbohydrates: parseFloat(editForm.carbsPer100g) || 0,
+      fiber: parseFloat(editForm.fiberPer100g) || 0,
+      recipe_steps: isComponent ? editForm.instructions.split('\n').filter(s => s.trim()).map(s => s.trim()) : [],
+    })
+    if (!result.error) {
+      setEditingId(null)
+    }
   }
 
   return (
@@ -1055,28 +1172,72 @@ function IngredientsView() {
                     </p>
                   )}
 
-                  {/* Action Buttons */}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        alert("Edit functionality coming soon")
-                      }}
-                      className="flex-1 py-2.5 rounded-xl bg-secondary text-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleDeleteIngredient(ingredient.id)
-                      }}
-                      className="flex-1 py-2.5 rounded-xl bg-destructive/10 text-destructive text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
-                    >
-                      <Trash2 className="size-4" />
-                      Delete
-                    </button>
-                  </div>
+                  {/* Inline Edit Form */}
+                  {editingId === ingredient.id ? (
+                    <div className="flex flex-col gap-3 mb-4">
+                      <input
+                        type="text"
+                        placeholder="Name"
+                        value={editForm.name}
+                        onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                        className="bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      />
+                      <select
+                        value={editForm.category}
+                        onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
+                        className="bg-secondary rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      >
+                        {ingredientCategories.slice(1).map((cat) => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                      {editForm.category === "Component" && (
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-xs text-muted-foreground">Instructions (one step per line)</label>
+                          <textarea
+                            value={editForm.instructions}
+                            onChange={(e) => setEditForm({ ...editForm, instructions: e.target.value })}
+                            rows={3}
+                            className="bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                          />
+                        </div>
+                      )}
+                      <div className="grid grid-cols-5 gap-2">
+                        <input type="number" placeholder="kcal" value={editForm.caloriesPer100g} onChange={(e) => setEditForm({ ...editForm, caloriesPer100g: e.target.value })} className="bg-secondary rounded-xl px-2 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                        <input type="number" placeholder="P" value={editForm.proteinPer100g} onChange={(e) => setEditForm({ ...editForm, proteinPer100g: e.target.value })} className="bg-secondary rounded-xl px-2 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                        <input type="number" placeholder="C" value={editForm.carbsPer100g} onChange={(e) => setEditForm({ ...editForm, carbsPer100g: e.target.value })} className="bg-secondary rounded-xl px-2 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                        <input type="number" placeholder="F" value={editForm.fatsPer100g} onChange={(e) => setEditForm({ ...editForm, fatsPer100g: e.target.value })} className="bg-secondary rounded-xl px-2 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                        <input type="number" placeholder="Fib" value={editForm.fiberPer100g} onChange={(e) => setEditForm({ ...editForm, fiberPer100g: e.target.value })} className="bg-secondary rounded-xl px-2 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                      </div>
+                      <div className="flex gap-2 mt-1">
+                        <button onClick={(e) => { e.stopPropagation(); handleSaveEdit(ingredient.id) }} className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:scale-[0.98] transition-transform">Save</button>
+                        <button onClick={(e) => { e.stopPropagation(); cancelEdit() }} className="flex-1 py-2.5 rounded-xl bg-secondary text-foreground text-sm font-medium active:scale-[0.98] transition-transform">Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Action Buttons */
+                    <div className="flex gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          startEdit(ingredient)
+                        }}
+                        className="flex-1 py-2.5 rounded-xl bg-secondary text-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteIngredient(ingredient.id)
+                        }}
+                        className="flex-1 py-2.5 rounded-xl bg-destructive/10 text-destructive text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                      >
+                        <Trash2 className="size-4" />
+                        Delete
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1088,11 +1249,18 @@ function IngredientsView() {
 }
 
 function DishesView() {
-  const { dishes, loading, deleteDish } = useDishes()
+  const { dishes, loading, deleteDish, updateDish } = useDishes()
   const [searchTerm, setSearchTerm] = useState("")
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [mainCategoryFilter, setMainCategoryFilter] = useState<string>("All")
   const [subCategoryFilter, setSubCategoryFilter] = useState<string>("All")
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState({
+    name: "",
+    mainCategory: "Large" as "Large" | "Light" | "Snacks" | "Drinks",
+    subCategory: "",
+    recipeSteps: "",
+  })
 
   const mainCategories = ["All", "Large", "Light", "Snacks", "Drinks"]
   const subCategories = mainCategoryFilter === "All"
@@ -1108,6 +1276,42 @@ function DishesView() {
 
   const handleDeleteDish = async (id: string) => {
     await deleteDish(id)
+  }
+
+  const startEdit = (dish: DishItem) => {
+    setEditingId(dish.id)
+    setEditForm({
+      name: dish.name,
+      mainCategory: dish.mainCategory,
+      subCategory: dish.subCategory,
+      recipeSteps: dish.recipeSteps?.join('\n') || "",
+    })
+    setExpandedId(dish.id)
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setEditForm({
+      name: "",
+      mainCategory: "Large",
+      subCategory: "",
+      recipeSteps: "",
+    })
+  }
+
+  const handleSaveEdit = async (id: string) => {
+    const steps = editForm.recipeSteps.trim()
+      ? editForm.recipeSteps.split('\n').filter(s => s.trim()).map(s => s.trim())
+      : undefined
+    const result = await updateDish(id, {
+      name: editForm.name,
+      mainCategory: editForm.mainCategory,
+      subCategory: editForm.subCategory || "Custom",
+      recipeSteps: steps,
+    })
+    if (!result.error) {
+      setEditingId(null)
+    }
   }
 
   return (
@@ -1164,13 +1368,6 @@ function DishesView() {
           ))}
         </div>
       )}
-
-      {/* Info Card */}
-      <div className="bg-primary/10 rounded-2xl p-4 border border-primary/30">
-        <p className="text-sm text-foreground">
-          <span className="font-medium">Dishes</span> are complete meals composed of ingredients and components. Create new dishes in the Calculator tab.
-        </p>
-      </div>
 
       {/* Dishes List */}
       <div className="flex flex-col gap-3">
@@ -1275,19 +1472,89 @@ function DishesView() {
                     </div>
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleDeleteDish(dish.id)}
-                      className="flex-1 py-2.5 rounded-xl bg-destructive/10 text-destructive text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
-                    >
-                      <Trash2 className="size-4" />
-                      Delete
-                    </button>
-                    <button className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:scale-[0.98] transition-transform">
-                      Quick Log
-                    </button>
-                  </div>
+                  {/* Recipe Steps (if any) */}
+                  {(dish.recipeSteps && dish.recipeSteps.length > 0) && (
+                    <div className="mb-4">
+                      <p className="text-xs font-medium text-muted-foreground mb-2">Instructions</p>
+                      <ol className="list-decimal list-inside space-y-1.5">
+                        {dish.recipeSteps.map((step, i) => (
+                          <li key={i} className="text-sm text-foreground">{step}</li>
+                        ))}
+                      </ol>
+                    </div>
+                  )}
+
+                  {/* Inline Edit Form */}
+                  {editingId === dish.id ? (
+                    <div className="flex flex-col gap-3 mb-4">
+                      <input
+                        type="text"
+                        placeholder="Dish name"
+                        value={editForm.name}
+                        onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                        className="bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      />
+                      <div className="grid grid-cols-2 gap-3">
+                        <select
+                          value={editForm.mainCategory}
+                          onChange={(e) => {
+                            const v = e.target.value as "Large" | "Light" | "Snacks" | "Drinks"
+                            setEditForm({ ...editForm, mainCategory: v, subCategory: "" })
+                          }}
+                          className="bg-secondary rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        >
+                          <option value="Large">Large</option>
+                          <option value="Light">Light</option>
+                          <option value="Snacks">Snacks</option>
+                          <option value="Drinks">Drinks</option>
+                        </select>
+                        <select
+                          value={editForm.subCategory}
+                          onChange={(e) => setEditForm({ ...editForm, subCategory: e.target.value })}
+                          className="bg-secondary rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        >
+                          <option value="">Select...</option>
+                          {(dishCategories[editForm.mainCategory] || []).map((cat) => (
+                            <option key={cat} value={cat}>{cat}</option>
+                          ))}
+                          <option value="Custom">Custom</option>
+                        </select>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs text-muted-foreground">Recipe Steps (one per line)</label>
+                        <textarea
+                          value={editForm.recipeSteps}
+                          onChange={(e) => setEditForm({ ...editForm, recipeSteps: e.target.value })}
+                          rows={3}
+                          className="bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                        />
+                      </div>
+                      <div className="flex gap-2 mt-1">
+                        <button onClick={() => handleSaveEdit(dish.id)} className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:scale-[0.98] transition-transform">Save</button>
+                        <button onClick={cancelEdit} className="flex-1 py-2.5 rounded-xl bg-secondary text-foreground text-sm font-medium active:scale-[0.98] transition-transform">Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Actions */
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => startEdit(dish)}
+                        className="flex-1 py-2.5 rounded-xl bg-secondary text-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteDish(dish.id)}
+                        className="flex-1 py-2.5 rounded-xl bg-destructive/10 text-destructive text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                      >
+                        <Trash2 className="size-4" />
+                        Delete
+                      </button>
+                      <button className="flex-[1.5] py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:scale-[0.98] transition-transform">
+                        Quick Log
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
