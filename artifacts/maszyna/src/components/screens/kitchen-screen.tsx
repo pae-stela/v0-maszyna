@@ -1,6 +1,6 @@
 
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useUser } from "@/lib/user-context"
 import { useIngredients, useDishes, type DbIngredient } from "@/lib/realtime-hooks"
 import { Calculator, Search, Plus, Trash2, Apple, ChefHat, UtensilsCrossed, FileText, ChevronDown } from "lucide-react"
@@ -70,15 +70,35 @@ interface CalculatorIngredient {
 // ingredientDatabase removed — now pulling from Supabase 'ingredients' table
 
 
+interface EditMode {
+  type: 'dish' | 'component'
+  id: string
+  name: string
+  elements: { type: "ingredient" | "component"; id: string; name: string; grams: number }[]
+  recipeSteps?: string[]
+  marcinServings?: number
+  patrycjaServings?: number
+  mainCategory?: "Large" | "Light" | "Snacks" | "Drinks"
+  subCategory?: string
+}
+
 export function KitchenScreen() {
   const [subTab, setSubTab] = useState<SubTab>("calculator")
+  const [editMode, setEditMode] = useState<EditMode | null>(null)
   const { activeUser } = useUser()
+
+  const handleTabChange = (tab: SubTab) => {
+    setSubTab(tab)
+    if (tab !== 'calculator') {
+      setEditMode(null)
+    }
+  }
 
   return (
     <div className="flex flex-col gap-4 pb-24">
       <div className="flex gap-1 p-1 bg-secondary rounded-xl">
         <button
-          onClick={() => setSubTab("calculator")}
+          onClick={() => handleTabChange("calculator")}
           className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
             subTab === "calculator"
               ? "bg-card text-foreground shadow-sm"
@@ -90,7 +110,7 @@ export function KitchenScreen() {
           <span className="xs:hidden">Calc</span>
         </button>
         <button
-          onClick={() => setSubTab("ingredients")}
+          onClick={() => handleTabChange("ingredients")}
           className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
             subTab === "ingredients"
               ? "bg-card text-foreground shadow-sm"
@@ -102,7 +122,7 @@ export function KitchenScreen() {
           <span className="xs:hidden">Ingr.</span>
         </button>
         <button
-          onClick={() => setSubTab("dishes")}
+          onClick={() => handleTabChange("dishes")}
           className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
             subTab === "dishes"
               ? "bg-card text-foreground shadow-sm"
@@ -114,14 +134,20 @@ export function KitchenScreen() {
         </button>
       </div>
 
-      {subTab === "calculator" && <CalculatorView activeUser={activeUser} />}
-      {subTab === "ingredients" && <IngredientsView />}
-      {subTab === "dishes" && <DishesView />}
+      {subTab === "calculator" && (
+        <CalculatorView
+          activeUser={activeUser}
+          editMode={editMode}
+          onClearEdit={() => setEditMode(null)}
+        />
+      )}
+      {subTab === "ingredients" && <IngredientsView onEditComponent={(mode) => { setEditMode(mode); setSubTab('calculator') }} />}
+      {subTab === "dishes" && <DishesView onEditDish={(mode) => { setEditMode(mode); setSubTab('calculator') }} />}
     </div>
   )
 }
 
-function CalculatorView({ activeUser }: { activeUser: string }) {
+function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: string; editMode: EditMode | null; onClearEdit: () => void }) {
   const [ingredients, setIngredients] = useState<CalculatorIngredient[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedIngredient, setSelectedIngredient] = useState<string | null>(null)
@@ -136,7 +162,36 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
   const [patrycjaServings, setPatrycjaServings] = useState(1)
 
   const { ingredients: dbIngredients, loading: dbLoading, addIngredient } = useIngredients()
-  const { addDish } = useDishes()
+  const { addDish, updateDish } = useDishes()
+
+  // Initialize calculator from editMode
+  useEffect(() => {
+    if (!editMode) return
+    setSaveName(editMode.name)
+    setSaveRecipeSteps(editMode.recipeSteps?.join('\n') || "")
+    setMarcinServings(editMode.marcinServings || 1)
+    setPatrycjaServings(editMode.patrycjaServings || 1)
+    if (editMode.mainCategory) setSaveMainCategory(editMode.mainCategory)
+    if (editMode.subCategory) setSaveSubCategory(editMode.subCategory)
+
+    // Convert elements to calculator ingredients
+    const calcIngredients: CalculatorIngredient[] = editMode.elements.map((el, idx) => {
+      const dbIng = dbIngredients.find(d => d.name.toLowerCase() === el.name.toLowerCase())
+      const multiplier = el.grams / 100
+      return {
+        id: `${Date.now()}-${idx}`,
+        name: el.name,
+        grams: el.grams,
+        calories: Math.round((dbIng?.calories || 0) * multiplier),
+        protein: Math.round((dbIng?.protein || 0) * multiplier * 10) / 10,
+        carbs: Math.round((dbIng?.carbohydrates || 0) * multiplier * 10) / 10,
+        fats: Math.round((dbIng?.fat || 0) * multiplier * 10) / 10,
+        fiber: Math.round((dbIng?.fiber || 0) * multiplier * 10) / 10,
+        selected: false,
+      }
+    })
+    setIngredients(calcIngredients)
+  }, [editMode, dbIngredients])
 
   const dbMap = useMemo(() => {
     const map: Record<string, DbIngredient> = {}
@@ -293,12 +348,12 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
     }
   }
 
-  const handleSaveDish = async () => {
+  const handleSaveDish = async (overwriteId?: string) => {
     if (ingredients.length > 0 && saveName.trim()) {
       const steps = saveRecipeSteps.trim()
         ? saveRecipeSteps.split('\n').filter(s => s.trim()).map(s => s.trim())
         : undefined
-      const dish = await addDish({
+      const payload = {
         name: saveName.trim(),
         elements: ingredients.map((i) => ({ type: "ingredient" as const, id: i.id, name: i.name, grams: i.grams })),
         totalCalories: totals.calories,
@@ -311,15 +366,30 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
         marcinServings,
         patrycjaServings,
         recipeSteps: steps,
-      })
+      }
 
-      if (dish.error) {
-        alert("Failed to save dish. Check the console for details.")
+      if (overwriteId) {
+        const dish = await updateDish(overwriteId, payload)
+        if (dish.error) {
+          alert("Failed to update dish. Check the console for details.")
+        } else {
+          setSaveName("")
+          setSaveSubCategory("")
+          setSaveRecipeSteps("")
+          onClearEdit()
+          alert(`Dish "${saveName}" updated successfully!`)
+        }
       } else {
-        setSaveName("")
-        setSaveSubCategory("")
-        setSaveRecipeSteps("")
-        alert(`Dish "${saveName}" saved successfully!`)
+        const dish = await addDish(payload)
+        if (dish.error) {
+          alert("Failed to save dish. Check the console for details.")
+        } else {
+          setSaveName("")
+          setSaveSubCategory("")
+          setSaveRecipeSteps("")
+          onClearEdit()
+          alert(`Dish "${saveName}" saved successfully!`)
+        }
       }
     }
   }
@@ -820,7 +890,7 @@ function CalculatorView({ activeUser }: { activeUser: string }) {
 
 const ingredientCategories = ["All", "Protein", "Carbs", "Vegetables", "Fruits", "Dairy", "Fats", "Nuts", "Component"]
 
-function IngredientsView() {
+function IngredientsView({ onEditComponent }: { onEditComponent: (mode: EditMode) => void }) {
   const { ingredients: dbIngredients, loading, addIngredient, deleteIngredient, updateIngredient } = useIngredients()
   const [searchTerm, setSearchTerm] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("All")
@@ -1203,11 +1273,26 @@ function IngredientsView() {
                         </div>
                       )}
                       <div className="grid grid-cols-5 gap-2">
-                        <input type="number" placeholder="kcal" value={editForm.caloriesPer100g} onChange={(e) => setEditForm({ ...editForm, caloriesPer100g: e.target.value })} className="bg-secondary rounded-xl px-2 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" />
-                        <input type="number" placeholder="P" value={editForm.proteinPer100g} onChange={(e) => setEditForm({ ...editForm, proteinPer100g: e.target.value })} className="bg-secondary rounded-xl px-2 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" />
-                        <input type="number" placeholder="C" value={editForm.carbsPer100g} onChange={(e) => setEditForm({ ...editForm, carbsPer100g: e.target.value })} className="bg-secondary rounded-xl px-2 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" />
-                        <input type="number" placeholder="F" value={editForm.fatsPer100g} onChange={(e) => setEditForm({ ...editForm, fatsPer100g: e.target.value })} className="bg-secondary rounded-xl px-2 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" />
-                        <input type="number" placeholder="Fib" value={editForm.fiberPer100g} onChange={(e) => setEditForm({ ...editForm, fiberPer100g: e.target.value })} className="bg-secondary rounded-xl px-2 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                        <div>
+                          <label className="text-[10px] text-muted-foreground mb-1 block">kcal</label>
+                          <input type="number" placeholder="0" value={editForm.caloriesPer100g} onClick={(e) => e.stopPropagation()} onChange={(e) => setEditForm({ ...editForm, caloriesPer100g: e.target.value })} className="w-full bg-secondary rounded-xl px-2 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-muted-foreground mb-1 block">Protein</label>
+                          <input type="number" placeholder="0" value={editForm.proteinPer100g} onClick={(e) => e.stopPropagation()} onChange={(e) => setEditForm({ ...editForm, proteinPer100g: e.target.value })} className="w-full bg-secondary rounded-xl px-2 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-muted-foreground mb-1 block">Carbs</label>
+                          <input type="number" placeholder="0" value={editForm.carbsPer100g} onClick={(e) => e.stopPropagation()} onChange={(e) => setEditForm({ ...editForm, carbsPer100g: e.target.value })} className="w-full bg-secondary rounded-xl px-2 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-muted-foreground mb-1 block">Fats</label>
+                          <input type="number" placeholder="0" value={editForm.fatsPer100g} onClick={(e) => e.stopPropagation()} onChange={(e) => setEditForm({ ...editForm, fatsPer100g: e.target.value })} className="w-full bg-secondary rounded-xl px-2 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-muted-foreground mb-1 block">Fiber</label>
+                          <input type="number" placeholder="0" value={editForm.fiberPer100g} onClick={(e) => e.stopPropagation()} onChange={(e) => setEditForm({ ...editForm, fiberPer100g: e.target.value })} className="w-full bg-secondary rounded-xl px-2 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                        </div>
                       </div>
                       <div className="flex gap-2 mt-1">
                         <button onClick={(e) => { e.stopPropagation(); handleSaveEdit(ingredient.id) }} className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:scale-[0.98] transition-transform">Save</button>
@@ -1217,15 +1302,39 @@ function IngredientsView() {
                   ) : (
                     /* Action Buttons */
                     <div className="flex gap-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          startEdit(ingredient)
-                        }}
-                        className="flex-1 py-2.5 rounded-xl bg-secondary text-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
-                      >
-                        Edit
-                      </button>
+                      {ingredient.isComponent ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onEditComponent({
+                              type: 'component',
+                              id: ingredient.id,
+                              name: ingredient.name,
+                              elements: ingredient.subIngredients?.map(si => ({
+                                type: 'ingredient' as const,
+                                id: si.ingredientId,
+                                name: si.name,
+                                grams: si.grams,
+                              })) || [],
+                              recipeSteps: ingredient.recipeSteps,
+                            })
+                          }}
+                          className="flex-1 py-2.5 rounded-xl bg-secondary text-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                        >
+                          <Calculator className="size-4" />
+                          Edit
+                        </button>
+                      ) : (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            startEdit(ingredient)
+                          }}
+                          className="flex-1 py-2.5 rounded-xl bg-secondary text-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                        >
+                          Edit
+                        </button>
+                      )}
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
@@ -1248,19 +1357,12 @@ function IngredientsView() {
   )
 }
 
-function DishesView() {
-  const { dishes, loading, deleteDish, updateDish } = useDishes()
+function DishesView({ onEditDish }: { onEditDish: (mode: EditMode) => void }) {
+  const { dishes, loading, deleteDish } = useDishes()
   const [searchTerm, setSearchTerm] = useState("")
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [mainCategoryFilter, setMainCategoryFilter] = useState<string>("All")
   const [subCategoryFilter, setSubCategoryFilter] = useState<string>("All")
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editForm, setEditForm] = useState({
-    name: "",
-    mainCategory: "Large" as "Large" | "Light" | "Snacks" | "Drinks",
-    subCategory: "",
-    recipeSteps: "",
-  })
 
   const mainCategories = ["All", "Large", "Light", "Snacks", "Drinks"]
   const subCategories = mainCategoryFilter === "All"
@@ -1276,42 +1378,6 @@ function DishesView() {
 
   const handleDeleteDish = async (id: string) => {
     await deleteDish(id)
-  }
-
-  const startEdit = (dish: DishItem) => {
-    setEditingId(dish.id)
-    setEditForm({
-      name: dish.name,
-      mainCategory: dish.mainCategory,
-      subCategory: dish.subCategory,
-      recipeSteps: dish.recipeSteps?.join('\n') || "",
-    })
-    setExpandedId(dish.id)
-  }
-
-  const cancelEdit = () => {
-    setEditingId(null)
-    setEditForm({
-      name: "",
-      mainCategory: "Large",
-      subCategory: "",
-      recipeSteps: "",
-    })
-  }
-
-  const handleSaveEdit = async (id: string) => {
-    const steps = editForm.recipeSteps.trim()
-      ? editForm.recipeSteps.split('\n').filter(s => s.trim()).map(s => s.trim())
-      : undefined
-    const result = await updateDish(id, {
-      name: editForm.name,
-      mainCategory: editForm.mainCategory,
-      subCategory: editForm.subCategory || "Custom",
-      recipeSteps: steps,
-    })
-    if (!result.error) {
-      setEditingId(null)
-    }
   }
 
   return (
@@ -1484,77 +1550,36 @@ function DishesView() {
                     </div>
                   )}
 
-                  {/* Inline Edit Form */}
-                  {editingId === dish.id ? (
-                    <div className="flex flex-col gap-3 mb-4">
-                      <input
-                        type="text"
-                        placeholder="Dish name"
-                        value={editForm.name}
-                        onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                        className="bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                      />
-                      <div className="grid grid-cols-2 gap-3">
-                        <select
-                          value={editForm.mainCategory}
-                          onChange={(e) => {
-                            const v = e.target.value as "Large" | "Light" | "Snacks" | "Drinks"
-                            setEditForm({ ...editForm, mainCategory: v, subCategory: "" })
-                          }}
-                          className="bg-secondary rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                        >
-                          <option value="Large">Large</option>
-                          <option value="Light">Light</option>
-                          <option value="Snacks">Snacks</option>
-                          <option value="Drinks">Drinks</option>
-                        </select>
-                        <select
-                          value={editForm.subCategory}
-                          onChange={(e) => setEditForm({ ...editForm, subCategory: e.target.value })}
-                          className="bg-secondary rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                        >
-                          <option value="">Select...</option>
-                          {(dishCategories[editForm.mainCategory] || []).map((cat) => (
-                            <option key={cat} value={cat}>{cat}</option>
-                          ))}
-                          <option value="Custom">Custom</option>
-                        </select>
-                      </div>
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-xs text-muted-foreground">Recipe Steps (one per line)</label>
-                        <textarea
-                          value={editForm.recipeSteps}
-                          onChange={(e) => setEditForm({ ...editForm, recipeSteps: e.target.value })}
-                          rows={3}
-                          className="bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
-                        />
-                      </div>
-                      <div className="flex gap-2 mt-1">
-                        <button onClick={() => handleSaveEdit(dish.id)} className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:scale-[0.98] transition-transform">Save</button>
-                        <button onClick={cancelEdit} className="flex-1 py-2.5 rounded-xl bg-secondary text-foreground text-sm font-medium active:scale-[0.98] transition-transform">Cancel</button>
-                      </div>
-                    </div>
-                  ) : (
-                    /* Actions */
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => startEdit(dish)}
-                        className="flex-1 py-2.5 rounded-xl bg-secondary text-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeleteDish(dish.id)}
-                        className="flex-1 py-2.5 rounded-xl bg-destructive/10 text-destructive text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
-                      >
-                        <Trash2 className="size-4" />
-                        Delete
-                      </button>
-                      <button className="flex-[1.5] py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:scale-[0.98] transition-transform">
-                        Quick Log
-                      </button>
-                    </div>
-                  )}
+                  {/* Actions */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => onEditDish({
+                        type: 'dish',
+                        id: dish.id,
+                        name: dish.name,
+                        elements: dish.elements,
+                        recipeSteps: dish.recipeSteps,
+                        marcinServings: dish.marcinServings,
+                        patrycjaServings: dish.patrycjaServings,
+                        mainCategory: dish.mainCategory,
+                        subCategory: dish.subCategory,
+                      })}
+                      className="flex-1 py-2.5 rounded-xl bg-secondary text-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                    >
+                      <Calculator className="size-4" />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeleteDish(dish.id)}
+                      className="flex-1 py-2.5 rounded-xl bg-destructive/10 text-destructive text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                    >
+                      <Trash2 className="size-4" />
+                      Delete
+                    </button>
+                    <button className="flex-[1.5] py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:scale-[0.98] transition-transform">
+                      Quick Log
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
