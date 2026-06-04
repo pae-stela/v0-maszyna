@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useUser } from "@/lib/user-context"
 import { Droplets, Dumbbell, Pill, Check, ChevronRight, Calculator, Footprints, Sparkles, ChevronDown, Users } from "lucide-react"
-import { presetDishes } from "./planner-screen"
+import { useDishes } from "@/lib/realtime-hooks"
 
 function ProgressRing({ 
   value, 
@@ -85,6 +85,7 @@ const userData = {
 
 export function DashboardScreen() {
   const { activeUser, getTodaySteps, updateSteps, getWeeklyAvgSteps } = useUser()
+  const { dishes: allDishes } = useDishes()
   const data = userData[activeUser]
   const partnerUser = activeUser === "patrycja" ? "marcin" : "patrycja"
   const partnerData = userData[partnerUser]
@@ -110,31 +111,35 @@ export function DashboardScreen() {
 
   // Score recipes based on how well they fill remaining macros
   const getSuggestedRecipes = () => {
-    return presetDishes
+    return allDishes
       .map(dish => {
+        const cals = dish.totalCalories
+        const protein = dish.totalProtein
+        const carbs = dish.totalCarbs
+        const fats = dish.totalFats
         // Penalize if exceeds remaining (we want to fill, not overflow)
-        const calorieScore = dish.calories <= remainingMacros.calories 
-          ? dish.calories / Math.max(remainingMacros.calories, 1)
-          : -0.5 * (dish.calories - remainingMacros.calories) / dish.calories
-        
-        // Prioritize protein matching
-        const proteinScore = dish.protein <= remainingMacros.protein + 10
-          ? dish.protein / Math.max(remainingMacros.protein, 1)
-          : -0.3 * (dish.protein - remainingMacros.protein) / dish.protein
+        const calorieScore = cals <= remainingMacros.calories
+          ? cals / Math.max(remainingMacros.calories, 1)
+          : -0.5 * (cals - remainingMacros.calories) / cals
 
-        const carbScore = dish.carbs <= remainingMacros.carbs + 15
-          ? 0.3 * dish.carbs / Math.max(remainingMacros.carbs, 1)
+        // Prioritize protein matching
+        const proteinScore = protein <= remainingMacros.protein + 10
+          ? protein / Math.max(remainingMacros.protein, 1)
+          : -0.3 * (protein - remainingMacros.protein) / protein
+
+        const carbScore = carbs <= remainingMacros.carbs + 15
+          ? 0.3 * carbs / Math.max(remainingMacros.carbs, 1)
           : -0.2
 
-        const fatScore = dish.fats <= remainingMacros.fats + 10
-          ? 0.3 * dish.fats / Math.max(remainingMacros.fats, 1)
+        const fatScore = fats <= remainingMacros.fats + 10
+          ? 0.3 * fats / Math.max(remainingMacros.fats, 1)
           : -0.2
 
         const totalScore = calorieScore + proteinScore * 1.5 + carbScore + fatScore
 
         return { ...dish, score: totalScore }
       })
-      .filter(dish => dish.calories <= remainingMacros.calories + 100) // Allow small overflow
+      .filter(dish => dish.totalCalories <= remainingMacros.calories + 100) // Allow small overflow
       .sort((a, b) => b.score - a.score)
       .slice(0, 3)
   }
@@ -347,14 +352,14 @@ export function DashboardScreen() {
                         )}
                         <p className="text-sm font-medium text-foreground truncate">{recipe.name}</p>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5 truncate">{recipe.details}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">{recipe.description || recipe.subCategory}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 mt-2 text-[10px]">
-                    <span className="text-foreground font-medium">{recipe.calories} kcal</span>
-                    <span className="text-primary">{recipe.protein}g P</span>
-                    <span className="text-wheat">{recipe.carbs}g C</span>
-                    <span className="text-terracotta/70">{recipe.fats}g F</span>
+                    <span className="text-foreground font-medium">{recipe.totalCalories} kcal</span>
+                    <span className="text-primary">{recipe.totalProtein}g P</span>
+                    <span className="text-wheat">{recipe.totalCarbs}g C</span>
+                    <span className="text-terracotta/70">{recipe.totalFats}g F</span>
                   </div>
                 </div>
               ))}

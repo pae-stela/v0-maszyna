@@ -1,13 +1,26 @@
 
-
-import { useState } from "react"
+import { useState, useMemo } from "react"
+import { useAuth } from "@/lib/auth-context"
+import { useDishes, useWorkoutPlans, usePlannerEvents, useMealLogs } from "@/lib/realtime-hooks"
 import { Calendar, ShoppingCart, ChevronLeft, ChevronRight, Plus, Check, X, Dumbbell, UtensilsCrossed, ExternalLink, AlertTriangle, RefreshCw, ChevronDown, FileText } from "lucide-react"
+
+// Re-export dishCategories for shopping view
+const dishCategories: Record<string, string[]> = {
+  "Large": ["Pasta & Rice", "Traditional", "Pancakes & Tortillas", "Salads & Veggies", "Fakeaways"],
+  "Light": ["Eggs", "Sandwiches & Wraps", "Soups", "Sweet Bakes & Desserts", "Oats & Granola"],
+  "Snacks": ["Savoury", "Sweet"],
+  "Drinks": ["Shakes & Smoothies", "Cocktails & Mocktails", "Hot drinks", "Cold drinks"],
+}
+
+export { dishCategories }
 
 type SubTab = "calendar" | "shopping"
 type CalendarViewMode = "today" | "3day" | "week"
 type EventType = "meal" | "training" | "google"
 
-interface PlannerEvent {
+type OwnerFilter = "patrycja" | "marcin" | "both"
+
+interface PlannerEventLocal {
   id: string
   date: Date
   title: string
@@ -15,6 +28,14 @@ interface PlannerEvent {
   type: EventType
   details?: string
   owner: "marcin" | "patrycja"
+  calories?: number
+  protein?: number
+  carbs?: number
+  fats?: number
+  fiber?: number
+  dishId?: string
+  planId?: string
+  sharedWithPartner?: boolean
 }
 
 export function PlannerScreen() {
@@ -90,33 +111,125 @@ function isSameDay(d1: Date, d2: Date): boolean {
     d1.getDate() === d2.getDate()
 }
 
-// Preset workouts (would normally come from training screen)
-const presetWorkouts: { id: string; name: string; type: "weights" | "cardio" | "flexibility"; details: string }[] = []
 
-// Preset dishes with macros (would normally come from kitchen screen)
-const presetDishes: { id: string; name: string; details: string; calories: number; protein: number; carbs: number; fats: number }[] = []
+function MacroProgressBar({
+  label, value, max, color
+}: {
+  label: string
+  value: number
+  max: number
+  color: string
+}) {
+  const pct = Math.min((value / max) * 100, 100)
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center justify-between text-[10px]">
+        <span className="text-muted-foreground font-medium">{label}</span>
+        <span className="text-foreground font-semibold">{Math.round(value)}/{max}</span>
+      </div>
+      <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full ${color}`}
+          style={{ width: `${pct}%`, transition: 'width 0.5s ease-out' }}
+        />
+      </div>
+    </div>
+  )
+}
 
-export { presetDishes }
+function MacroSummary({
+  date,
+  ownerFilter,
+  settings,
+  partner
+}: {
+  date: Date
+  ownerFilter: OwnerFilter
+  settings: { calorie_goal: number; protein_goal: number; carbs_goal: number; fats_goal: number } | null
+  partner: { name: string; id: string } | null
+}) {
+  const dateStr = date.toISOString().split('T')[0]
+  const { meals: mealLogs } = useMealLogs(dateStr)
+  const { user, profile } = useAuth()
+
+  const target = settings || {
+    calorie_goal: 2000,
+    protein_goal: 150,
+    carbs_goal: 200,
+    fats_goal: 65,
+  }
+
+  // Filter by owner filter (use user_id to determine owner)
+  const filtered = mealLogs.filter(log => {
+    if (ownerFilter === "both") return true
+    const ownerName = log.user_id === user?.id
+      ? (profile?.name?.toLowerCase().includes("marcin") ? "marcin" : "patrycja")
+      : (partner?.name?.toLowerCase().includes("marcin") ? "marcin" : "patrycja")
+    return ownerName === ownerFilter
+  })
+
+  const consumed = filtered.reduce(
+    (acc, log) => ({
+      calories: acc.calories + (log.calories || 0),
+      protein: acc.protein + (log.protein || 0),
+      carbs: acc.carbs + (log.carbs || 0),
+      fats: acc.fats + (log.fats || 0),
+    }),
+    { calories: 0, protein: 0, carbs: 0, fats: 0 }
+  )
+
+  return (
+    <div className="px-3 pb-3 pt-1 flex flex-col gap-2 border-b border-border">
+      <div className="flex items-center gap-1.5">
+        <div className="w-4 h-4 rounded-full border-2 border-sage flex items-center justify-center">
+          <span className="text-[7px] font-bold text-sage">{Math.round((consumed.calories / target.calorie_goal) * 100)}%</span>
+        </div>
+        <span className="text-[10px] text-muted-foreground font-medium">{Math.round(consumed.calories)} kcal</span>
+      </div>
+      <MacroProgressBar label="Protein" value={consumed.protein} max={target.protein_goal} color="bg-amber-500" />
+      <MacroProgressBar label="Carbs" value={consumed.carbs} max={target.carbs_goal} color="bg-emerald-500" />
+      <MacroProgressBar label="Fats" value={consumed.fats} max={target.fats_goal} color="bg-rose-500" />
+    </div>
+  )
+}
 
 function CalendarView() {
+  const { user, profile, settings, partner } = useAuth()
+  const { dishes: allDishes } = useDishes()
+  const { plans: allPlans } = useWorkoutPlans()
+
   const [viewMode, setViewMode] = useState<CalendarViewMode>("today")
   const [baseDate, setBaseDate] = useState(new Date())
   const [showAddModal, setShowAddModal] = useState(false)
   const [addType, setAddType] = useState<"meal" | "training">("meal")
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [googleConnected, setGoogleConnected] = useState(false)
-  const [activeUser, setActiveUser] = useState<"marcin" | "patrycja">("marcin")
+  const [ownerFilter, setOwnerFilter] = useState<OwnerFilter>("both")
+  const [activeUser, setActiveUser] = useState<"marcin" | "patrycja">("patrycja")
   const [showBothCalendars, setShowBothCalendars] = useState(true)
-  
-  const [events, setEvents] = useState<PlannerEvent[]>([])
 
   const [newEvent, setNewEvent] = useState({ title: "", time: "12:00", details: "" })
   const [inputMode, setInputMode] = useState<"preset" | "custom">("preset")
-  const [selectedPreset, setSelectedPreset] = useState<string | null>(null)
+  const [selectedDishId, setSelectedDishId] = useState<string | null>(null)
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null)
   const [workoutTypeFilter, setWorkoutTypeFilter] = useState<"weights" | "cardio" | "flexibility">("weights")
+
+  // Cascading dish selection state
+  const [selectedMainCategory, setSelectedMainCategory] = useState<string | null>(null)
+  const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null)
+
+  // Meal owner: "marcin" | "patrycja" | "both"
+  const [mealOwner, setMealOwner] = useState<"marcin" | "patrycja" | "both">("patrycja")
 
   const dates = getDateRange(baseDate, viewMode)
   const today = new Date()
+
+  // Planner events for the current date range
+  const startDate = dates[0]?.toISOString().split('T')[0] || today.toISOString().split('T')[0]
+  const endDate = dates[dates.length - 1]?.toISOString().split('T')[0] || today.toISOString().split('T')[0]
+
+  // We use a date-agnostic query for planner events, then filter in memory
+  const { events: plannerEvents, addEvent, deleteEvent } = usePlannerEvents()
 
   const navigate = (direction: "prev" | "next") => {
     const newDate = new Date(baseDate)
@@ -129,55 +242,112 @@ function CalendarView() {
     setBaseDate(new Date())
   }
 
-  const handleAddEvent = () => {
+  const handleAddEvent = async () => {
     let title = ""
     let details = ""
-    
-    if (addType === "training" && selectedPreset) {
-      // Training always uses preset selection
-      const preset = presetWorkouts.find(p => p.id === selectedPreset)
-      if (preset) {
-        title = preset.name
-        details = preset.details
+    let calories: number | undefined
+    let protein: number | undefined
+    let carbs: number | undefined
+    let fats: number | undefined
+    let fiber: number | undefined
+    let dishId: string | undefined
+    let planId: string | undefined
+    let shared = false
+
+    if (addType === "training" && selectedPlanId) {
+      const plan = allPlans.find(p => p.id === selectedPlanId)
+      if (plan) {
+        title = plan.name
+        details = plan.type
+        planId = plan.id
       }
     } else if (addType === "meal") {
-      if (inputMode === "preset" && selectedPreset) {
-        const preset = presetDishes.find(p => p.id === selectedPreset)
-        if (preset) {
-          title = preset.name
-          details = preset.details
+      if (inputMode === "preset" && selectedDishId) {
+        const dish = allDishes.find(d => d.id === selectedDishId)
+        if (dish) {
+          title = dish.name
+          details = dish.subCategory || dish.mainCategory
+          calories = dish.totalCalories
+          protein = dish.totalProtein
+          carbs = dish.totalCarbs
+          fats = dish.totalFats
+          fiber = dish.totalFiber
+          dishId = dish.id
+          shared = mealOwner === "both"
         }
       } else if (inputMode === "custom" && newEvent.title.trim()) {
         title = newEvent.title
         details = newEvent.details
       }
     }
-    
+
     if (!title) return
-    
-    const event: PlannerEvent = {
-      id: Date.now().toString(),
-      date: selectedDate,
-      title,
-      time: newEvent.time,
-      type: addType,
-      details: details || undefined,
-      owner: activeUser,
+
+    const dateStr = selectedDate.toISOString().split('T')[0]
+    const owners = mealOwner === "both"
+      ? ["marcin" as const, "patrycja" as const]
+      : [mealOwner as "marcin" | "patrycja"]
+
+    for (const owner of owners) {
+      await addEvent({
+        date: dateStr,
+        name: title,
+        title,
+        time: newEvent.time,
+        type: addType,
+        details: details || undefined,
+        owner,
+        calories,
+        protein,
+        carbs,
+        fats,
+        fiber,
+        dish_id: dishId,
+        plan_id: planId,
+        shared_with_partner: shared,
+        logged: false,
+      })
     }
-    setEvents([...events, event])
+
     setNewEvent({ title: "", time: "12:00", details: "" })
-    setSelectedPreset(null)
+    setSelectedDishId(null)
+    setSelectedPlanId(null)
+    setSelectedMainCategory(null)
+    setSelectedSubCategory(null)
     setInputMode("preset")
+    setMealOwner("patrycja")
     setShowAddModal(false)
   }
 
   const getEventsForDate = (date: Date) => {
-    return events
-      .filter(e => isSameDay(e.date, date) && (showBothCalendars || e.owner === activeUser))
+    const dateStr = date.toISOString().split('T')[0]
+    return plannerEvents
+      .filter(e => {
+        if (e.date !== dateStr) return false
+        if (showBothCalendars) return true
+        if (ownerFilter === "both") return true
+        return e.owner === activeUser
+      })
       .sort((a, b) => a.time.localeCompare(b.time))
+      .map(e => ({
+        id: e.id,
+        date: new Date(e.date + "T00:00:00"),
+        title: e.title,
+        time: e.time,
+        type: e.type as EventType,
+        details: e.details || undefined,
+        owner: e.owner as "marcin" | "patrycja",
+        calories: e.calories,
+        protein: e.protein,
+        carbs: e.carbs,
+        fats: e.fats,
+        fiber: e.fiber,
+        dishId: e.dish_id || undefined,
+        planId: e.plan_id || undefined,
+        sharedWithPartner: e.shared_with_partner,
+      }))
   }
 
-  // Color scheme: Marcin = blue/navy, Patrycja = green/dark green
   const getEventColor = (type: EventType, owner: "marcin" | "patrycja") => {
     if (owner === "marcin") {
       switch (type) {
@@ -201,6 +371,19 @@ function CalendarView() {
       case "google": return <Calendar className="size-4" />
     }
   }
+
+  // Filtered dishes by cascading selection
+  const filteredDishes = useMemo(() => {
+    if (!selectedMainCategory) return []
+    if (!selectedSubCategory) {
+      return allDishes.filter(d => d.mainCategory === selectedMainCategory)
+    }
+    return allDishes.filter(d => d.mainCategory === selectedMainCategory && d.subCategory === selectedSubCategory)
+  }, [allDishes, selectedMainCategory, selectedSubCategory])
+
+  const filteredPlans = useMemo(() => {
+    return allPlans.filter(p => p.type === workoutTypeFilter)
+  }, [allPlans, workoutTypeFilter])
 
   return (
     <div className="flex flex-col gap-4">
@@ -227,6 +410,7 @@ function CalendarView() {
           onClick={() => {
             setShowBothCalendars(false)
             setActiveUser("patrycja")
+            setOwnerFilter("patrycja")
           }}
           className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
             !showBothCalendars && activeUser === "patrycja"
@@ -240,6 +424,7 @@ function CalendarView() {
           onClick={() => {
             setShowBothCalendars(false)
             setActiveUser("marcin")
+            setOwnerFilter("marcin")
           }}
           className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
             !showBothCalendars && activeUser === "marcin"
@@ -250,7 +435,10 @@ function CalendarView() {
           Marcin
         </button>
         <button
-          onClick={() => setShowBothCalendars(true)}
+          onClick={() => {
+            setShowBothCalendars(true)
+            setOwnerFilter("both")
+          }}
           className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
             showBothCalendars
               ? "bg-primary text-primary-foreground"
@@ -263,7 +451,7 @@ function CalendarView() {
 
       {/* Navigation */}
       <div className="flex items-center justify-between">
-        <button 
+        <button
           onClick={() => navigate("prev")}
           className="p-2 rounded-lg hover:bg-secondary transition-colors"
         >
@@ -271,13 +459,13 @@ function CalendarView() {
         </button>
         <div className="flex items-center gap-2">
           <h3 className="font-semibold text-foreground">
-            {viewMode === "today" 
+            {viewMode === "today"
               ? formatDate(baseDate)
               : `${formatDate(dates[0])} - ${formatDate(dates[dates.length - 1])}`
             }
           </h3>
           {!isSameDay(baseDate, today) && (
-            <button 
+            <button
               onClick={goToToday}
               className="text-xs text-primary hover:underline"
             >
@@ -285,7 +473,7 @@ function CalendarView() {
             </button>
           )}
         </div>
-        <button 
+        <button
           onClick={() => navigate("next")}
           className="p-2 rounded-lg hover:bg-secondary transition-colors"
         >
@@ -298,10 +486,11 @@ function CalendarView() {
         {dates.map((date) => {
           const dayEvents = getEventsForDate(date)
           const isToday = isSameDay(date, today)
-          
+          const dateKey = date.toISOString()
+
           return (
-            <div 
-              key={date.toISOString()} 
+            <div
+              key={dateKey}
               className={`bg-card rounded-2xl border overflow-hidden ${isToday ? "border-primary" : "border-border"}`}
             >
               {/* Date Header */}
@@ -314,13 +503,21 @@ function CalendarView() {
                 </p>
               </div>
 
+              {/* Macro Progress Summary */}
+              <MacroSummary
+                date={date}
+                ownerFilter={ownerFilter}
+                settings={settings}
+                partner={partner}
+              />
+
               {/* Events */}
               <div className={`p-2 flex flex-col gap-1.5 ${viewMode === "week" ? "min-h-[120px]" : "min-h-[80px]"}`}>
                 {dayEvents.length === 0 ? (
                   <p className="text-xs text-muted-foreground text-center py-4">No events</p>
                 ) : (
                   dayEvents.map((event) => (
-                    <div 
+                    <div
                       key={event.id}
                       className={`rounded-lg p-2 text-white ${getEventColor(event.type, event.owner)}`}
                     >
@@ -351,6 +548,12 @@ function CalendarView() {
                   onClick={() => {
                     setSelectedDate(date)
                     setAddType("meal")
+                    setSelectedDishId(null)
+                    setSelectedPlanId(null)
+                    setSelectedMainCategory(null)
+                    setSelectedSubCategory(null)
+                    setInputMode("preset")
+                    setMealOwner("patrycja")
                     setShowAddModal(true)
                   }}
                   className="flex-1 py-2 text-sage/80 hover:bg-sage/10 transition-colors flex items-center justify-center gap-1 border-r border-border"
@@ -362,6 +565,11 @@ function CalendarView() {
                   onClick={() => {
                     setSelectedDate(date)
                     setAddType("training")
+                    setSelectedDishId(null)
+                    setSelectedPlanId(null)
+                    setSelectedMainCategory(null)
+                    setSelectedSubCategory(null)
+                    setInputMode("preset")
                     setShowAddModal(true)
                   }}
                   className="flex-1 py-2 text-primary hover:bg-primary/10 transition-colors flex items-center justify-center gap-1"
@@ -380,8 +588,8 @@ function CalendarView() {
         <div className="flex items-center gap-3">
           <div className="size-10 rounded-xl bg-navy/20 flex items-center justify-center">
             <svg className="size-5" viewBox="0 0 24 24" fill="none">
-              <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" fill="#4285F4"/>
-              <path d="M12 6v6l4 2" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" fill="#4285F4" />
+              <path d="M12 6v6l4 2" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
             </svg>
           </div>
           <div className="flex-1">
@@ -393,8 +601,8 @@ function CalendarView() {
           <button
             onClick={() => setGoogleConnected(!googleConnected)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              googleConnected 
-                ? "bg-sage/20 text-sage" 
+              googleConnected
+                ? "bg-sage/20 text-sage"
                 : "bg-primary text-primary-foreground"
             }`}
           >
@@ -412,7 +620,7 @@ function CalendarView() {
       {/* Add Event Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 p-4 pb-24">
-          <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden max-h-[70vh] flex flex-col">
+          <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden max-h-[80vh] flex flex-col">
             <div className="p-4 border-b border-border flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {addType === "meal" ? (
@@ -431,7 +639,7 @@ function CalendarView() {
                   <p className="text-xs text-muted-foreground">{formatDate(selectedDate)}</p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setShowAddModal(false)}
                 className="p-1 rounded-lg hover:bg-secondary"
               >
@@ -439,7 +647,7 @@ function CalendarView() {
               </button>
             </div>
 
-            <div className="p-4 flex flex-col gap-4">
+            <div className="p-4 flex flex-col gap-4 overflow-y-auto">
               {/* For meals: Preset / Custom Toggle */}
               {addType === "meal" && (
                 <div className="flex gap-2">
@@ -459,7 +667,9 @@ function CalendarView() {
                   <button
                     onClick={() => {
                       setInputMode("custom")
-                      setSelectedPreset(null)
+                      setSelectedDishId(null)
+                      setSelectedMainCategory(null)
+                      setSelectedSubCategory(null)
                     }}
                     className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
                       inputMode === "custom"
@@ -508,53 +718,171 @@ function CalendarView() {
                 </div>
               )}
 
-              {/* Meal Preset Selection */}
+              {/* Meal Owner Selection (for meals) */}
+              {addType === "meal" && (
+                <div className="flex gap-2 p-1 bg-secondary rounded-xl">
+                  <button
+                    onClick={() => setMealOwner("patrycja")}
+                    className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
+                      mealOwner === "patrycja"
+                        ? "bg-sage text-background shadow-sm"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    Patrycja
+                  </button>
+                  <button
+                    onClick={() => setMealOwner("marcin")}
+                    className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
+                      mealOwner === "marcin"
+                        ? "bg-navy text-background shadow-sm"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    Marcin
+                  </button>
+                  <button
+                    onClick={() => setMealOwner("both")}
+                    className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
+                      mealOwner === "both"
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    Both
+                  </button>
+                </div>
+              )}
+
+              {/* Meal Preset: Cascading Selection */}
               {addType === "meal" && inputMode === "preset" && (
-                <div className="flex flex-col gap-2 max-h-48 overflow-y-auto">
-                  {presetDishes.map((preset) => (
-                    <button
-                      key={preset.id}
-                      onClick={() => setSelectedPreset(preset.id)}
-                      className={`p-3 rounded-xl text-left transition-all ${
-                        selectedPreset === preset.id
-                          ? "bg-sage/20 border border-sage"
-                          : "bg-secondary border border-transparent hover:border-border"
-                      }`}
-                    >
-                      <p className="text-sm font-medium text-foreground">
-                        {preset.name}
+                <div className="flex flex-col gap-3">
+                  {/* Step 1: Main Category */}
+                  {!selectedMainCategory && (
+                    <div className="flex flex-col gap-2">
+                      <p className="text-xs font-medium text-muted-foreground">1. Select category</p>
+                      <div className="flex flex-col gap-1.5">
+                        {Object.keys(dishCategories).map((cat) => (
+                          <button
+                            key={cat}
+                            onClick={() => {
+                              setSelectedMainCategory(cat)
+                              setSelectedSubCategory(null)
+                              setSelectedDishId(null)
+                            }}
+                            className="p-2.5 rounded-xl text-left bg-secondary border border-transparent hover:border-border text-sm font-medium text-foreground transition-all"
+                          >
+                            {cat}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 2: Sub Category */}
+                  {selectedMainCategory && !selectedSubCategory && (
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedMainCategory(null)
+                            setSelectedSubCategory(null)
+                            setSelectedDishId(null)
+                          }}
+                          className="text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          &larr; Back to categories
+                        </button>
+                      </div>
+                      <p className="text-xs font-medium text-muted-foreground">
+                        2. Select subcategory ({selectedMainCategory})
                       </p>
-                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                        {preset.details}
+                      <div className="flex flex-col gap-1.5">
+                        {dishCategories[selectedMainCategory]?.map((sub) => (
+                          <button
+                            key={sub}
+                            onClick={() => {
+                              setSelectedSubCategory(sub)
+                              setSelectedDishId(null)
+                            }}
+                            className="p-2.5 rounded-xl text-left bg-secondary border border-transparent hover:border-border text-sm font-medium text-foreground transition-all"
+                          >
+                            {sub}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 3: Dish List */}
+                  {selectedMainCategory && selectedSubCategory && (
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedSubCategory(null)
+                            setSelectedDishId(null)
+                          }}
+                          className="text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          &larr; Back to subcategories
+                        </button>
+                      </div>
+                      <p className="text-xs font-medium text-muted-foreground">
+                        3. Select dish ({selectedSubCategory})
                       </p>
-                    </button>
-                  ))}
+                      <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto">
+                        {filteredDishes.length === 0 ? (
+                          <p className="text-xs text-muted-foreground text-center py-4">No dishes in this category</p>
+                        ) : (
+                          filteredDishes.map((dish) => (
+                            <button
+                              key={dish.id}
+                              onClick={() => setSelectedDishId(dish.id)}
+                              className={`p-3 rounded-xl text-left transition-all ${
+                                selectedDishId === dish.id
+                                  ? "bg-sage/20 border border-sage"
+                                  : "bg-secondary border border-transparent hover:border-border"
+                              }`}
+                            >
+                              <p className="text-sm font-medium text-foreground">{dish.name}</p>
+                              <p className="text-[10px] text-muted-foreground mt-0.5">
+                                {Math.round(dish.totalCalories)} kcal | P {Math.round(dish.totalProtein)}g | C {Math.round(dish.totalCarbs)}g | F {Math.round(dish.totalFats)}g
+                              </p>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* Workout Preset Selection (filtered by type) */}
               {addType === "training" && (
                 <div className="flex flex-col gap-2 max-h-48 overflow-y-auto">
-                  {presetWorkouts
-                    .filter(workout => workout.type === workoutTypeFilter)
-                    .map((preset) => (
+                  {filteredPlans.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-4">No plans in this category</p>
+                  ) : (
+                    filteredPlans.map((plan) => (
                       <button
-                        key={preset.id}
-                        onClick={() => setSelectedPreset(preset.id)}
+                        key={plan.id}
+                        onClick={() => setSelectedPlanId(plan.id)}
                         className={`p-3 rounded-xl text-left transition-all ${
-                          selectedPreset === preset.id
+                          selectedPlanId === plan.id
                             ? "bg-primary/20 border border-primary"
                             : "bg-secondary border border-transparent hover:border-border"
                         }`}
                       >
                         <p className="text-sm font-medium text-foreground">
-                          {preset.name}
+                          {plan.name}
                         </p>
-                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                          {preset.details}
+                        <p className="text-xs text-muted-foreground mt-0.5 capitalize">
+                          {plan.type}
                         </p>
                       </button>
-                    ))}
+                    ))
+                  )}
                 </div>
               )}
 
@@ -592,7 +920,13 @@ function CalendarView() {
               {/* Add Button */}
               <button
                 onClick={handleAddEvent}
-                disabled={inputMode === "preset" ? !selectedPreset : !newEvent.title.trim()}
+                disabled={
+                  addType === "meal"
+                    ? inputMode === "preset"
+                      ? !selectedDishId
+                      : !newEvent.title.trim()
+                    : !selectedPlanId
+                }
                 className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform"
               >
                 Add {addType === "meal" ? "Meal" : "Training"}
@@ -645,7 +979,7 @@ function ShoppingView() {
 
   const dishesAndComponents: { id: string; name: string; type: string; category?: string; subCategory?: string; ingredients: string[]; marcinServings: number; patrycjaServings: number }[] = []
 
-  const dishCategories = ["All", "Large", "Light", "Snacks", "Drinks"]
+  const dishCategoryOptions = ["All", "Large", "Light", "Snacks", "Drinks"]
   const [selectedDishCategory, setSelectedDishCategory] = useState("All")
 
   const filteredRecipes = dishesAndComponents.filter(item => {
@@ -1110,7 +1444,7 @@ function ShoppingView() {
               {/* Category Filter (dishes only) */}
               {recipeTab === "dishes" && (
                 <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
-                  {dishCategories.map((cat) => (
+                  {dishCategoryOptions.map((cat) => (
                     <button
                       key={cat}
                       onClick={() => setSelectedDishCategory(cat)}

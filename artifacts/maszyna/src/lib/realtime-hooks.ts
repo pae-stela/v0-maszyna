@@ -57,11 +57,21 @@ export interface PlannerEvent {
   date: string
   time: string
   type: 'meal' | 'training' | 'supplements'
+  title: string
   name: string
   details: string | null
+  owner: 'marcin' | 'patrycja'
   logged: boolean
   shared_with_partner: boolean
+  calories?: number
+  protein?: number
+  carbs?: number
+  fats?: number
+  fiber?: number
+  dish_id?: string
+  plan_id?: string
   created_at: string
+  updated_at?: string
 }
 
 // Hook for meal logs with real-time updates
@@ -462,7 +472,7 @@ export function usePlannerEvents(date?: string) {
     }
   }, [user, partner, supabase])
 
-  const addEvent = async (event: Omit<PlannerEvent, 'id' | 'user_id' | 'created_at'>) => {
+  const addEvent = async (event: Partial<PlannerEvent> & Pick<PlannerEvent, 'date' | 'time' | 'type' | 'name'>) => {
     if (!user) return
 
     const { data, error } = await supabase
