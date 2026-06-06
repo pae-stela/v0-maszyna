@@ -811,7 +811,7 @@ function mapDishFromDb(dbDish: any): DishItem {
     description: dbDish.description ?? null,
     elements: Array.isArray(dbDish.elements) ? dbDish.elements : [],
     totalCalories: dbDish.total_calories ?? 0,
-    totalProtein: dbDish.total_proteins ?? 0,
+    totalProtein: dbDish.total_protein ?? dbDish.total_proteins ?? dbDish.protein ?? 0,
     totalCarbs: dbDish.total_carbs ?? 0,
     totalFats: dbDish.total_fats ?? 0,
     totalFiber: dbDish.total_fiber ?? 0,
@@ -834,7 +834,7 @@ function mapDishToDb(dish: Omit<DishItem, 'id' | 'user_id' | 'created_at'>): any
     description: dish.description ?? null,
     elements: Array.isArray(dish.elements) ? dish.elements : [],
     total_calories: dish.totalCalories,
-    total_proteins: dish.totalProtein,
+    total_protein: dish.totalProtein,
     total_carbs: dish.totalCarbs,
     total_fats: dish.totalFats,
     total_fiber: dish.totalFiber,
@@ -935,7 +935,7 @@ export function useDishes() {
     if (updates.description !== undefined) payload.description = updates.description ?? null
     if (updates.elements !== undefined) payload.elements = Array.isArray(updates.elements) ? updates.elements : []
     if (updates.totalCalories !== undefined) payload.total_calories = updates.totalCalories
-    if (updates.totalProtein !== undefined) payload.total_proteins = updates.totalProtein
+    if (updates.totalProtein !== undefined) payload.total_protein = updates.totalProtein
     if (updates.totalCarbs !== undefined) payload.total_carbs = updates.totalCarbs
     if (updates.totalFats !== undefined) payload.total_fats = updates.totalFats
     if (updates.totalFiber !== undefined) payload.total_fiber = updates.totalFiber
