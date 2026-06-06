@@ -16,7 +16,7 @@ export { dishCategories }
 
 type SubTab = "calendar" | "shopping"
 type CalendarViewMode = "today" | "3day" | "week"
-type EventType = "meal" | "training" | "google"
+type EventType = "meal" | "training" | "supplements" | "google"
 
 type OwnerFilter = "patrycja" | "marcin" | "both"
 
@@ -320,8 +320,29 @@ function CalendarView() {
               logged: false,
               owner: owner as "patrycja" | "marcin",
             })
+            // Also add to planner_events for calendar display
+            const plannerResult = await addEvent({
+              date: targetDateStr,
+              name: title,
+              title,
+              time: newEvent.time,
+              type: "meal",
+              details: details || undefined,
+              owner: owner as "patrycja" | "marcin",
+              calories,
+              protein,
+              carbs,
+              fats,
+              fiber,
+              dish_id: dishId,
+              shared_with_partner: shared,
+              logged: false,
+            })
+            if (plannerResult?.error) {
+              console.error("[planner] addEvent error for meal:", plannerResult.error)
+            }
           } else {
-            await addEvent({
+            const result = await addEvent({
               date: targetDateStr,
               name: title,
               title,
@@ -333,6 +354,9 @@ function CalendarView() {
               shared_with_partner: shared,
               logged: false,
             })
+            if (result?.error) {
+              console.error("[planner] addEvent error:", result.error)
+            }
           }
         }
       }
@@ -387,12 +411,14 @@ function CalendarView() {
       switch (type) {
         case "training": return "bg-navy"
         case "meal": return "bg-navy/70"
+        case "supplements": return "bg-navy/50"
         case "google": return "bg-navy"
       }
     } else {
       switch (type) {
         case "training": return "bg-sage"
         case "meal": return "bg-sage/70"
+        case "supplements": return "bg-sage/50"
         case "google": return "bg-emerald-900"
       }
     }
@@ -402,6 +428,7 @@ function CalendarView() {
     switch (type) {
       case "training": return <Dumbbell className="size-4" />
       case "meal": return <UtensilsCrossed className="size-4" />
+      case "supplements": return <Pill className="size-4" />
       case "google": return <Calendar className="size-4" />
     }
   }
@@ -571,7 +598,8 @@ function CalendarView() {
                       <div className="mt-auto p-2 border-t border-border flex justify-center gap-2">
                         <button
                           onClick={() => {
-                            setSelectedDate(date) // <--- POPRAWIONE NA date
+                            setSelectedDate(date)
+                            setAddType("meal")
                             setShowAddModal(true)
                           }}
                           title="Dodaj posiłek"
@@ -582,7 +610,8 @@ function CalendarView() {
                         </button>
                         <button
                           onClick={() => {
-                            setSelectedDate(date) // <--- POPRAWIONE NA date
+                            setSelectedDate(date)
+                            setAddType("training")
                             setShowAddModal(true)
                           }}
                           title="Dodaj trening"
@@ -593,7 +622,8 @@ function CalendarView() {
                         </button>
                         <button
                           onClick={() => {
-                            setSelectedDate(date) // <--- POPRAWIONE NA date
+                            setSelectedDate(date)
+                            setAddType("supplements")
                             setShowAddModal(true)
                           }}
                           title="Dodaj suplementy"
