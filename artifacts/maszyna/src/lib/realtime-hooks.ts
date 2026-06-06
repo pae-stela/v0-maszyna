@@ -17,6 +17,7 @@ export interface MealLog {
   fats: number
   created_at: string
   logged: boolean
+  fiber?: number
 }
 
 export interface WorkoutLog {
@@ -56,19 +57,10 @@ export interface PlannerEvent {
   date: string
   time: string
   type: 'meal' | 'training' | 'supplements'
-  title: string
   name: string
   details: string | null
-  owner: 'marcin' | 'patrycja'
   logged: boolean
   shared_with_partner: boolean
-  calories?: number
-  protein?: number
-  carbs?: number
-  fats?: number
-  fiber?: number
-  dish_id?: string
-  plan_id?: string
   created_at: string
   updated_at?: string
 }
@@ -157,7 +149,7 @@ export function useMealLogs(date?: string) {
   }, [user, partner, supabase])
 
   const addMeal = async (meal: Omit<MealLog, 'id' | 'user_id' | 'created_at'>) => {
-    if (!user) return
+    if (!user) return { data: null, error: new Error('Not logged in') }
 
     const { data, error } = await supabase
       .from('meal_logs')
@@ -165,7 +157,12 @@ export function useMealLogs(date?: string) {
       .select()
       .single()
 
-    if (!error && data) {
+    if (error) {
+      console.error('[addMeal] error:', error.message, error.code, error.details)
+      return { data: null, error }
+    }
+
+    if (data) {
       setMeals(prev => [...prev, data].sort((a, b) => a.time.localeCompare(b.time)))
     }
 
@@ -498,7 +495,7 @@ export function usePlannerEvents(date?: string) {
   }, [user, partner, supabase])
 
   const addEvent = async (event: Partial<PlannerEvent> & Pick<PlannerEvent, 'date' | 'time' | 'type' | 'name'>) => {
-    if (!user) return
+    if (!user) return { data: null, error: new Error('Not logged in') }
 
     const { data, error } = await supabase
       .from('planner_events')
@@ -506,7 +503,12 @@ export function usePlannerEvents(date?: string) {
       .select()
       .single()
 
-    if (!error && data) {
+    if (error) {
+      console.error('[addEvent] error:', error.message, error.code, error.details)
+      return { data: null, error }
+    }
+
+    if (data) {
       setEvents(prev => [...prev, data].sort((a, b) => a.time.localeCompare(b.time)))
     }
 

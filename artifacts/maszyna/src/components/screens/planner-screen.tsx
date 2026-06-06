@@ -238,6 +238,11 @@ function CalendarView() {
   }
 
   const handleAddEvent = async () => {
+    if (!user) {
+      alert("Musisz być zalogowany/a, aby dodać pozycję do planera.")
+      return
+    }
+
     let title = ""
     let details = ""
     let calories = 0
@@ -306,74 +311,75 @@ function CalendarView() {
         ? getRecurringDates(selectedDate, selectedDays, totalOccurrences)
         : [selectedDate.toISOString().split('T')[0]]
 
+      let hasError = false
+
       for (const targetDateStr of targetDates) {
         for (const owner of targetOwners) {
+          const detailsJson = JSON.stringify({
+            owner,
+            calories: addType === "meal" ? calories : undefined,
+            protein: addType === "meal" ? protein : undefined,
+            carbs: addType === "meal" ? carbs : undefined,
+            fats: addType === "meal" ? fats : undefined,
+            fiber: addType === "meal" ? fiber : undefined,
+            dishId,
+            planId,
+            shared,
+            type: addType,
+          })
+
           if (addType === "meal") {
-            await addMeal({
+            const mealResult = await addMeal({
               date: targetDateStr,
               time: newEvent.time,
               name: title,
-              calories,
-              protein,
-              carbs,
-              fats,
-              logged: false,
-              owner: owner as "patrycja" | "marcin",
-            })
-            // Also add to planner_events for calendar display
-            const plannerResult = await addEvent({
-              date: targetDateStr,
-              name: title,
-              title,
-              time: newEvent.time,
-              type: "meal",
-              details: details || undefined,
-              owner: owner as "patrycja" | "marcin",
               calories,
               protein,
               carbs,
               fats,
               fiber,
-              dish_id: dishId,
-              shared_with_partner: shared,
               logged: false,
             })
-            if (plannerResult?.error) {
-              console.error("[planner] addEvent error for meal:", plannerResult.error)
+            if (mealResult?.error) {
+              console.error("[planner] addMeal error:", mealResult.error)
+              hasError = true
             }
-          } else {
-            const result = await addEvent({
-              date: targetDateStr,
-              name: title,
-              title,
-              time: newEvent.time,
-              type: addType,
-              details: details || undefined,
-              owner: owner as "patrycja" | "marcin",
-              plan_id: planId,
-              shared_with_partner: shared,
-              logged: false,
-            })
-            if (result?.error) {
-              console.error("[planner] addEvent error:", result.error)
-            }
+          }
+
+          const plannerResult = await addEvent({
+            date: targetDateStr,
+            name: title,
+            time: newEvent.time,
+            type: addType,
+            details: detailsJson,
+            shared_with_partner: shared,
+            logged: false,
+          })
+          if (plannerResult?.error) {
+            console.error("[planner] addEvent error:", plannerResult.error)
+            hasError = true
           }
         }
       }
 
-      setNewEvent({ title: "", time: "12:00", details: "" })
-      setSelectedDishId(null)
-      setSelectedPlanId(null)
-      setSelectedMainCategory(null)
-      setSelectedSubCategory(null)
-      setInputMode("preset")
-      setMealOwner("patrycja")
-      setIsRecurring(false)
-      setSelectedDays([])
-      setTotalOccurrences(4)
-      setShowAddModal(false)
+      if (hasError) {
+        alert("Nie udało się zapisać wszystkich pozycji. Sprawdź konsolę.")
+      } else {
+        setNewEvent({ title: "", time: "12:00", details: "" })
+        setSelectedDishId(null)
+        setSelectedPlanId(null)
+        setSelectedMainCategory(null)
+        setSelectedSubCategory(null)
+        setInputMode("preset")
+        setMealOwner("patrycja")
+        setIsRecurring(false)
+        setSelectedDays([])
+        setTotalOccurrences(4)
+        setShowAddModal(false)
+      }
     } catch (error) {
       console.error("Błąd podczas dodawania pozycji:", error)
+      alert("Wystąpił błąd podczas zapisywania.")
     }
   }
 
@@ -384,26 +390,29 @@ function CalendarView() {
         if (e.date !== dateStr) return false
         if (showBothCalendars) return true
         if (ownerFilter === "both") return true
-        return e.owner === activeUser
+        // Derive owner from user_id
+        const eventOwner = e.user_id === user?.id
+          ? (profile?.name?.toLowerCase().includes("marcin") ? "marcin" : "patrycja")
+          : (partner?.name?.toLowerCase().includes("marcin") ? "marcin" : "patrycja")
+        return eventOwner === activeUser
       })
       .sort((a, b) => a.time.localeCompare(b.time))
-      .map(e => ({
-        id: e.id,
-        date: new Date(e.date + "T00:00:00"),
-        title: e.title,
-        time: e.time,
-        type: e.type as EventType,
-        details: e.details || undefined,
-        owner: e.owner as "marcin" | "patrycja",
-        calories: e.calories,
-        protein: e.protein,
-        carbs: e.carbs,
-        fats: e.fats,
-        fiber: e.fiber,
-        dishId: e.dish_id || undefined,
-        planId: e.plan_id || undefined,
-        sharedWithPartner: e.shared_with_partner,
-      }))
+      .map(e => {
+        // Derive owner from user_id
+        const eventOwner = e.user_id === user?.id
+          ? (profile?.name?.toLowerCase().includes("marcin") ? "marcin" : "patrycja")
+          : (partner?.name?.toLowerCase().includes("marcin") ? "marcin" : "patrycja")
+        return {
+          id: e.id,
+          date: new Date(e.date + "T00:00:00"),
+          title: e.name,
+          time: e.time,
+          type: e.type as EventType,
+          details: e.details || undefined,
+          owner: eventOwner,
+          sharedWithPartner: e.shared_with_partner,
+        }
+      })
   }
 
   const getEventColor = (type: EventType, owner: "marcin" | "patrycja") => {
