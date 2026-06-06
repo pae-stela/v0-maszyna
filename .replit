@@ -30,3 +30,13 @@ externalPort = 8081
 [[ports]]
 localPort = 23023
 externalPort = 80
+
+[[ports]]
+localPort = 23802
+externalPort = 3000
+
+[userenv]
+
+[userenv.shared]
+NEXT_PUBLIC_SUPABASE_URL = "https://dgafzpodejwarkfyubdk.supabase.co/rest/v1/"
+NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnYWZ6cG9kZWp3YXJrZnl1YmRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NTEyOTMsImV4cCI6MjA5NTQyNzI5M30.VIeEnY32KDAVihZVGKnfbkPnm51B_JtNaV-NbN6mZJk"
