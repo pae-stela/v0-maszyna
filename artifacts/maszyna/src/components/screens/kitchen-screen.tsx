@@ -869,7 +869,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
                 </div>
               </div>
               <button
-                onClick={handleSaveDish}
+                onClick={() => handleSaveDish()}
                 disabled={ingredients.length === 0 || !saveName.trim()}
                 className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-40 disabled:active:scale-100 mt-2"
               >
