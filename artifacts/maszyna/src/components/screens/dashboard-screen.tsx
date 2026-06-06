@@ -1,3 +1,4 @@
+import { getT } from "@/lib/i18n";
 import { useState } from "react"
 import { useUser } from "@/lib/user-context"
 import { Droplets, Dumbbell, Pill, Check, ChevronRight, Calculator, Footprints, Sparkles, ChevronDown, Users } from "lucide-react"

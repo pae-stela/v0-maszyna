@@ -1,3 +1,4 @@
+import { getT } from "@/lib/i18n";
 import { useMemo } from "react"
 import { useMealLogs, usePlannerEvents } from "@/lib/realtime-hooks"
 import { Dumbbell, UtensilsCrossed, CheckCircle2, Circle } from "lucide-react"

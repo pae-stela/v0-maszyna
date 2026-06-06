@@ -1,5 +1,5 @@
 
-
+import { getT } from "@/lib/i18n";
 import { useState, useMemo, useEffect } from "react"
 import { useUser } from "@/lib/user-context"
 import { useIngredients, useDishes, type DbIngredient } from "@/lib/realtime-hooks"

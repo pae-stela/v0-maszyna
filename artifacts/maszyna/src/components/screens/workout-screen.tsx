@@ -1,5 +1,5 @@
 
-
+import { getT } from "@/lib/i18n";
 import { useState, useEffect } from "react"
 import { useUser } from "@/lib/user-context"
 import { useWorkoutPlans } from "@/lib/realtime-hooks"

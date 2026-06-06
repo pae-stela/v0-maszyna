@@ -1,7 +1,8 @@
+import { useLanguage } from "@/lib/i18n/context"
 import { useState, useMemo } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { useDishes, useWorkoutPlans, usePlannerEvents, useMealLogs } from "@/lib/realtime-hooks"
-import { Calendar, ShoppingCart, ChevronLeft, ChevronRight, Plus, Check, X, Dumbbell, UtensilsCrossed, ExternalLink, AlertTriangle, RefreshCw, ChevronDown, FileText, Sparkles } from "lucide-react"
+import { Calendar, ShoppingCart, ChevronLeft, ChevronRight, Plus, Check, X, Dumbbell, UtensilsCrossed, ExternalLink, AlertTriangle, RefreshCw, ChevronDown, FileText, Pill } from "lucide-react"
 
 // Re-export dishCategories for shopping view
 const dishCategories: Record<string, string[]> = {
@@ -38,6 +39,7 @@ interface PlannerEventLocal {
 }
 
 export function PlannerScreen() {
+  const { t } = useLanguage()
   const [subTab, setSubTab] = useState<SubTab>("calendar")
 
   return (
@@ -52,7 +54,7 @@ export function PlannerScreen() {
           }`}
         >
           <Calendar className="size-4" />
-          Calendar
+         {t("planner")}
         </button>
         <button
           onClick={() => setSubTab("shopping")}
@@ -63,7 +65,7 @@ export function PlannerScreen() {
           }`}
         >
           <ShoppingCart className="size-4" />
-          Shopping List
+          {t("Shopping")}
         </button>
       </div>
 
@@ -533,42 +535,80 @@ function CalendarView() {
                 settings={settings}
                 partner={partner}
               />
-
+              
               {/* Events */}
-              <div className={`p-2 flex flex-col gap-1.5 ${viewMode === "week" ? "min-h-[120px]" : "min-h-[80px]"}`}>
-                {dayEvents.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-4">No events</p>
-                ) : (
-                  dayEvents.map((event) => (
-                    <div
-                      key={event.id}
-                      className={`rounded-lg p-2 text-white ${getEventColor(event.type, event.owner)}`}
-                    >
-                      <div className="flex items-center gap-1.5">
-                        {getEventIcon(event.type)}
-                        <span className={`font-medium truncate ${viewMode === "week" ? "text-[10px]" : "text-xs"}`}>
-                          {event.title}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <p className={`opacity-80 ${viewMode === "week" ? "text-[9px]" : "text-[10px]"}`}>
-                          {event.time}
-                        </p>
-                        {showBothCalendars && (
-                          <span className={`opacity-70 ${viewMode === "week" ? "text-[8px]" : "text-[9px]"}`}>
-                            {event.owner === "marcin" ? "M" : "P"}
-                          </span>
+                      <div className={`p-2 flex flex-col gap-1.5 ${viewMode === "week" ? "min-h-[120px]" : "min-h-[80px]"}`}>
+                        {dayEvents.length === 0 ? (
+                          <p className="text-xs text-muted-foreground text-center py-4">No events</p>
+                        ) : (
+                          dayEvents.map((event) => (
+                            <div
+                              key={event.id}
+                              className={`rounded-lg p-2 text-white ${getEventColor(event.type, event.owner)}`}
+                            >
+                              <div className="flex items-center gap-1.5">
+                                {getEventIcon(event.type)}
+                                <span className={`font-medium truncate ${viewMode === "week" ? "text-[10px]" : "text-xs"}`}>
+                                  {event.title}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <p className={`opacity-80 ${viewMode === "week" ? "text-[9px]" : "text-[10px]"}`}>
+                                  {event.time}
+                                </p>
+                                {showBothCalendars && (
+                                  <span className={`opacity-70 ${viewMode === "week" ? "text-[8px]" : "text-[9px]"}`}>
+                                    {event.owner === "marcin" ? "M" : "P"}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ))
                         )}
                       </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          )
-        })}
-      </div>
 
+                      {/* TRZY PRZYCISKI Z PLUSAMI I IKONAMI */}
+                      <div className="mt-auto p-2 border-t border-border flex justify-center gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedDate(date) // <--- POPRAWIONE NA date
+                            setShowAddModal(true)
+                          }}
+                          title="Dodaj posiłek"
+                          className="py-1.5 px-2.5 rounded-full border border-input bg-background hover:bg-accent hover:text-accent-foreground text-muted-foreground transition-all shadow-sm flex items-center justify-center gap-0.5"
+                        >
+                          <span className="text-xs font-light text-muted-foreground/80">+</span>
+                          <UtensilsCrossed className="size-3.5" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedDate(date) // <--- POPRAWIONE NA date
+                            setShowAddModal(true)
+                          }}
+                          title="Dodaj trening"
+                          className="py-1.5 px-2.5 rounded-full border border-input bg-background hover:bg-accent hover:text-accent-foreground text-muted-foreground transition-all shadow-sm flex items-center justify-center gap-0.5"
+                        >
+                          <span className="text-xs font-light text-muted-foreground/80">+</span>
+                          <Dumbbell className="size-3.5" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedDate(date) // <--- POPRAWIONE NA date
+                            setShowAddModal(true)
+                          }}
+                          title="Dodaj suplementy"
+                          className="py-1.5 px-2.5 rounded-full border border-input bg-background hover:bg-accent hover:text-accent-foreground text-muted-foreground transition-all shadow-sm flex items-center justify-center gap-0.5"
+                        >
+                          <span className="text-xs font-light text-muted-foreground/80">+</span>
+                          <Pill className="size-3.5" />
+                        </button>
+                      </div>
+
+                    </div>
+                  )
+                })}
+              </div>
+      
       {/* Google Calendar Sync */}
       <div className="bg-card rounded-2xl p-4 border border-border">
         <div className="flex items-center gap-3">
@@ -603,20 +643,6 @@ function CalendarView() {
         )}
       </div>
 
-      {/* Trigger template for triggering the Add Modal */}
-      <div className="flex justify-center mt-2">
-        <button
-          onClick={() => {
-            setSelectedDate(baseDate)
-            setShowAddModal(true)
-          }}
-          className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-medium shadow-sm hover:opacity-90 transition-all"
-        >
-          <Plus className="size-4" />
-          Add Item
-        </button>
-      </div>
-
       {/* Add Event Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 p-4 pb-24">
@@ -635,11 +661,11 @@ function CalendarView() {
                   </div>
                 ) : (
                   <div className="size-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                    <Sparkles className="size-4 text-amber-600" />
+                    <Pill className="size-4 text-amber-600" />
                   </div>
                 )}
                 <div>
-                  <h3 className="font-semibold text-foreground font-serif text-sm">
+                  <h3 className="font-semibold text-foreground font-sans text-sm">
                     {addType === "meal" ? "Dodaj posiłek" : addType === "training" ? "Dodaj trening" : "Dodaj suplement"}
                   </h3>
                   <p className="text-xs text-muted-foreground font-mono">{formatDate(selectedDate)}</p>
@@ -853,7 +879,7 @@ function CalendarView() {
                               }`}
                             >
                               <div className="flex justify-between items-center">
-                                <span className="font-serif text-sm text-foreground">{dish.name}</span>
+                                <span className="font-sans text-sm text-foreground">{dish.name}</span>
                                 <span className="font-mono text-[11px] text-muted-foreground">{dish.totalCalories || 0} kcal</span>
                               </div>
                             </button>
