@@ -1,5 +1,3 @@
-
-
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from './supabase/client'
 import { useAuth } from '@/lib/auth-context'
@@ -18,6 +16,7 @@ export interface MealLog {
   carbs: number
   fats: number
   created_at: string
+  logged: boolean
 }
 
 export interface WorkoutLog {
@@ -75,6 +74,7 @@ export interface PlannerEvent {
 }
 
 // Hook for meal logs with real-time updates
+// Hook for meal logs with real-time updates
 export function useMealLogs(date?: string) {
   const { user, partner, loading: authLoading } = useAuth()
   const [meals, setMeals] = useState<MealLog[]>([])
@@ -123,8 +123,11 @@ export function useMealLogs(date?: string) {
     const userIds = [user.id]
     if (partner) userIds.push(partner.id)
 
+    // Unikalny identyfikator kanału zapobiega konfliktom przy wielokrotnym montowaniu komponentu
+    const uniqueChannelId = `meal-logs-changes-${Math.random().toString(36).substring(2, 9)}`
+
     const channel: RealtimeChannel = supabase
-      .channel('meal-logs-changes')
+      .channel(uniqueChannelId)
       .on(
         'postgres_changes',
         {
@@ -169,6 +172,21 @@ export function useMealLogs(date?: string) {
     return { data, error }
   }
 
+  const updateMeal = async (id: string, updates: Partial<MealLog>) => {
+    const { data, error } = await supabase
+      .from('meal_logs')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (!error && data) {
+      setMeals(prev => prev.map(m => m.id === id ? data : m))
+    }
+
+    return { data, error }
+  }
+
   const deleteMeal = async (id: string) => {
     const { error } = await supabase
       .from('meal_logs')
@@ -182,7 +200,7 @@ export function useMealLogs(date?: string) {
     return { error }
   }
 
-  return { meals, loading, addMeal, deleteMeal, refetch: fetchMeals }
+  return { meals, loading, addMeal, updateMeal, deleteMeal, refetch: fetchMeals }
 }
 
 // Hook for workout logs with real-time updates
@@ -190,6 +208,7 @@ export function useWorkoutLogs(date?: string) {
   const { user, partner, loading: authLoading } = useAuth()
   const [workouts, setWorkouts] = useState<WorkoutLog[]>([])
   const [loading, setLoading] = useState(true)
+
   const fetchWorkouts = useCallback(async () => {
     if (authLoading) return
     if (!user) {
@@ -231,8 +250,10 @@ export function useWorkoutLogs(date?: string) {
     const userIds = [user.id]
     if (partner) userIds.push(partner.id)
 
+    const uniqueChannelId = `workout-logs-changes-${Math.random().toString(36).substring(2, 9)}`
+
     const channel = supabase
-      .channel('workout-logs-changes')
+      .channel(uniqueChannelId)
       .on(
         'postgres_changes',
         {
@@ -323,8 +344,10 @@ export function useStepLogs() {
     const userIds = [user.id]
     if (partner) userIds.push(partner.id)
 
+    const uniqueChannelId = `step-logs-changes-${Math.random().toString(36).substring(2, 9)}`
+
     const channel = supabase
-      .channel('step-logs-changes')
+      .channel(uniqueChannelId)
       .on(
         'postgres_changes',
         {
@@ -442,8 +465,10 @@ export function usePlannerEvents(date?: string) {
     const userIds = [user.id]
     if (partner) userIds.push(partner.id)
 
+    const uniqueChannelId = `planner-events-changes-${Math.random().toString(36).substring(2, 9)}`
+
     const channel = supabase
-      .channel('planner-events-changes')
+      .channel(uniqueChannelId)
       .on(
         'postgres_changes',
         {
@@ -555,8 +580,10 @@ export function useWorkoutPlans() {
   useEffect(() => {
     if (!user) return
 
+    const uniqueChannelId = `user-workout-plans-changes-${Math.random().toString(36).substring(2, 9)}`
+
     const channel = supabase
-      .channel('user-workout-plans-changes')
+      .channel(uniqueChannelId)
       .on(
         'postgres_changes',
         {
@@ -856,7 +883,7 @@ export function useDishes() {
     }
 
     setDishes((data || []).map(mapDishFromDb))
-    setLoading(false)
+    loading && setLoading(false)
   }, [user, partner, authLoading, supabase])
 
   useEffect(() => {

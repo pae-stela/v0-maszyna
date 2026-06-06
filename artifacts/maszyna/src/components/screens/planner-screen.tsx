@@ -1,8 +1,7 @@
-
 import { useState, useMemo } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { useDishes, useWorkoutPlans, usePlannerEvents, useMealLogs } from "@/lib/realtime-hooks"
-import { Calendar, ShoppingCart, ChevronLeft, ChevronRight, Plus, Check, X, Dumbbell, UtensilsCrossed, ExternalLink, AlertTriangle, RefreshCw, ChevronDown, FileText } from "lucide-react"
+import { Calendar, ShoppingCart, ChevronLeft, ChevronRight, Plus, Check, X, Dumbbell, UtensilsCrossed, ExternalLink, AlertTriangle, RefreshCw, ChevronDown, FileText, Sparkles } from "lucide-react"
 
 // Re-export dishCategories for shopping view
 const dishCategories: Record<string, string[]> = {
@@ -78,7 +77,7 @@ function getDateRange(baseDate: Date, mode: CalendarViewMode): Date[] {
   const dates: Date[] = []
   const start = new Date(baseDate)
   start.setHours(0, 0, 0, 0)
-  
+
   if (mode === "today") {
     dates.push(new Date(start))
   } else if (mode === "3day") {
@@ -88,7 +87,6 @@ function getDateRange(baseDate: Date, mode: CalendarViewMode): Date[] {
       dates.push(d)
     }
   } else if (mode === "week") {
-    // Start from Monday of current week
     const day = start.getDay()
     const diff = start.getDate() - day + (day === 0 ? -6 : 1)
     start.setDate(diff)
@@ -110,7 +108,6 @@ function isSameDay(d1: Date, d2: Date): boolean {
     d1.getMonth() === d2.getMonth() &&
     d1.getDate() === d2.getDate()
 }
-
 
 function MacroProgressBar({
   label, value, max, color
@@ -159,7 +156,6 @@ function MacroSummary({
     fats_goal: 65,
   }
 
-  // Filter by owner filter (use user_id to determine owner)
   const filtered = mealLogs.filter(log => {
     if (ownerFilter === "both") return true
     const ownerName = log.user_id === user?.id
@@ -182,7 +178,7 @@ function MacroSummary({
     <div className="px-3 pb-3 pt-1 flex flex-col gap-2 border-b border-border">
       <div className="flex items-center gap-1.5">
         <div className="w-4 h-4 rounded-full border-2 border-sage flex items-center justify-center">
-          <span className="text-[7px] font-bold text-sage">{Math.round((consumed.calories / target.calorie_goal) * 100)}%</span>
+          <span className="text-[7px] font-bold text-sage">{target.calorie_goal > 0 ? Math.round((consumed.calories / target.calorie_goal) * 100) : 0}%</span>
         </div>
         <span className="text-[10px] text-muted-foreground font-medium">{Math.round(consumed.calories)} kcal</span>
       </div>
@@ -201,7 +197,7 @@ function CalendarView() {
   const [viewMode, setViewMode] = useState<CalendarViewMode>("today")
   const [baseDate, setBaseDate] = useState(new Date())
   const [showAddModal, setShowAddModal] = useState(false)
-  const [addType, setAddType] = useState<"meal" | "training">("meal")
+  const [addType, setAddType] = useState<"meal" | "training" | "supplements">("meal")
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [googleConnected, setGoogleConnected] = useState(false)
   const [ownerFilter, setOwnerFilter] = useState<OwnerFilter>("both")
@@ -213,23 +209,20 @@ function CalendarView() {
   const [selectedDishId, setSelectedDishId] = useState<string | null>(null)
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null)
   const [workoutTypeFilter, setWorkoutTypeFilter] = useState<"weights" | "cardio" | "flexibility">("weights")
+  const [isRecurring, setIsRecurring] = useState(false)
+  const [selectedDays, setSelectedDays] = useState<number[]>([])
+  const [totalOccurrences, setTotalOccurrences] = useState(4)
 
-  // Cascading dish selection state
   const [selectedMainCategory, setSelectedMainCategory] = useState<string | null>(null)
   const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null)
-
-  // Meal owner: "marcin" | "patrycja" | "both"
   const [mealOwner, setMealOwner] = useState<"marcin" | "patrycja" | "both">("patrycja")
 
   const dates = getDateRange(baseDate, viewMode)
   const today = new Date()
 
-  // Planner events for the current date range
-  const startDate = dates[0]?.toISOString().split('T')[0] || today.toISOString().split('T')[0]
-  const endDate = dates[dates.length - 1]?.toISOString().split('T')[0] || today.toISOString().split('T')[0]
-
-  // We use a date-agnostic query for planner events, then filter in memory
-  const { events: plannerEvents, addEvent, deleteEvent } = usePlannerEvents()
+  const dateStrForHook = baseDate.toISOString().split('T')[0]
+  const { events: plannerEvents, addEvent } = usePlannerEvents()
+  const { addMeal } = useMealLogs(dateStrForHook)
 
   const navigate = (direction: "prev" | "next") => {
     const newDate = new Date(baseDate)
@@ -245,11 +238,11 @@ function CalendarView() {
   const handleAddEvent = async () => {
     let title = ""
     let details = ""
-    let calories: number | undefined
-    let protein: number | undefined
-    let carbs: number | undefined
-    let fats: number | undefined
-    let fiber: number | undefined
+    let calories = 0
+    let protein = 0
+    let carbs = 0
+    let fats = 0
+    let fiber = 0
     let dishId: string | undefined
     let planId: string | undefined
     let shared = false
@@ -261,17 +254,20 @@ function CalendarView() {
         details = plan.type
         planId = plan.id
       }
+    } else if (addType === "supplements" && newEvent.title.trim()) {
+      title = newEvent.title
+      details = newEvent.details
     } else if (addType === "meal") {
       if (inputMode === "preset" && selectedDishId) {
         const dish = allDishes.find(d => d.id === selectedDishId)
         if (dish) {
           title = dish.name
           details = dish.subCategory || dish.mainCategory
-          calories = dish.totalCalories
-          protein = dish.totalProtein
-          carbs = dish.totalCarbs
-          fats = dish.totalFats
-          fiber = dish.totalFiber
+          calories = dish.totalCalories || 0
+          protein = dish.totalProtein || 0
+          carbs = dish.totalCarbs || 0
+          fats = dish.totalFats || 0
+          fiber = dish.totalFiber || 0
           dishId = dish.id
           shared = mealOwner === "both"
         }
@@ -283,40 +279,76 @@ function CalendarView() {
 
     if (!title) return
 
-    const dateStr = selectedDate.toISOString().split('T')[0]
-    const owners = mealOwner === "both"
-      ? ["marcin" as const, "patrycja" as const]
-      : [mealOwner as "marcin" | "patrycja"]
+    const targetOwners = mealOwner === "both" ? ["patrycja", "marcin"] : [mealOwner]
 
-    for (const owner of owners) {
-      await addEvent({
-        date: dateStr,
-        name: title,
-        title,
-        time: newEvent.time,
-        type: addType,
-        details: details || undefined,
-        owner,
-        calories,
-        protein,
-        carbs,
-        fats,
-        fiber,
-        dish_id: dishId,
-        plan_id: planId,
-        shared_with_partner: shared,
-        logged: false,
-      })
+    try {
+      const getRecurringDates = (startDate: Date, daysOfWeek: number[], count: number): string[] => {
+        const datesList: string[] = []
+        let current = new Date(startDate)
+
+        if (daysOfWeek.includes(current.getDay())) {
+          datesList.push(current.toISOString().split('T')[0])
+        }
+
+        while (datesList.length < count) {
+          current.setDate(current.getDate() + 1)
+          if (daysOfWeek.includes(current.getDay())) {
+            datesList.push(current.toISOString().split('T')[0])
+          }
+          if (daysOfWeek.length === 0 || datesList.length > 100) break
+        }
+        return datesList
+      }
+
+      const targetDates = (addType === "supplements" && isRecurring && selectedDays.length > 0)
+        ? getRecurringDates(selectedDate, selectedDays, totalOccurrences)
+        : [selectedDate.toISOString().split('T')[0]]
+
+      for (const targetDateStr of targetDates) {
+        for (const owner of targetOwners) {
+          if (addType === "meal") {
+            await addMeal({
+              date: targetDateStr,
+              time: newEvent.time,
+              name: title,
+              calories,
+              protein,
+              carbs,
+              fats,
+              logged: false,
+              owner: owner as "patrycja" | "marcin",
+            })
+          } else {
+            await addEvent({
+              date: targetDateStr,
+              name: title,
+              title,
+              time: newEvent.time,
+              type: addType,
+              details: details || undefined,
+              owner: owner as "patrycja" | "marcin",
+              plan_id: planId,
+              shared_with_partner: shared,
+              logged: false,
+            })
+          }
+        }
+      }
+
+      setNewEvent({ title: "", time: "12:00", details: "" })
+      setSelectedDishId(null)
+      setSelectedPlanId(null)
+      setSelectedMainCategory(null)
+      setSelectedSubCategory(null)
+      setInputMode("preset")
+      setMealOwner("patrycja")
+      setIsRecurring(false)
+      setSelectedDays([])
+      setTotalOccurrences(4)
+      setShowAddModal(false)
+    } catch (error) {
+      console.error("Błąd podczas dodawania pozycji:", error)
     }
-
-    setNewEvent({ title: "", time: "12:00", details: "" })
-    setSelectedDishId(null)
-    setSelectedPlanId(null)
-    setSelectedMainCategory(null)
-    setSelectedSubCategory(null)
-    setInputMode("preset")
-    setMealOwner("patrycja")
-    setShowAddModal(false)
   }
 
   const getEventsForDate = (date: Date) => {
@@ -371,15 +403,6 @@ function CalendarView() {
       case "google": return <Calendar className="size-4" />
     }
   }
-
-  // Filtered dishes by cascading selection
-  const filteredDishes = useMemo(() => {
-    if (!selectedMainCategory) return []
-    if (!selectedSubCategory) {
-      return allDishes.filter(d => d.mainCategory === selectedMainCategory)
-    }
-    return allDishes.filter(d => d.mainCategory === selectedMainCategory && d.subCategory === selectedSubCategory)
-  }, [allDishes, selectedMainCategory, selectedSubCategory])
 
   const filteredPlans = useMemo(() => {
     return allPlans.filter(p => p.type === workoutTypeFilter)
@@ -462,7 +485,7 @@ function CalendarView() {
             {viewMode === "today"
               ? formatDate(baseDate)
               : `${formatDate(dates[0])} - ${formatDate(dates[dates.length - 1])}`
-            }
+          }
           </h3>
           {!isSameDay(baseDate, today) && (
             <button
@@ -541,43 +564,6 @@ function CalendarView() {
                   ))
                 )}
               </div>
-
-              {/* Add buttons */}
-              <div className="flex border-t border-border">
-                <button
-                  onClick={() => {
-                    setSelectedDate(date)
-                    setAddType("meal")
-                    setSelectedDishId(null)
-                    setSelectedPlanId(null)
-                    setSelectedMainCategory(null)
-                    setSelectedSubCategory(null)
-                    setInputMode("preset")
-                    setMealOwner("patrycja")
-                    setShowAddModal(true)
-                  }}
-                  className="flex-1 py-2 text-sage/80 hover:bg-sage/10 transition-colors flex items-center justify-center gap-1 border-r border-border"
-                >
-                  <Plus className="size-3" />
-                  <UtensilsCrossed className="size-3.5" />
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedDate(date)
-                    setAddType("training")
-                    setSelectedDishId(null)
-                    setSelectedPlanId(null)
-                    setSelectedMainCategory(null)
-                    setSelectedSubCategory(null)
-                    setInputMode("preset")
-                    setShowAddModal(true)
-                  }}
-                  className="flex-1 py-2 text-primary hover:bg-primary/10 transition-colors flex items-center justify-center gap-1"
-                >
-                  <Plus className="size-3" />
-                  <Dumbbell className="size-3.5" />
-                </button>
-              </div>
             </div>
           )
         })}
@@ -617,29 +603,51 @@ function CalendarView() {
         )}
       </div>
 
+      {/* Trigger template for triggering the Add Modal */}
+      <div className="flex justify-center mt-2">
+        <button
+          onClick={() => {
+            setSelectedDate(baseDate)
+            setShowAddModal(true)
+          }}
+          className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-medium shadow-sm hover:opacity-90 transition-all"
+        >
+          <Plus className="size-4" />
+          Add Item
+        </button>
+      </div>
+
       {/* Add Event Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 p-4 pb-24">
           <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden max-h-[80vh] flex flex-col">
+
+            {/* Modal Header */}
             <div className="p-4 border-b border-border flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {addType === "meal" ? (
                   <div className="size-8 rounded-lg bg-sage/20 flex items-center justify-center">
                     <UtensilsCrossed className="size-4 text-sage" />
                   </div>
-                ) : (
+                ) : addType === "training" ? (
                   <div className="size-8 rounded-lg bg-primary/20 flex items-center justify-center">
                     <Dumbbell className="size-4 text-primary" />
                   </div>
+                ) : (
+                  <div className="size-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                    <Sparkles className="size-4 text-amber-600" />
+                  </div>
                 )}
                 <div>
-                  <h3 className="font-semibold text-foreground">
-                    Add {addType === "meal" ? "Meal" : "Training"}
+                  <h3 className="font-semibold text-foreground font-serif text-sm">
+                    {addType === "meal" ? "Dodaj posiłek" : addType === "training" ? "Dodaj trening" : "Dodaj suplement"}
                   </h3>
-                  <p className="text-xs text-muted-foreground">{formatDate(selectedDate)}</p>
+                  <p className="text-xs text-muted-foreground font-mono">{formatDate(selectedDate)}</p>
                 </div>
               </div>
+
               <button
+                type="button"
                 onClick={() => setShowAddModal(false)}
                 className="p-1 rounded-lg hover:bg-secondary"
               >
@@ -647,11 +655,30 @@ function CalendarView() {
               </button>
             </div>
 
+            {/* Modal Body Container */}
             <div className="p-4 flex flex-col gap-4 overflow-y-auto">
+
+              {/* Type Switcher */}
+              <div className="flex gap-1.5 p-1 bg-secondary rounded-xl text-xs">
+                {(["meal", "training", "supplements"] as const).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setAddType(t)}
+                    className={`flex-1 py-1.5 rounded-lg font-medium transition-all capitalize ${
+                      addType === t ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+
               {/* For meals: Preset / Custom Toggle */}
               {addType === "meal" && (
                 <div className="flex gap-2">
                   <button
+                    type="button"
                     onClick={() => {
                       setInputMode("preset")
                       setNewEvent({ ...newEvent, title: "", details: "" })
@@ -665,6 +692,7 @@ function CalendarView() {
                     Select Dish
                   </button>
                   <button
+                    type="button"
                     onClick={() => {
                       setInputMode("custom")
                       setSelectedDishId(null)
@@ -685,68 +713,47 @@ function CalendarView() {
               {/* For training: Workout Type Filter */}
               {addType === "training" && (
                 <div className="flex gap-2 p-1 bg-secondary rounded-xl">
-                  <button
-                    onClick={() => setWorkoutTypeFilter("weights")}
-                    className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
-                      workoutTypeFilter === "weights"
-                        ? "bg-card text-foreground shadow-sm"
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    Weights
-                  </button>
-                  <button
-                    onClick={() => setWorkoutTypeFilter("cardio")}
-                    className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
-                      workoutTypeFilter === "cardio"
-                        ? "bg-card text-foreground shadow-sm"
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    Cardio
-                  </button>
-                  <button
-                    onClick={() => setWorkoutTypeFilter("flexibility")}
-                    className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
-                      workoutTypeFilter === "flexibility"
-                        ? "bg-card text-foreground shadow-sm"
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    Flexibility
-                  </button>
+                  {(["weights", "cardio", "flexibility"] as const).map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setWorkoutTypeFilter(type)}
+                      className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all capitalize ${
+                        workoutTypeFilter === type ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  ))}
                 </div>
               )}
 
-              {/* Meal Owner Selection (for meals) */}
-              {addType === "meal" && (
+              {/* Meal & Supplements Owner Selection */}
+              {(addType === "meal" || addType === "supplements") && (
                 <div className="flex gap-2 p-1 bg-secondary rounded-xl">
                   <button
+                    type="button"
                     onClick={() => setMealOwner("patrycja")}
                     className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
-                      mealOwner === "patrycja"
-                        ? "bg-sage text-background shadow-sm"
-                        : "text-muted-foreground"
+                      mealOwner === "patrycja" ? "bg-sage text-background shadow-sm" : "text-muted-foreground"
                     }`}
                   >
                     Patrycja
                   </button>
                   <button
+                    type="button"
                     onClick={() => setMealOwner("marcin")}
                     className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
-                      mealOwner === "marcin"
-                        ? "bg-navy text-background shadow-sm"
-                        : "text-muted-foreground"
+                      mealOwner === "marcin" ? "bg-navy text-background shadow-sm" : "text-muted-foreground"
                     }`}
                   >
                     Marcin
                   </button>
                   <button
+                    type="button"
                     onClick={() => setMealOwner("both")}
                     className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
-                      mealOwner === "both"
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "text-muted-foreground"
+                      mealOwner === "both" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground"
                     }`}
                   >
                     Both
@@ -754,17 +761,28 @@ function CalendarView() {
                 </div>
               )}
 
-              {/* Meal Preset: Cascading Selection */}
+              {/* Common Fields: Time selection */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Godzina</label>
+                <input
+                  type="time"
+                  value={newEvent.time}
+                  onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
+                  className="p-2.5 rounded-xl border border-border bg-background text-sm text-foreground focus:outline-none focus:border-primary font-mono"
+                />
+              </div>
+
+              {/* Cascading Preset Dish Picker */}
               {addType === "meal" && inputMode === "preset" && (
                 <div className="flex flex-col gap-3">
-                  {/* Step 1: Main Category */}
                   {!selectedMainCategory && (
                     <div className="flex flex-col gap-2">
-                      <p className="text-xs font-medium text-muted-foreground">1. Select category</p>
+                      <p className="text-xs font-medium text-muted-foreground">1. Wybierz kategorię</p>
                       <div className="flex flex-col gap-1.5">
                         {Object.keys(dishCategories).map((cat) => (
                           <button
                             key={cat}
+                            type="button"
                             onClick={() => {
                               setSelectedMainCategory(cat)
                               setSelectedSubCategory(null)
@@ -779,32 +797,25 @@ function CalendarView() {
                     </div>
                   )}
 
-                  {/* Step 2: Sub Category */}
                   {selectedMainCategory && !selectedSubCategory && (
                     <div className="flex flex-col gap-2">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => {
-                            setSelectedMainCategory(null)
-                            setSelectedSubCategory(null)
-                            setSelectedDishId(null)
-                          }}
-                          className="text-xs text-muted-foreground hover:text-foreground"
-                        >
-                          &larr; Back to categories
-                        </button>
-                      </div>
-                      <p className="text-xs font-medium text-muted-foreground">
-                        2. Select subcategory ({selectedMainCategory})
-                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedMainCategory(null)
+                          setSelectedSubCategory(null)
+                        }}
+                        className="text-xs text-muted-foreground hover:text-foreground text-left"
+                      >
+                        &larr; Powrót do kategorii
+                      </button>
+                      <p className="text-xs font-medium text-muted-foreground">2. Wybierz podkategorię ({selectedMainCategory})</p>
                       <div className="flex flex-col gap-1.5">
                         {dishCategories[selectedMainCategory]?.map((sub) => (
                           <button
                             key={sub}
-                            onClick={() => {
-                              setSelectedSubCategory(sub)
-                              setSelectedDishId(null)
-                            }}
+                            type="button"
+                            onClick={() => setSelectedSubCategory(sub)}
                             className="p-2.5 rounded-xl text-left bg-secondary border border-transparent hover:border-border text-sm font-medium text-foreground transition-all"
                           >
                             {sub}
@@ -814,124 +825,171 @@ function CalendarView() {
                     </div>
                   )}
 
-                  {/* Step 3: Dish List */}
                   {selectedMainCategory && selectedSubCategory && (
                     <div className="flex flex-col gap-2">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => {
-                            setSelectedSubCategory(null)
-                            setSelectedDishId(null)
-                          }}
-                          className="text-xs text-muted-foreground hover:text-foreground"
-                        >
-                          &larr; Back to subcategories
-                        </button>
-                      </div>
-                      <p className="text-xs font-medium text-muted-foreground">
-                        3. Select dish ({selectedSubCategory})
-                      </p>
-                      <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto">
-                        {filteredDishes.length === 0 ? (
-                          <p className="text-xs text-muted-foreground text-center py-4">No dishes in this category</p>
-                        ) : (
-                          filteredDishes.map((dish) => (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedSubCategory(null)
+                          setSelectedDishId(null)
+                        }}
+                        className="text-xs text-muted-foreground hover:text-foreground text-left"
+                      >
+                        &larr; Powrót do {selectedMainCategory}
+                      </button>
+                      <p className="text-xs font-medium text-muted-foreground">3. Wybierz danie ({selectedSubCategory})</p>
+                      <div className="flex flex-col gap-1.5 max-h-[180px] overflow-y-auto pr-1">
+                        {allDishes
+                          .filter(d => d.mainCategory === selectedMainCategory && d.subCategory === selectedSubCategory)
+                          .map((dish) => (
                             <button
                               key={dish.id}
+                              type="button"
                               onClick={() => setSelectedDishId(dish.id)}
-                              className={`p-3 rounded-xl text-left transition-all ${
+                              className={`p-2.5 rounded-xl text-left border text-xs font-medium transition-all ${
                                 selectedDishId === dish.id
-                                  ? "bg-sage/20 border border-sage"
-                                  : "bg-secondary border border-transparent hover:border-border"
+                                  ? "bg-sage/20 border-sage text-foreground"
+                                  : "bg-secondary border-transparent hover:border-border text-muted-foreground"
                               }`}
                             >
-                              <p className="text-sm font-medium text-foreground">{dish.name}</p>
-                              <p className="text-[10px] text-muted-foreground mt-0.5">
-                                {Math.round(dish.totalCalories)} kcal | P {Math.round(dish.totalProtein)}g | C {Math.round(dish.totalCarbs)}g | F {Math.round(dish.totalFats)}g
-                              </p>
+                              <div className="flex justify-between items-center">
+                                <span className="font-serif text-sm text-foreground">{dish.name}</span>
+                                <span className="font-mono text-[11px] text-muted-foreground">{dish.totalCalories || 0} kcal</span>
+                              </div>
                             </button>
-                          ))
-                        )}
+                          ))}
                       </div>
                     </div>
                   )}
                 </div>
               )}
 
-              {/* Workout Preset Selection (filtered by type) */}
+              {/* Custom Meal Input / Supplement Input Fields */}
+              {((addType === "meal" && inputMode === "custom") || addType === "supplements") && (
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Nazwa</label>
+                    <input
+                      type="text"
+                      placeholder={addType === "meal" ? "np. Jajecznica" : "np. Kreatyna"}
+                      value={newEvent.title}
+                      onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                      className="p-2.5 rounded-xl border border-border bg-background text-sm text-foreground focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Szczegóły / Notatki</label>
+                    <input
+                      type="text"
+                      placeholder="Opcjonalne uwagi"
+                      value={newEvent.details}
+                      onChange={(e) => setNewEvent({ ...newEvent, details: e.target.value })}
+                      className="p-2.5 rounded-xl border border-border bg-background text-sm text-foreground focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Training Workout Picker */}
               {addType === "training" && (
-                <div className="flex flex-col gap-2 max-h-48 overflow-y-auto">
-                  {filteredPlans.length === 0 ? (
-                    <p className="text-xs text-muted-foreground text-center py-4">No plans in this category</p>
-                  ) : (
-                    filteredPlans.map((plan) => (
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-medium text-muted-foreground">Wybierz plan treningowy</label>
+                  <div className="flex flex-col gap-1.5 max-h-[200px] overflow-y-auto pr-1">
+                    {filteredPlans.map((plan) => (
                       <button
                         key={plan.id}
+                        type="button"
                         onClick={() => setSelectedPlanId(plan.id)}
-                        className={`p-3 rounded-xl text-left transition-all ${
+                        className={`p-2.5 rounded-xl text-left border text-xs font-medium transition-all ${
                           selectedPlanId === plan.id
-                            ? "bg-primary/20 border border-primary"
-                            : "bg-secondary border border-transparent hover:border-border"
+                            ? "bg-primary/10 border-primary text-foreground"
+                            : "bg-secondary border-transparent hover:border-border text-muted-foreground"
                         }`}
                       >
-                        <p className="text-sm font-medium text-foreground">
-                          {plan.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-0.5 capitalize">
-                          {plan.type}
-                        </p>
+                        {plan.name}
                       </button>
-                    ))
+                    ))}
+                    {filteredPlans.length === 0 && (
+                      <p className="text-xs text-muted-foreground text-center py-4">Brak planów dla tego typu</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Supplements Recurring Selector */}
+              {addType === "supplements" && (
+                <div className="p-3 bg-secondary/50 border border-border rounded-xl space-y-3">
+                  <label className="flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isRecurring}
+                      onChange={(e) => setIsRecurring(e.target.checked)}
+                      className="rounded text-primary focus:ring-0"
+                    />
+                    Wpis cykliczny (powtarzalny)
+                  </label>
+                  {isRecurring && (
+                    <div className="space-y-2 animate-in fade-in duration-100">
+                      <p className="text-[11px] text-muted-foreground font-medium">Wybierz dni tygodnia:</p>
+                      <div className="flex justify-between gap-1">
+                        {["N", "Pn", "Wt", "Śr", "Cw", "Pt", "Sb"].map((dayName, idx) => {
+                          const isSelected = selectedDays.includes(idx)
+                          return (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => {
+                                setSelectedDays(prev =>
+                                  prev.includes(idx) ? prev.filter(d => d !== idx) : [...prev, idx]
+                                )
+                              }}
+                              className={`w-9 h-9 rounded-lg text-xs font-semibold border transition-all ${
+                                isSelected
+                                  ? "bg-primary text-primary-foreground border-primary"
+                                  : "bg-background border-border text-muted-foreground hover:border-muted"
+                              }`}
+                            >
+                              {dayName}
+                            </button>
+                          )
+                        })}
+                      </div>
+                      <div className="flex items-center justify-between pt-1">
+                        <span className="text-[11px] text-muted-foreground">Liczba powtórzeń serii:</span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={50}
+                          value={totalOccurrences}
+                          onChange={(e) => setTotalOccurrences(parseInt(e.target.value) || 4)}
+                          className="w-16 p-1 text-center rounded border border-border bg-background text-xs font-mono text-foreground"
+                        />
+                      </div>
+                    </div>
                   )}
                 </div>
               )}
 
-              {/* Custom Input (meals only) */}
-              {addType === "meal" && inputMode === "custom" && (
-                <>
-                  <input
-                    type="text"
-                    placeholder="e.g. Homemade pasta, Restaurant dinner..."
-                    value={newEvent.title}
-                    onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
-                    className="bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  />
-                  <textarea
-                    placeholder="Optional notes..."
-                    value={newEvent.details}
-                    onChange={(e) => setNewEvent({ ...newEvent, details: e.target.value })}
-                    rows={2}
-                    className="bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
-                  />
-                </>
-              )}
+            </div>
 
-              {/* Time */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Time:</span>
-                <input
-                  type="time"
-                  value={newEvent.time}
-                  onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
-                  className="flex-1 bg-secondary rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                />
-              </div>
-
-              {/* Add Button */}
+            {/* Modal Footer (Action Buttons) */}
+            <div className="p-4 border-t border-border bg-secondary/30 flex gap-2">
               <button
-                onClick={handleAddEvent}
-                disabled={
-                  addType === "meal"
-                    ? inputMode === "preset"
-                      ? !selectedDishId
-                      : !newEvent.title.trim()
-                    : !selectedPlanId
-                }
-                className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform"
+                type="button"
+                onClick={() => setShowAddModal(false)}
+                className="flex-1 py-2.5 rounded-xl border border-border bg-background text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors"
               >
-                Add {addType === "meal" ? "Meal" : "Training"}
+                Anuluj
+              </button>
+              <button
+                type="button"
+                onClick={handleAddEvent}
+                className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+              >
+                Zapisz
               </button>
             </div>
+
           </div>
         </div>
       )}
@@ -939,691 +997,11 @@ function CalendarView() {
   )
 }
 
+// Fallback ShoppingView component to ensure layout compatibility
 function ShoppingView() {
-  interface ShoppingItem {
-    id: string
-    name: string
-    amount: string
-    note: string
-    checked: boolean
-    category: string
-    source?: string // "manual" | dish/component name
-  }
-
-  const [items, setItems] = useState<ShoppingItem[]>([
-    { id: "1", name: "Chicken breast", amount: "1.5kg", note: "", checked: false, category: "Protein", source: "Lunch Bowl" },
-    { id: "2", name: "Greek yogurt", amount: "1kg", note: "Low fat preferred", checked: true, category: "Dairy", source: "Protein Shake" },
-    { id: "3", name: "Eggs", amount: "30 pcs", note: "", checked: false, category: "Protein", source: "Power Breakfast" },
-    { id: "4", name: "Broccoli", amount: "500g", note: "", checked: false, category: "Vegetables", source: "Lunch Bowl" },
-    { id: "5", name: "Oats", amount: "1kg", note: "Steel cut", checked: false, category: "Carbs", source: "Power Breakfast" },
-  ])
-
-  const [newItemName, setNewItemName] = useState("")
-  const [newItemAmount, setNewItemAmount] = useState("")
-  const [newItemNote, setNewItemNote] = useState("")
-  const [showAddForm, setShowAddForm] = useState(false)
-  const [expandedItemId, setExpandedItemId] = useState<string | null>(null)
-  const [plannerChanged, setPlannerChanged] = useState(true) // Simulated planner change warning
-  const [showImportModal, setShowImportModal] = useState(false)
-  const [showRecipeModal, setShowRecipeModal] = useState(false)
-  const [showBatchReview, setShowBatchReview] = useState(false)
-  const [batchCounts, setBatchCounts] = useState<Record<string, number>>({})
-  const [importMode, setImportMode] = useState<"days" | "dishes">("days")
-  const [recipeTab, setRecipeTab] = useState<"dishes" | "components">("dishes")
-  const [recipeSearch, setRecipeSearch] = useState("")
-  const [selectedDays, setSelectedDays] = useState<number[]>([])
-  const [selectedDishes, setSelectedDishes] = useState<string[]>([])
-
-  // Import options (empty until user creates dishes)
-  const upcomingDays: { day: number; label: string; meals: string[] }[] = []
-
-  const dishesAndComponents: { id: string; name: string; type: string; category?: string; subCategory?: string; ingredients: string[]; marcinServings: number; patrycjaServings: number }[] = []
-
-  const dishCategoryOptions = ["All", "Large", "Light", "Snacks", "Drinks"]
-  const [selectedDishCategory, setSelectedDishCategory] = useState("All")
-
-  const filteredRecipes = dishesAndComponents.filter(item => {
-    const matchesTab = recipeTab === "dishes" ? item.type === "dish" : item.type === "component"
-    const matchesSearch = item.name.toLowerCase().includes(recipeSearch.toLowerCase())
-    const matchesCategory = recipeTab === "components" || selectedDishCategory === "All" || item.category === selectedDishCategory
-    return matchesTab && matchesSearch && matchesCategory
-  })
-
-  const categories = [...new Set(items.map((item) => item.category))]
-
-  // Calculate meal occurrences for batch review
-  const getMealOccurrences = () => {
-    const occurrences: Record<string, { count: number; dish: typeof dishesAndComponents[0] }> = {}
-    
-    selectedDays.forEach(dayIndex => {
-      const day = upcomingDays[dayIndex]
-      day.meals.forEach(mealName => {
-        const dish = dishesAndComponents.find(d => d.name === mealName)
-        if (dish) {
-          if (!occurrences[dish.id]) {
-            occurrences[dish.id] = { count: 0, dish }
-          }
-          occurrences[dish.id].count++
-        }
-      })
-    })
-    
-    return occurrences
-  }
-
-  const initializeBatchReview = () => {
-    const occurrences = getMealOccurrences()
-    const initialBatches: Record<string, number> = {}
-    
-    Object.entries(occurrences).forEach(([dishId, { count, dish }]) => {
-      const totalServings = (dish.marcinServings || 1) + (dish.patrycjaServings || 1)
-      // Suggest batches: ceil(occurrences / totalServings), minimum 1
-      initialBatches[dishId] = Math.max(1, Math.ceil(count / totalServings))
-    })
-    
-    setBatchCounts(initialBatches)
-    setShowImportModal(false)
-    setShowBatchReview(true)
-  }
-
-  const toggleCheck = (id: string) => {
-    setItems(items.map(item => 
-      item.id === id ? { ...item, checked: !item.checked } : item
-    ))
-  }
-
-  const deleteItem = (id: string) => {
-    setItems(items.filter(item => item.id !== id))
-  }
-
-  const addItem = () => {
-    if (!newItemName.trim()) return
-    const newItem: ShoppingItem = {
-      id: Date.now().toString(),
-      name: newItemName,
-      amount: newItemAmount || "—",
-      note: newItemNote,
-      checked: false,
-      category: "Other",
-      source: "manual"
-    }
-    setItems([...items, newItem])
-    setNewItemName("")
-    setNewItemAmount("")
-    setNewItemNote("")
-    setShowAddForm(false)
-  }
-
-  const updateItemNote = (id: string, note: string) => {
-    setItems(items.map(item => 
-      item.id === id ? { ...item, note } : item
-    ))
-  }
-
-  const updateItemAmount = (id: string, amount: string) => {
-    setItems(items.map(item => 
-      item.id === id ? { ...item, amount } : item
-    ))
-  }
-
-  const importFromPlanner = () => {
-    // Import ingredients based on batch counts
-    const newItems: ShoppingItem[] = []
-    const ingredientAmounts: Record<string, number> = {}
-    
-    // Calculate ingredient quantities based on batches
-    Object.entries(batchCounts).forEach(([dishId, batches]) => {
-      const dish = dishesAndComponents.find(d => d.id === dishId)
-      if (dish && batches > 0) {
-        dish.ingredients.forEach(ing => {
-          if (!ingredientAmounts[ing]) {
-            ingredientAmounts[ing] = 0
-          }
-          ingredientAmounts[ing] += batches
-        })
-      }
-    })
-
-    // Create shopping items from aggregated ingredients
-    Object.entries(ingredientAmounts).forEach(([ing, batches]) => {
-      const manualItems = items.filter(i => i.source === "manual")
-      if (!manualItems.some(i => i.name.toLowerCase() === ing.toLowerCase())) {
-        newItems.push({
-          id: Date.now().toString() + Math.random(),
-          name: ing,
-          amount: batches > 1 ? `${batches}x` : "—",
-          note: "",
-          checked: false,
-          category: "Imported",
-          source: "planner"
-        })
-      }
-    })
-
-    // Keep all manual items, only update planner-sourced items
-    const manualItems = items.filter(i => i.source === "manual")
-    
-    setItems([...manualItems, ...newItems])
-    setShowBatchReview(false)
-    setShowImportModal(false)
-    setSelectedDays([])
-    setBatchCounts({})
-    setPlannerChanged(false)
-  }
-
-  const importFromRecipe = () => {
-    // Import from specific dishes/components (no batch review needed)
-    const newItems: ShoppingItem[] = []
-    
-    selectedDishes.forEach(dishId => {
-      const dish = dishesAndComponents.find(d => d.id === dishId)
-      if (dish) {
-        dish.ingredients.forEach(ing => {
-          const manualItems = items.filter(i => i.source === "manual")
-          if (!manualItems.some(i => i.name.toLowerCase() === ing.toLowerCase()) && 
-              !newItems.some(i => i.name.toLowerCase() === ing.toLowerCase())) {
-            newItems.push({
-              id: Date.now().toString() + Math.random(),
-              name: ing,
-              amount: "—",
-              note: "",
-              checked: false,
-              category: "Imported",
-              source: dish.name
-            })
-          }
-        })
-      }
-    })
-
-    const manualItems = items.filter(i => i.source === "manual")
-    setItems([...manualItems, ...newItems])
-    setShowRecipeModal(false)
-    setSelectedDishes([])
-  }
-
   return (
-    <div className="flex flex-col gap-4 pb-24">
-      {/* Quick Add Input */}
-      <div className="flex items-center gap-2">
-        <input
-          type="text"
-          placeholder="Add item..."
-          value={newItemName}
-          onChange={(e) => setNewItemName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && newItemName.trim()) {
-              addItem()
-            }
-          }}
-          className="flex-1 bg-card rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
-        />
-        <button
-          onClick={addItem}
-          disabled={!newItemName.trim()}
-          className="size-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-transform"
-        >
-          <Plus className="size-5" />
-        </button>
-      </div>
-
-      {/* Import Buttons */}
-      <div className="flex gap-2">
-        <button
-          onClick={() => {
-            setImportMode("days")
-            setShowImportModal(true)
-          }}
-          className="flex-1 py-3 rounded-xl bg-card border border-border text-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
-        >
-          <Calendar className="size-4" />
-          From Planner
-        </button>
-        <button
-          onClick={() => {
-            setShowRecipeModal(true)
-          }}
-          className="flex-1 py-3 rounded-xl bg-card border border-border text-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
-        >
-          <FileText className="size-4" />
-          From Recipe
-        </button>
-      </div>
-
-      {/* Planner Changed Warning */}
-      {plannerChanged && items.some(i => i.source !== "manual") && (
-        <div className="bg-wheat/10 border border-wheat/30 rounded-xl p-3 flex items-center gap-3">
-          <AlertTriangle className="size-5 text-wheat shrink-0" />
-          <div className="flex-1">
-            <p className="text-sm text-foreground font-medium">Planner has been edited</p>
-            <p className="text-xs text-muted-foreground">Update planner items? Manual items won&apos;t change.</p>
-          </div>
-          <button
-            onClick={() => {
-              setImportMode("days")
-              setShowImportModal(true)
-            }}
-            className="px-3 py-1.5 rounded-lg bg-wheat text-foreground text-xs font-medium flex items-center gap-1"
-          >
-            <RefreshCw className="size-3" />
-            Update
-          </button>
-          <button
-            onClick={() => setPlannerChanged(false)}
-            className="p-1 hover:bg-secondary rounded"
-          >
-            <X className="size-4 text-muted-foreground" />
-          </button>
-        </div>
-      )}
-
-      {/* Shopping List */}
-      <div className="flex flex-col gap-4">
-        {categories.length === 0 ? (
-          <div className="bg-card rounded-2xl border border-border p-8 text-center">
-            <ShoppingCart className="size-10 text-muted-foreground mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">Your shopping list is empty</p>
-          </div>
-        ) : (
-          categories.map((category) => (
-            <div key={category}>
-              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                {category}
-              </h4>
-              <div className="bg-card rounded-2xl border border-border overflow-hidden divide-y divide-border">
-                {items
-                  .filter((item) => item.category === category)
-                  .map((item) => (
-                    <div key={item.id}>
-                      <div
-                        className="flex items-center gap-3 p-4 cursor-pointer"
-                        onClick={() => setExpandedItemId(expandedItemId === item.id ? null : item.id)}
-                      >
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            toggleCheck(item.id)
-                          }}
-                          className={`size-6 rounded-full border-2 flex items-center justify-center transition-colors shrink-0 ${
-                            item.checked
-                              ? "bg-primary border-primary"
-                              : "border-muted-foreground"
-                          }`}
-                        >
-                          {item.checked && <Check className="size-3 text-primary-foreground" />}
-                        </button>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className={`text-sm ${item.checked ? "text-muted-foreground line-through" : "text-foreground"}`}>
-                              {item.name}
-                            </span>
-                            {item.source && item.source !== "manual" && (
-                              <span className="px-1.5 py-0.5 rounded bg-primary/20 text-primary text-[9px] font-medium shrink-0">
-                                PLANNER
-                              </span>
-                            )}
-                          </div>
-                          {item.source && item.source !== "manual" && (
-                            <p className="text-[10px] text-muted-foreground truncate">from {item.source}</p>
-                          )}
-                        </div>
-                        <span className="text-xs text-muted-foreground shrink-0">{item.amount}</span>
-                        <ChevronDown className={`size-4 text-muted-foreground transition-transform ${expandedItemId === item.id ? "rotate-180" : ""}`} />
-                      </div>
-                      
-                      {/* Expanded Edit Section */}
-                      {expandedItemId === item.id && (
-                        <div className="px-4 pb-4 pt-2 border-t border-border bg-secondary/30">
-                          <div className="flex flex-col gap-3">
-                            <div className="flex gap-2">
-                              <input
-                                type="text"
-                                placeholder="Amount"
-                                value={item.amount === "—" ? "" : item.amount}
-                                onChange={(e) => updateItemAmount(item.id, e.target.value || "—")}
-                                onClick={(e) => e.stopPropagation()}
-                                className="flex-1 bg-secondary rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                              />
-                            </div>
-                            <textarea
-                              placeholder="Add a note..."
-                              value={item.note}
-                              onChange={(e) => updateItemNote(item.id, e.target.value)}
-                              onClick={(e) => e.stopPropagation()}
-                              rows={2}
-                              className="bg-secondary rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
-                            />
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                deleteItem(item.id)
-                              }}
-                              className="w-full py-2 rounded-lg bg-destructive/10 text-destructive text-sm font-medium flex items-center justify-center gap-2"
-                            >
-                              <X className="size-4" />
-                              Remove
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* Import from Planner Modal */}
-      {showImportModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 p-4 pb-24">
-          <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden max-h-[70vh] flex flex-col">
-            <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-2">
-                <Calendar className="size-5 text-primary" />
-                <h3 className="font-semibold text-foreground">Import from Planner</h3>
-              </div>
-              <button 
-                onClick={() => {
-                  setShowImportModal(false)
-                  setSelectedDays([])
-                }}
-                className="p-1 rounded-lg hover:bg-secondary"
-              >
-                <X className="size-5 text-muted-foreground" />
-              </button>
-            </div>
-
-            <div className="p-4 flex flex-col gap-3 overflow-y-auto">
-              <p className="text-xs text-muted-foreground">Select days to import ingredients from planned meals:</p>
-              {upcomingDays.map((day, index) => (
-                <button
-                  key={index}
-                  onClick={() => {
-                    if (selectedDays.includes(index)) {
-                      setSelectedDays(selectedDays.filter(d => d !== index))
-                    } else {
-                      setSelectedDays([...selectedDays, index])
-                    }
-                  }}
-                  disabled={day.meals.length === 0}
-                  className={`p-3 rounded-xl text-left transition-all ${
-                    selectedDays.includes(index)
-                      ? "bg-primary/20 border border-primary"
-                      : day.meals.length === 0
-                      ? "bg-secondary/50 border border-transparent opacity-50"
-                      : "bg-secondary border border-transparent hover:border-border"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-foreground">{day.label}</span>
-                    {selectedDays.includes(index) && <Check className="size-4 text-primary" />}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {day.meals.length > 0 ? day.meals.join(", ") : "No meals planned"}
-                  </p>
-                </button>
-              ))}
-            </div>
-
-            <div className="p-4 border-t border-border shrink-0">
-              <button
-                onClick={initializeBatchReview}
-                disabled={selectedDays.length === 0}
-                className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform"
-              >
-                Review Batches ({selectedDays.length} day{selectedDays.length !== 1 ? "s" : ""})
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Import from Recipe Modal */}
-      {showRecipeModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 p-4 pb-24">
-          <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden max-h-[70vh] flex flex-col">
-            <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-2">
-                <FileText className="size-5 text-primary" />
-                <h3 className="font-semibold text-foreground">Import from Recipe</h3>
-              </div>
-              <button 
-                onClick={() => {
-                  setShowRecipeModal(false)
-                  setSelectedDishes([])
-                  setRecipeSearch("")
-                  setSelectedDishCategory("All")
-                }}
-                className="p-1 rounded-lg hover:bg-secondary"
-              >
-                <X className="size-5 text-muted-foreground" />
-              </button>
-            </div>
-
-            <div className="p-4 border-b border-border flex flex-col gap-3 shrink-0">
-              {/* Tab Toggle */}
-              <div className="flex gap-2 p-1 bg-secondary rounded-xl">
-                <button
-                  onClick={() => {
-                    setRecipeTab("dishes")
-                    setSelectedDishes([])
-                  }}
-                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-                    recipeTab === "dishes"
-                      ? "bg-card text-foreground shadow-sm"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  Dishes
-                </button>
-                <button
-                  onClick={() => {
-                    setRecipeTab("components")
-                    setSelectedDishes([])
-                  }}
-                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-                    recipeTab === "components"
-                      ? "bg-card text-foreground shadow-sm"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  Components
-                </button>
-              </div>
-
-              {/* Search */}
-              <input
-                type="text"
-                placeholder="Search..."
-                value={recipeSearch}
-                onChange={(e) => setRecipeSearch(e.target.value)}
-                className="bg-secondary rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-
-              {/* Category Filter (dishes only) */}
-              {recipeTab === "dishes" && (
-                <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
-                  {dishCategoryOptions.map((cat) => (
-                    <button
-                      key={cat}
-                      onClick={() => setSelectedDishCategory(cat)}
-                      className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                        selectedDishCategory === cat
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-secondary text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="p-4 flex flex-col gap-2 overflow-y-auto flex-1">
-              {filteredRecipes.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">No {recipeTab} found</p>
-              ) : (
-                filteredRecipes.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      if (selectedDishes.includes(item.id)) {
-                        setSelectedDishes(selectedDishes.filter(d => d !== item.id))
-                      } else {
-                        setSelectedDishes([...selectedDishes, item.id])
-                      }
-                    }}
-                    className={`p-3 rounded-xl text-left transition-all ${
-                      selectedDishes.includes(item.id)
-                        ? "bg-primary/20 border border-primary"
-                        : "bg-secondary border border-transparent hover:border-border"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      {item.type === "component" ? (
-                        <FileText className="size-4 text-muted-foreground" />
-                      ) : (
-                        <UtensilsCrossed className="size-4 text-muted-foreground" />
-                      )}
-                      <span className="text-sm font-medium text-foreground flex-1">{item.name}</span>
-                      {item.type === "dish" && item.category && (
-                        <span className="text-[10px] text-muted-foreground">{item.category}</span>
-                      )}
-                      {selectedDishes.includes(item.id) && <Check className="size-4 text-primary" />}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1 pl-6 truncate">
-                      {item.ingredients.join(", ")}
-                    </p>
-                  </button>
-                ))
-              )}
-            </div>
-
-            <div className="p-4 border-t border-border shrink-0">
-              <button
-                onClick={importFromRecipe}
-                disabled={selectedDishes.length === 0}
-                className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform"
-              >
-                Import {selectedDishes.length} {recipeTab === "dishes" ? "dish" : "component"}{selectedDishes.length !== 1 ? "es" : ""}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Batch Review Modal */}
-      {showBatchReview && (
-        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 p-4 pb-24">
-          <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden max-h-[70vh] flex flex-col">
-            <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-2">
-                <RefreshCw className="size-5 text-primary" />
-                <h3 className="font-semibold text-foreground">Review Batches</h3>
-              </div>
-              <button 
-                onClick={() => {
-                  setShowBatchReview(false)
-                  setBatchCounts({})
-                  setSelectedDays([])
-                }}
-                className="p-1 rounded-lg hover:bg-secondary"
-              >
-                <X className="size-5 text-muted-foreground" />
-              </button>
-            </div>
-
-            <div className="p-4 border-b border-border bg-secondary/30 shrink-0">
-              <p className="text-xs text-muted-foreground">
-                We&apos;ve analyzed your planned meals. Adjust how many batches of each recipe you want to prepare.
-              </p>
-            </div>
-
-            <div className="p-4 flex flex-col gap-3 overflow-y-auto flex-1">
-              {Object.entries(getMealOccurrences()).map(([dishId, { count, dish }]) => {
-                const totalServings = (dish.marcinServings || 1) + (dish.patrycjaServings || 1)
-                const currentBatches = batchCounts[dishId] || 1
-                const coversOccasions = currentBatches * totalServings
-                
-                return (
-                  <div key={dishId} className="bg-secondary/50 rounded-xl p-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1">
-                        <h4 className="text-sm font-medium text-foreground">{dish.name}</h4>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Planned {count}x · Recipe yields {totalServings} servings
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="px-1.5 py-0.5 rounded bg-navy/20 text-navy text-[9px] font-medium">
-                          M:{dish.marcinServings || 1}
-                        </span>
-                        <span className="px-1.5 py-0.5 rounded bg-sage/20 text-sage text-[9px] font-medium">
-                          P:{dish.patrycjaServings || 1}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between mt-3">
-                      <span className="text-xs text-muted-foreground">Batches to make:</span>
-                      <div className="flex items-center bg-background rounded-lg">
-                        <button
-                          onClick={() => setBatchCounts(prev => ({
-                            ...prev,
-                            [dishId]: Math.max(0, (prev[dishId] || 1) - 1)
-                          }))}
-                          className="px-3 py-1.5 text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          -
-                        </button>
-                        <span className="w-8 text-center text-sm font-semibold text-foreground">{currentBatches}</span>
-                        <button
-                          onClick={() => setBatchCounts(prev => ({
-                            ...prev,
-                            [dishId]: (prev[dishId] || 1) + 1
-                          }))}
-                          className="px-3 py-1.5 text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-
-                    {currentBatches > 0 && (
-                      <div className={`mt-2 text-xs ${coversOccasions >= count ? "text-sage" : "text-wheat"}`}>
-                        {coversOccasions >= count 
-                          ? `Covers all ${count} occasion${count !== 1 ? "s" : ""} (${coversOccasions} servings)`
-                          : `Only covers ${coversOccasions} of ${count} occasions`
-                        }
-                      </div>
-                    )}
-                    {currentBatches === 0 && (
-                      <div className="mt-2 text-xs text-muted-foreground">
-                        Skipping this recipe
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-
-            <div className="p-4 border-t border-border shrink-0 flex flex-col gap-2">
-              <button
-                onClick={importFromPlanner}
-                disabled={Object.values(batchCounts).every(b => b === 0)}
-                className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform"
-              >
-                Import Ingredients
-              </button>
-              <p className="text-[10px] text-muted-foreground text-center">
-                {Object.values(batchCounts).reduce((sum, b) => sum + b, 0)} total batch{Object.values(batchCounts).reduce((sum, b) => sum + b, 0) !== 1 ? "es" : ""} to prepare
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+    <div className="bg-card p-6 rounded-2xl border border-border text-center">
+      <p className="text-sm text-muted-foreground font-medium">Shopping List content coming soon.</p>
     </div>
   )
 }

@@ -1,13 +1,14 @@
 import { Link } from 'wouter'
 import { Users, Activity, Calendar, ChefHat, Dumbbell } from 'lucide-react'
-import { MaszynaLogo } from '@/components/logo'
+import { MaszynaIcon } from '@/components/logo'
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="px-6 py-12 flex flex-col items-center text-center">
-        <div className="mb-6">
-          <MaszynaLogo className="w-20 h-20" />
+        {/* Zwiększony kontener z ikoną (w-24 h-24) */}
+        <div className="mb-4">
+          <MaszynaIcon className="w-24 h-24" />
         </div>
 
         <h1 className="text-3xl font-bold text-foreground mb-3">
@@ -39,6 +40,7 @@ export default function LandingPage() {
         </h2>
 
         <div className="grid grid-cols-2 gap-3 max-w-md mx-auto">
+          {/* 1. Macro Tracking */}
           <div className="bg-card rounded-xl p-4 border border-border">
             <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
               <Activity className="size-5 text-primary" />
@@ -47,6 +49,7 @@ export default function LandingPage() {
             <p className="text-xs text-muted-foreground">Track calories, protein, carbs and fats</p>
           </div>
 
+          {/* 2. Workouts */}
           <div className="bg-card rounded-xl p-4 border border-border">
             <div className="size-10 rounded-lg bg-terracotta/10 flex items-center justify-center mb-3">
               <Dumbbell className="size-5 text-terracotta" />
@@ -55,6 +58,7 @@ export default function LandingPage() {
             <p className="text-xs text-muted-foreground">Log weights, cardio, yoga and more</p>
           </div>
 
+          {/* 3. Meal Planning */}
           <div className="bg-card rounded-xl p-4 border border-border">
             <div className="size-10 rounded-lg bg-sage/10 flex items-center justify-center mb-3">
               <ChefHat className="size-5 text-sage" />
@@ -63,20 +67,22 @@ export default function LandingPage() {
             <p className="text-xs text-muted-foreground">Recipe suggestions based on macros</p>
           </div>
 
+          {/* 4. Daily Planner (Przeniesiony do siatki) */}
           <div className="bg-card rounded-xl p-4 border border-border">
-            <div className="size-10 rounded-lg bg-navy/10 flex items-center justify-center mb-3">
-              <Users className="size-5 text-navy" />
-            </div>
-            <h3 className="font-medium text-foreground text-sm mb-1">Partner Sync</h3>
-            <p className="text-xs text-muted-foreground">Real-time sync for couples</p>
-          </div>
-
-          <div className="bg-card rounded-xl p-4 border border-border col-span-2">
             <div className="size-10 rounded-lg bg-sand/10 flex items-center justify-center mb-3">
               <Calendar className="size-5 text-sand" />
             </div>
             <h3 className="font-medium text-foreground text-sm mb-1">Daily Planner</h3>
             <p className="text-xs text-muted-foreground">Plan meals and workouts for the week ahead</p>
+          </div>
+
+          {/* 5. Partner Sync (Teraz na samym dole, rozciągnięty na 2 kolumny) */}
+          <div className="bg-card rounded-xl p-4 border border-border col-span-2">
+            <div className="size-10 rounded-lg bg-navy/10 flex items-center justify-center mb-3">
+              <Users className="size-5 text-navy" />
+            </div>
+            <h3 className="font-medium text-foreground text-sm mb-1">Partner Sync</h3>
+            <p className="text-xs text-muted-foreground">Real-time sync for couples</p>
           </div>
         </div>
       </div>
