@@ -109,6 +109,19 @@ function isSameDay(d1: Date, d2: Date): boolean {
     d1.getDate() === d2.getDate()
 }
 
+const DASHBOARD_COLORS = {
+  calories: "#1A2E26",
+  protein: "#3B5340",
+  carbs: "#D4A373",
+  fats: "#CD7F67",
+  fiber: "#8A9A86",
+}
+
+const MACRO_TARGETS: Record<string, { calories: number; protein: number; carbs: number; fats: number; fiber: number }> = {
+  patrycja: { calories: 1900, protein: 120, carbs: 200, fats: 65, fiber: 25 },
+  marcin: { calories: 2500, protein: 160, carbs: 280, fats: 80, fiber: 30 },
+}
+
 function MacroProgressBar({
   label, value, max, color
 }: {
@@ -126,88 +139,160 @@ function MacroProgressBar({
       </div>
       <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
         <div
-          className={`h-full rounded-full ${color}`}
-          style={{ width: `${pct}%`, transition: 'width 0.5s ease-out' }}
+          className="h-full rounded-full"
+          style={{ width: `${pct}%`, transition: 'width 0.5s ease-out', backgroundColor: color }}
         />
       </div>
     </div>
   )
 }
 
+function MacroRing({
+  value, max, color, size = 22
+}: {
+  value: number
+  max: number
+  color: string
+  size?: number
+}) {
+  const radius = (size - 3) / 2
+  const circumference = 2 * Math.PI * radius
+  const progress = Math.min(value / max, 1) || 0
+  const strokeDashoffset = circumference * (1 - progress)
+  return (
+    <svg width={size} height={size} className="transform -rotate-90">
+      <circle
+        cx={size / 2} cy={size / 2} r={radius}
+        fill="none" strokeWidth={2}
+        stroke="currentColor" className="text-secondary/40"
+      />
+      <circle
+        cx={size / 2} cy={size / 2} r={radius}
+        fill="none" strokeWidth={2}
+        stroke={color}
+        strokeLinecap="round"
+        strokeDasharray={circumference}
+        strokeDashoffset={strokeDashoffset}
+        className="transition-all duration-500"
+      />
+    </svg>
+  )
+}
+
 function MacroSummary({
   date,
   ownerFilter,
-  settings,
   partner,
   plannerEvents
 }: {
   date: Date
   ownerFilter: OwnerFilter
-  settings: { calorie_goal: number; protein_goal: number; carbs_goal: number; fats_goal: number } | null
   partner: { name: string; id: string } | null
   plannerEvents: { id: string; date: string; time: string; type: string; name: string; details: string | null; user_id: string; logged: boolean; shared_with_partner: boolean; created_at: string; updated_at?: string }[]
 }) {
   const dateStr = date.toISOString().split('T')[0]
-  const { user, profile } = useAuth()
+  const { profile } = useAuth()
 
-  const target = settings || {
-    calorie_goal: 2000,
-    protein_goal: 150,
-    carbs_goal: 200,
-    fats_goal: 65,
-  }
-
-  const filtered = plannerEvents.filter(e => {
-    if (e.date !== dateStr) return false
-    if (e.type !== 'meal') return false
-    if (ownerFilter === "both") return true
-    let parsedOwner: string | null = null
-    try {
-      if (e.details) {
-        const d = JSON.parse(e.details)
-        if (d && typeof d.owner === "string") parsedOwner = d.owner.toLowerCase()
-      }
-    } catch { /* ignore */ }
-    if (parsedOwner) return parsedOwner === ownerFilter
-    // Fallback: derive from name if details missing
-    return ownerFilter === "marcin"
-      ? (profile?.name?.toLowerCase().includes("marcin") ? true : false)
-      : (partner?.name?.toLowerCase().includes("patrycja") ? true : false)
-  })
-
-  const consumed = filtered.reduce(
-    (acc, e) => {
-      let cals = 0, prot = 0, carb = 0, fat = 0
+  const getMacros = (owner: "marcin" | "patrycja") => {
+    const target = MACRO_TARGETS[owner] || MACRO_TARGETS.patrycja
+    const filtered = plannerEvents.filter(e => {
+      if (e.date !== dateStr) return false
+      if (e.type !== 'meal') return false
+      let parsedOwner: string | null = null
       try {
         if (e.details) {
           const d = JSON.parse(e.details)
-          cals = d.calories || 0
-          prot = d.protein || 0
-          carb = d.carbs || 0
-          fat = d.fats || 0
+          if (d && typeof d.owner === "string") parsedOwner = d.owner.toLowerCase()
         }
       } catch { /* ignore */ }
-      return {
-        calories: acc.calories + cals,
-        protein: acc.protein + prot,
-        carbs: acc.carbs + carb,
-        fats: acc.fats + fat,
-      }
-    },
-    { calories: 0, protein: 0, carbs: 0, fats: 0 }
-  )
+      if (parsedOwner) return parsedOwner === owner
+      return owner === "marcin"
+        ? (profile?.name?.toLowerCase().includes("marcin") ? true : false)
+        : (partner?.name?.toLowerCase().includes("patrycja") ? true : false)
+    })
 
+    const consumed = filtered.reduce(
+      (acc, e) => {
+        let cals = 0, prot = 0, carb = 0, fat = 0, fib = 0
+        try {
+          if (e.details) {
+            const d = JSON.parse(e.details)
+            cals = d.calories || 0
+            prot = d.protein || 0
+            carb = d.carbs || 0
+            fat = d.fats || 0
+            fib = d.fiber || 0
+          }
+        } catch { /* ignore */ }
+        return {
+          calories: acc.calories + cals,
+          protein: acc.protein + prot,
+          carbs: acc.carbs + carb,
+          fats: acc.fats + fat,
+          fiber: acc.fiber + fib,
+        }
+      },
+      { calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0 }
+    )
+    return { consumed, target, owner }
+  }
+
+  const SingleOwnerMacros = ({ owner, consumed, target }: { owner: "marcin" | "patrycja"; consumed: any; target: any }) => {
+    const pct = target.calories > 0 ? Math.round((consumed.calories / target.calories) * 100) : 0
+    const ringColor = owner === "marcin" ? DASHBOARD_COLORS.calories : DASHBOARD_COLORS.fiber
+    return (
+      <div className="flex-1 flex flex-col gap-1.5">
+        <div className="flex items-center gap-1.5">
+          <MacroRing value={consumed.calories} max={target.calories} color={ringColor} size={20} />
+          <div className="flex flex-col">
+            <span className="text-[9px] font-semibold text-foreground">{consumed.calories} kcal</span>
+            <span className="text-[8px] text-muted-foreground">{pct}% / {target.calories}</span>
+          </div>
+        </div>
+        <MacroProgressBar label="B" value={consumed.protein} max={target.protein} color={DASHBOARD_COLORS.protein} />
+        <MacroProgressBar label="W" value={consumed.carbs} max={target.carbs} color={DASHBOARD_COLORS.carbs} />
+        <MacroProgressBar label="T" value={consumed.fats} max={target.fats} color={DASHBOARD_COLORS.fats} />
+        <MacroProgressBar label="Bl" value={consumed.fiber} max={target.fiber} color={DASHBOARD_COLORS.fiber} />
+      </div>
+    )
+  }
+
+  if (ownerFilter === "both") {
+    const patrycjaData = getMacros("patrycja")
+    const marcinData = getMacros("marcin")
+    return (
+      <div className="px-2 pb-3 pt-1 border-b border-border">
+        <div className="flex gap-2">
+          <div className="flex-1 bg-sage/10 rounded-xl p-2 flex flex-col gap-1">
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-sage" />
+              <span className="text-[9px] font-semibold text-sage">{partner?.name?.includes("Patrycja") ? "Patrycja" : "Patrycja"}</span>
+            </div>
+            <SingleOwnerMacros owner="patrycja" consumed={patrycjaData.consumed} target={patrycjaData.target} />
+          </div>
+          <div className="flex-1 bg-navy/10 rounded-xl p-2 flex flex-col gap-1">
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-navy" />
+              <span className="text-[9px] font-semibold text-navy">{partner?.name?.includes("Marcin") ? "Marcin" : "Marcin"}</span>
+            </div>
+            <SingleOwnerMacros owner="marcin" consumed={marcinData.consumed} target={marcinData.target} />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const data = getMacros(ownerFilter)
   return (
     <div className="px-3 pb-3 pt-1 flex flex-col gap-2 border-b border-border">
       <div className="flex items-center gap-1.5">
-        <div className="w-4 h-4 rounded-full border-2 border-sage flex items-center justify-center">
-          <span className="text-[7px] font-bold text-sage">{target.calorie_goal > 0 ? Math.round((consumed.calories / target.calorie_goal) * 100) : 0}%</span>
-        </div>
-        <span className="text-[10px] text-muted-foreground font-medium">{Math.round(consumed.calories)} kcal</span>
+        <MacroRing value={data.consumed.calories} max={data.target.calories} color={DASHBOARD_COLORS.calories} size={24} />
+        <span className="text-[10px] text-muted-foreground font-medium">{Math.round(data.consumed.calories)} / {data.target.calories} kcal</span>
       </div>
-      <MacroProgressBar label="Protein" value={consumed.protein} max={target.protein_goal} color="bg-amber-500" />
-      <MacroProgressBar label="Carbs" value={consumed.carbs} max={target.carbs_goal} color="bg-emerald-500" />
-      <MacroProgressBar label="Fats" value={consumed.fats} max={target.fats_goal} color="bg-rose-500" />
+      <MacroProgressBar label="Białko" value={data.consumed.protein} max={data.target.protein} color={DASHBOARD_COLORS.protein} />
+      <MacroProgressBar label="Węgle" value={data.consumed.carbs} max={data.target.carbs} color={DASHBOARD_COLORS.carbs} />
+      <MacroProgressBar label="Tłuszcze" value={data.consumed.fats} max={data.target.fats} color={DASHBOARD_COLORS.fats} />
+      <MacroProgressBar label="Błonnik" value={data.consumed.fiber} max={data.target.fiber} color={DASHBOARD_COLORS.fiber} />
     </div>
   )
 }
@@ -614,46 +699,64 @@ function CalendarView() {
                 plannerEvents={plannerEvents}
               />
               
-              {/* Events */}
+              {/* Events - Grouped by time slot */}
                       <div className={`p-2 flex flex-col gap-1.5 ${viewMode === "week" ? "min-h-[120px]" : "min-h-[80px]"}`}>
                         {dayEvents.length === 0 ? (
                           <p className="text-xs text-muted-foreground text-center py-4">No events</p>
                         ) : (
-                          dayEvents.map((event) => (
-                            <div
-                              key={event.id}
-                              onClick={() => {
-                                setSelectedEventForMenu(event.id)
-                                setMenuPosition({ x: 0, y: 0 })
-                                setShowEventMenu(true)
-                              }}
-                              className={`rounded-lg p-2 text-white cursor-pointer active:scale-[0.98] transition-transform ${getEventColor(event.type, event.owner)}`}
-                            >
-                              <div className="flex items-center gap-1.5">
-                                {getEventIcon(event.type)}
-                                <span className={`font-medium truncate ${viewMode === "week" ? "text-[10px]" : "text-xs"}`}>
-                                  {event.title}
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between mt-0.5">
-                                <div className="flex items-center gap-1.5">
-                                  <p className={`opacity-80 ${viewMode === "week" ? "text-[9px]" : "text-[10px]"}`}>
-                                    {event.time}
-                                  </p>
-                                  {event.type === "meal" && event.calories !== undefined && event.calories > 0 && (
-                                    <span className={`opacity-70 ${viewMode === "week" ? "text-[8px]" : "text-[9px]"}`}>
-                                      {Math.round(event.calories)} kcal · {Math.round(event.protein || 0)}g P
-                                    </span>
-                                  )}
+                          (() => {
+                            // Group events by time slot
+                            const grouped = new Map<string, PlannerEventLocal[]>()
+                            dayEvents.forEach(event => {
+                              const timeKey = event.time
+                              if (!grouped.has(timeKey)) grouped.set(timeKey, [])
+                              grouped.get(timeKey)!.push(event)
+                            })
+                            const timeSlots = Array.from(grouped.keys()).sort()
+                            return timeSlots.map(time => {
+                              const events = grouped.get(time)!
+                              const isMulti = events.length > 1
+                              return (
+                                <div key={time} className={isMulti ? "flex gap-1" : ""}>
+                                  {events.map(event => (
+                                    <div
+                                      key={event.id}
+                                      onClick={() => {
+                                        setSelectedEventForMenu(event.id)
+                                        setMenuPosition({ x: 0, y: 0 })
+                                        setShowEventMenu(true)
+                                      }}
+                                      className={`rounded-lg p-2 text-white cursor-pointer active:scale-[0.98] transition-transform ${isMulti ? 'flex-1' : ''} ${getEventColor(event.type, event.owner)}`}
+                                    >
+                                      <div className="flex items-center gap-1.5">
+                                        {getEventIcon(event.type)}
+                                        <span className={`font-medium truncate ${viewMode === "week" ? "text-[10px]" : "text-xs"}`}>
+                                          {event.title}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center justify-between mt-0.5">
+                                        <div className="flex items-center gap-1.5">
+                                          <p className={`opacity-80 ${viewMode === "week" ? "text-[9px]" : "text-[10px]"}`}>
+                                            {event.time}
+                                          </p>
+                                          {event.type === "meal" && event.calories !== undefined && event.calories > 0 && (
+                                            <span className={`opacity-70 ${viewMode === "week" ? "text-[8px]" : "text-[9px]"}`}>
+                                              {Math.round(event.calories)} kcal · {Math.round(event.protein || 0)}g P
+                                            </span>
+                                          )}
+                                        </div>
+                                        {showBothCalendars && (
+                                          <span className={`opacity-70 ${viewMode === "week" ? "text-[8px]" : "text-[9px]"}`}>
+                                            {event.owner === "marcin" ? "M" : "P"}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
                                 </div>
-                                {showBothCalendars && (
-                                  <span className={`opacity-70 ${viewMode === "week" ? "text-[8px]" : "text-[9px]"}`}>
-                                    {event.owner === "marcin" ? "M" : "P"}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          ))
+                              )
+                            })
+                          })()
                         )}
                       </div>
 
@@ -991,35 +1094,75 @@ function CalendarView() {
                 </div>
               )}
 
-              {/* Meal & Supplements Owner Selection */}
-              {(addType === "meal" || addType === "supplements") && (
-                <div className="flex gap-2 p-1 bg-secondary rounded-xl">
+              {/* Owner Selection for all types */}
+              <div className="flex gap-2 p-1 bg-secondary rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setMealOwner("patrycja")}
+                  className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
+                    mealOwner === "patrycja" ? "bg-sage text-background shadow-sm" : "text-muted-foreground"
+                  }`}
+                >
+                  {profile?.name || "Patrycja"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMealOwner("marcin")}
+                  className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
+                    mealOwner === "marcin" ? "bg-navy text-background shadow-sm" : "text-muted-foreground"
+                  }`}
+                >
+                  {partner?.name || "Marcin"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMealOwner("both")}
+                  className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
+                    mealOwner === "both" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground"
+                  }`}
+                >
+                  Both
+                </button>
+              </div>
+
+              {/* Sub-filters: Dish category for meals */}
+              {addType === "meal" && inputMode === "preset" && (
+                <div className="flex gap-1 p-1 bg-secondary/50 rounded-lg">
                   <button
                     type="button"
-                    onClick={() => setMealOwner("patrycja")}
-                    className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
-                      mealOwner === "patrycja" ? "bg-sage text-background shadow-sm" : "text-muted-foreground"
+                    onClick={() => setSelectedMainCategory(selectedMainCategory === "Large" ? null : "Large")}
+                    className={`flex-1 py-1.5 rounded-md text-[10px] font-medium transition-all ${
+                      selectedMainCategory === "Large" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
                     }`}
                   >
-                    {profile?.name || "Patrycja"}
+                    Large
                   </button>
                   <button
                     type="button"
-                    onClick={() => setMealOwner("marcin")}
-                    className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
-                      mealOwner === "marcin" ? "bg-navy text-background shadow-sm" : "text-muted-foreground"
+                    onClick={() => setSelectedMainCategory(selectedMainCategory === "Light" ? null : "Light")}
+                    className={`flex-1 py-1.5 rounded-md text-[10px] font-medium transition-all ${
+                      selectedMainCategory === "Light" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
                     }`}
                   >
-                    {partner?.name || "Marcin"}
+                    Light
                   </button>
                   <button
                     type="button"
-                    onClick={() => setMealOwner("both")}
-                    className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
-                      mealOwner === "both" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground"
+                    onClick={() => setSelectedMainCategory(selectedMainCategory === "Snacks" ? null : "Snacks")}
+                    className={`flex-1 py-1.5 rounded-md text-[10px] font-medium transition-all ${
+                      selectedMainCategory === "Snacks" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
                     }`}
                   >
-                    Both
+                    Snacks
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedMainCategory(selectedMainCategory === "Drinks" ? null : "Drinks")}
+                    className={`flex-1 py-1.5 rounded-md text-[10px] font-medium transition-all ${
+                      selectedMainCategory === "Drinks" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+                    }`}
+                  >
+                    Drinks
                   </button>
                 </div>
               )}
@@ -1035,95 +1178,36 @@ function CalendarView() {
                 />
               </div>
 
-              {/* Cascading Preset Dish Picker */}
+              {/* Dish Picker - Show all dishes immediately with optional filter */}
               {addType === "meal" && inputMode === "preset" && (
                 <div className="flex flex-col gap-3">
-                  {!selectedMainCategory && (
-                    <div className="flex flex-col gap-2">
-                      <p className="text-xs font-medium text-muted-foreground">1. Wybierz kategorię</p>
-                      <div className="flex flex-col gap-1.5">
-                        {Object.keys(dishCategories).map((cat) => (
-                          <button
-                            key={cat}
-                            type="button"
-                            onClick={() => {
-                              setSelectedMainCategory(cat)
-                              setSelectedSubCategory(null)
-                              setSelectedDishId(null)
-                            }}
-                            className="p-2.5 rounded-xl text-left bg-secondary border border-transparent hover:border-border text-sm font-medium text-foreground transition-all"
-                          >
-                            {cat}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {selectedMainCategory && !selectedSubCategory && (
-                    <div className="flex flex-col gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedMainCategory(null)
-                          setSelectedSubCategory(null)
-                        }}
-                        className="text-xs text-muted-foreground hover:text-foreground text-left"
-                      >
-                        &larr; Powrót do kategorii
-                      </button>
-                      <p className="text-xs font-medium text-muted-foreground">2. Wybierz podkategorię ({selectedMainCategory})</p>
-                      <div className="flex flex-col gap-1.5">
-                        {dishCategories[selectedMainCategory]?.map((sub) => (
-                          <button
-                            key={sub}
-                            type="button"
-                            onClick={() => setSelectedSubCategory(sub)}
-                            className="p-2.5 rounded-xl text-left bg-secondary border border-transparent hover:border-border text-sm font-medium text-foreground transition-all"
-                          >
-                            {sub}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {selectedMainCategory && selectedSubCategory && (
-                    <div className="flex flex-col gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedSubCategory(null)
-                          setSelectedDishId(null)
-                        }}
-                        className="text-xs text-muted-foreground hover:text-foreground text-left"
-                      >
-                        &larr; Powrót do {selectedMainCategory}
-                      </button>
-                      <p className="text-xs font-medium text-muted-foreground">3. Wybierz danie ({selectedSubCategory})</p>
-                      <div className="flex flex-col gap-1.5 max-h-[180px] overflow-y-auto pr-1">
-                        {allDishes
-                          .filter(d => d.mainCategory === selectedMainCategory && d.subCategory === selectedSubCategory)
-                          .map((dish) => (
-                            <button
-                              key={dish.id}
-                              type="button"
-                              onClick={() => setSelectedDishId(dish.id)}
-                              className={`p-2.5 rounded-xl text-left border text-xs font-medium transition-all ${
-                                selectedDishId === dish.id
-                                  ? "bg-sage/20 border-sage text-foreground"
-                                  : "bg-secondary border-transparent hover:border-border text-muted-foreground"
-                              }`}
-                            >
-                              <div className="flex justify-between items-center">
-                                <span className="font-sans text-sm text-foreground">{dish.name}</span>
-                                <span className="font-mono text-[11px] text-muted-foreground">{dish.totalCalories || 0} kcal</span>
-                              </div>
-                            </button>
-                          ))}
-                      </div>
-                    </div>
-                  )}
+                  <div className="flex flex-col gap-1.5 max-h-[220px] overflow-y-auto pr-1">
+                    {allDishes
+                      .filter(d => selectedMainCategory ? d.mainCategory === selectedMainCategory : true)
+                      .map((dish) => (
+                        <button
+                          key={dish.id}
+                          type="button"
+                          onClick={() => setSelectedDishId(dish.id)}
+                          className={`p-2.5 rounded-xl text-left border text-xs font-medium transition-all ${
+                            selectedDishId === dish.id
+                              ? "bg-sage/20 border-sage text-foreground"
+                              : "bg-secondary border-transparent hover:border-border text-muted-foreground"
+                          }`}
+                        >
+                          <div className="flex justify-between items-center">
+                            <span className="font-sans text-sm text-foreground">{dish.name}</span>
+                            <span className="font-mono text-[11px] text-muted-foreground">{dish.totalCalories || 0} kcal</span>
+                          </div>
+                          <div className="text-[10px] text-muted-foreground mt-0.5">
+                            {dish.mainCategory} · {dish.subCategory}
+                          </div>
+                        </button>
+                      ))}
+                    {allDishes.filter(d => selectedMainCategory ? d.mainCategory === selectedMainCategory : true).length === 0 && (
+                      <p className="text-xs text-muted-foreground text-center py-4">Brak dań w tej kategorii</p>
+                    )}
+                  </div>
                 </div>
               )}
 
