@@ -1,9 +1,10 @@
 import { getT } from "@/lib/i18n";
 import { useState } from "react"
 import { useUser } from "@/lib/user-context"
+import { useAuth } from "@/lib/auth-context"
 import { Droplets, Dumbbell, Pill, Check, ChevronRight, Calculator, Footprints, Sparkles, ChevronDown, Users } from "lucide-react"
 import { useDishes, useMealLogs, usePlannerEvents } from "@/lib/realtime-hooks"
-import { Timeline } from "./Timeline" // Upewnij się, że ścieżka do Twojego komponentu z Kroku 3 jest poprawna
+import { Timeline } from "./Timeline"
 
 function ProgressRing({ 
   value, 
@@ -74,8 +75,10 @@ const MACRO_TARGETS = {
 export function DashboardScreen() {
   const { activeUser, getTodaySteps, updateSteps, getWeeklyAvgSteps } = useUser()
   const { dishes: allDishes } = useDishes()
+  const { profile, partner } = useAuth()
 
   const partnerUser = activeUser === "patrycja" ? "marcin" : "patrycja"
+  const partnerName = partner?.name || partnerUser
   const todayDateStr = new Date().toISOString().split('T')[0] // 'YYYY-MM-DD'
 
   // POBIERANIE DANYCH Z SUPABASE (Real-time)
@@ -346,7 +349,7 @@ export function DashboardScreen() {
               <Users className={`size-5 ${partnerUser === "marcin" ? "text-navy" : "text-sage"}`} />
             </div>
             <div className="text-left">
-              <p className="text-sm font-semibold text-foreground capitalize">Dzień partnera ({partnerUser})</p>
+              <p className="text-sm font-semibold text-foreground capitalize">{partnerName}&apos;s Day</p>
               <p className="text-xs text-muted-foreground">
                 {partnerMeals.length} posiłków · {partnerEvents.filter(e => e.type === 'training').length} treningi
               </p>

@@ -2,6 +2,7 @@
 import { getT } from "@/lib/i18n";
 import { useState, useMemo, useEffect } from "react"
 import { useUser } from "@/lib/user-context"
+import { useAuth } from "@/lib/auth-context"
 import { useIngredients, useDishes, type DbIngredient } from "@/lib/realtime-hooks"
 import { Calculator, Search, Plus, Trash2, Apple, ChefHat, UtensilsCrossed, FileText, ChevronDown } from "lucide-react"
 
@@ -161,6 +162,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
   const [marcinServings, setMarcinServings] = useState(1)
   const [patrycjaServings, setPatrycjaServings] = useState(1)
 
+  const { profile, partner } = useAuth()
   const { ingredients: dbIngredients, loading: dbLoading, addIngredient } = useIngredients()
   const { addDish, updateDish } = useDishes()
 
@@ -589,7 +591,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
           <div className="size-7 rounded-full bg-foreground text-background flex items-center justify-center text-sm font-bold">2</div>
           <div>
             <h3 className="text-sm font-semibold text-foreground">Split Into Portions</h3>
-            <p className="text-xs text-muted-foreground">Divide between Marcin and Patrycja</p>
+            <p className="text-xs text-muted-foreground">Divide between {profile?.name || "Marcin"} and {partner?.name || "Patrycja"}</p>
           </div>
         </div>
 
@@ -602,7 +604,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
                 <div className="size-6 rounded-full bg-navy flex items-center justify-center">
                   <span className="text-[10px] font-bold text-background">M</span>
                 </div>
-                <span className="text-xs font-medium text-foreground">Marcin</span>
+                <span className="text-xs font-medium text-foreground">{profile?.name || "Marcin"}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-muted-foreground">Servings</span>
@@ -630,7 +632,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
                 <div className="size-6 rounded-full bg-sage flex items-center justify-center">
                   <span className="text-[10px] font-bold text-background">P</span>
                 </div>
-                <span className="text-xs font-medium text-foreground">Patrycja</span>
+                <span className="text-xs font-medium text-foreground">{partner?.name || "Patrycja"}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-muted-foreground">Servings</span>
@@ -679,7 +681,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
 
           {/* Portion Details */}
           <div className="grid grid-cols-2 gap-3">
-            {/* Marcin's Portion */}
+            {/* {profile?.name || "Marcin"}'s Portion */}
             <div className="bg-navy/5 rounded-xl p-3 border border-navy/10">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
                 {marcinServings > 1 ? `Per serving (${marcinServings}x)` : "Total"}
@@ -716,7 +718,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
               )}
             </div>
 
-            {/* Patrycja's Portion */}
+            {/* {partner?.name || "Patrycja"}'s Portion */}
             <div className="bg-sage/5 rounded-xl p-3 border border-sage/10">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
                 {patrycjaServings > 1 ? `Per serving (${patrycjaServings}x)` : "Total"}
@@ -755,7 +757,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
           </div>
 
           <p className="text-[10px] text-muted-foreground text-center mt-4">
-            Ratio: Marcin gets 2 parts, Patrycja gets 1 part per serving
+            Ratio: {profile?.name || "Marcin"} gets 2 parts, {partner?.name || "Patrycja"} gets 1 part per serving
           </p>
         </div>
       </div>

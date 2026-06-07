@@ -2,6 +2,7 @@
 import { getT } from "@/lib/i18n";
 import { useState } from "react"
 import { useUser } from "@/lib/user-context"
+import { useAuth } from "@/lib/auth-context"
 import { 
   TrendingUp, TrendingDown, Minus, Ruler, Scale, Utensils, Dumbbell, 
   ChevronRight, Clock, Flame, Plus, Camera, Trophy, Zap, Target, 
@@ -13,6 +14,7 @@ type ProfileTab = "measurements" | "logs" | "achievements"
 
 export function ProfileScreen() {
   const { activeUser, mealLogs, workoutLogs } = useUser()
+  const { profile, partner } = useAuth()
   const [activeTab, setActiveTab] = useState<ProfileTab>("measurements")
   const [logsSubTab, setLogsSubTab] = useState<"meals" | "workouts">("meals")
   const [expandedLog, setExpandedLog] = useState<string | null>(null)
@@ -109,7 +111,7 @@ export function ProfileScreen() {
             {activeUser === "patrycja" ? <WhiteCat /> : <BlackCat />}
           </div>
           <div>
-            <p className="text-lg font-semibold text-foreground capitalize">{activeUser}</p>
+            <p className="text-lg font-semibold text-foreground capitalize">{profile?.name || activeUser}</p>
             <p className="text-xs text-muted-foreground">Member since Jan 2024</p>
           </div>
         </div>

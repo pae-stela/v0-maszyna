@@ -1,6 +1,7 @@
 import { getT } from "@/lib/i18n";
 import { useMemo } from "react"
 import { useMealLogs, usePlannerEvents } from "@/lib/realtime-hooks"
+import { useAuth } from "@/lib/auth-context"
 import { Dumbbell, UtensilsCrossed, CheckCircle2, Circle } from "lucide-react"
 
 interface TimelineProps {
@@ -18,9 +19,28 @@ interface TimelineItem {
   macros?: { calories: number; protein: number; carbs: number; fats: number }
 }
 
+function getOwnerFromRecord(
+  record: { user_id?: string; details?: string | null },
+  userId: string | undefined,
+  profileName: string | undefined,
+  partnerName: string | undefined
+): "marcin" | "patrycja" {
+  // Try JSON details first
+  try {
+    const parsed = record.details ? JSON.parse(record.details) : {}
+    if (parsed.owner === "marcin" || parsed.owner === "patrycja") return parsed.owner
+  } catch { /* ignore */ }
+  // Fallback: derive from user_id
+  if (record.user_id === userId) {
+    return profileName?.toLowerCase().includes("marcin") ? "marcin" : "patrycja"
+  }
+  return partnerName?.toLowerCase().includes("marcin") ? "marcin" : "patrycja"
+}
+
 export function Timeline({ dateStr, activeUser }: TimelineProps) {
   const { meals, toggleMealLogged } = useMealLogs(dateStr)
   const { events, toggleEventLogged } = usePlannerEvents()
+  const { user, profile, partner } = useAuth()
 
   // Łączymy dane z meal_logs i planner_events w jedną oś czasu
   const timelineItems = useMemo(() => {
@@ -28,7 +48,7 @@ export function Timeline({ dateStr, activeUser }: TimelineProps) {
 
     // 1. Mapowanie posiłków
     meals
-      .filter((m) => m.owner === activeUser)
+      .filter((m) => getOwnerFromRecord(m, user?.id, profile?.name, partner?.name) === activeUser)
       .forEach((m) => {
         items.push({
           id: m.id,
@@ -47,12 +67,12 @@ export function Timeline({ dateStr, activeUser }: TimelineProps) {
 
     // 2. Mapowanie treningów / suplementów
     events
-      .filter((e) => e.date === dateStr && e.owner === activeUser)
+      .filter((e) => e.date === dateStr && getOwnerFromRecord(e, user?.id, profile?.name, partner?.name) === activeUser)
       .forEach((e) => {
         items.push({
           id: e.id,
           time: e.time || "00:00",
-          name: e.name || e.title || "Plan",
+          name: e.name || "Plan",
           type: e.type as "training" | "supplements",
           details: e.details,
           logged: e.logged || false,
@@ -61,7 +81,7 @@ export function Timeline({ dateStr, activeUser }: TimelineProps) {
 
     // Sortowanie chronologiczne po godzinie "HH:MM"
     return items.sort((a, b) => a.time.localeCompare(b.time))
-  }, [meals, events, dateStr, activeUser])
+  }, [meals, events, dateStr, activeUser, user, profile, partner])
 
   const handleToggle = async (item: TimelineItem) => {
     if (item.type === "meal") {

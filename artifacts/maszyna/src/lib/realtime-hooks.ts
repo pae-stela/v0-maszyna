@@ -132,7 +132,10 @@ export function useMealLogs(date?: string) {
           if (!userIds.includes(record?.user_id)) return
 
           if (payload.eventType === 'INSERT') {
-            setMeals(prev => [...prev, record].sort((a, b) => a.time.localeCompare(b.time)))
+            setMeals(prev => {
+              if (prev.some(m => m.id === record.id)) return prev
+              return [...prev, record].sort((a, b) => a.time.localeCompare(b.time))
+            })
           } else if (payload.eventType === 'UPDATE') {
             setMeals(prev => prev.map(m => m.id === record.id ? record : m))
           } else if (payload.eventType === 'DELETE') {
@@ -163,7 +166,11 @@ export function useMealLogs(date?: string) {
     }
 
     if (data) {
-      setMeals(prev => [...prev, data].sort((a, b) => a.time.localeCompare(b.time)))
+      // Add immediately for responsive UI; realtime subscription will no-op if already present
+      setMeals(prev => {
+        if (prev.some(m => m.id === data.id)) return prev
+        return [...prev, data].sort((a, b) => a.time.localeCompare(b.time))
+      })
     }
 
     return { data, error }
@@ -478,7 +485,10 @@ export function usePlannerEvents(date?: string) {
           if (!userIds.includes(record?.user_id)) return
 
           if (payload.eventType === 'INSERT') {
-            setEvents(prev => [...prev, record].sort((a, b) => a.time.localeCompare(b.time)))
+            setEvents(prev => {
+              if (prev.some(e => e.id === record.id)) return prev
+              return [...prev, record].sort((a, b) => a.time.localeCompare(b.time))
+            })
           } else if (payload.eventType === 'UPDATE') {
             setEvents(prev => prev.map(e => e.id === record.id ? record : e))
           } else if (payload.eventType === 'DELETE') {
@@ -509,7 +519,11 @@ export function usePlannerEvents(date?: string) {
     }
 
     if (data) {
-      setEvents(prev => [...prev, data].sort((a, b) => a.time.localeCompare(b.time)))
+      // Add immediately for responsive UI; realtime subscription will no-op if already present
+      setEvents(prev => {
+        if (prev.some(e => e.id === data.id)) return prev
+        return [...prev, data].sort((a, b) => a.time.localeCompare(b.time))
+      })
     }
 
     return { data, error }

@@ -160,10 +160,18 @@ function MacroSummary({
 
   const filtered = mealLogs.filter(log => {
     if (ownerFilter === "both") return true
-    const ownerName = log.user_id === user?.id
-      ? (profile?.name?.toLowerCase().includes("marcin") ? "marcin" : "patrycja")
-      : (partner?.name?.toLowerCase().includes("marcin") ? "marcin" : "patrycja")
-    return ownerName === ownerFilter
+    let parsedOwner: string | null = null
+    try {
+      if (log.details) {
+        const d = JSON.parse(log.details)
+        if (d && typeof d.owner === "string") parsedOwner = d.owner.toLowerCase()
+      }
+    } catch { /* ignore */ }
+    if (parsedOwner) return parsedOwner === ownerFilter
+    // Fallback: derive from name if details missing
+    return ownerFilter === "marcin"
+      ? (profile?.name?.toLowerCase().includes("marcin") ? true : false)
+      : (partner?.name?.toLowerCase().includes("patrycja") ? true : false)
   })
 
   const consumed = filtered.reduce(
@@ -252,7 +260,7 @@ function CalendarView() {
     let fiber = 0
     let dishId: string | undefined
     let planId: string | undefined
-    let shared = false
+    const shared = mealOwner === "both"
 
     if (addType === "training" && selectedPlanId) {
       const plan = allPlans.find(p => p.id === selectedPlanId)
@@ -276,7 +284,6 @@ function CalendarView() {
           fats = dish.totalFats || 0
           fiber = dish.totalFiber || 0
           dishId = dish.id
-          shared = mealOwner === "both"
         }
       } else if (inputMode === "custom" && newEvent.title.trim()) {
         title = newEvent.title
@@ -333,6 +340,7 @@ function CalendarView() {
               date: targetDateStr,
               time: newEvent.time,
               name: title,
+              details: JSON.stringify({ owner }),
               calories,
               protein,
               carbs,
@@ -390,18 +398,23 @@ function CalendarView() {
         if (e.date !== dateStr) return false
         if (showBothCalendars) return true
         if (ownerFilter === "both") return true
-        // Derive owner from user_id
-        const eventOwner = e.user_id === user?.id
-          ? (profile?.name?.toLowerCase().includes("marcin") ? "marcin" : "patrycja")
-          : (partner?.name?.toLowerCase().includes("marcin") ? "marcin" : "patrycja")
+        // Read owner from stored JSON details
+        let eventOwner: "marcin" | "patrycja" = "patrycja"
+        try {
+          const parsed = e.details ? JSON.parse(e.details) : {}
+          eventOwner = parsed.owner || eventOwner
+        } catch { /* ignore */ }
         return eventOwner === activeUser
       })
       .sort((a, b) => a.time.localeCompare(b.time))
       .map(e => {
-        // Derive owner from user_id
-        const eventOwner = e.user_id === user?.id
-          ? (profile?.name?.toLowerCase().includes("marcin") ? "marcin" : "patrycja")
-          : (partner?.name?.toLowerCase().includes("marcin") ? "marcin" : "patrycja")
+        // Read owner from stored JSON details
+        let eventOwner: "marcin" | "patrycja" = "patrycja"
+        let parsedDetails: Record<string, unknown> = {}
+        try {
+          parsedDetails = e.details ? JSON.parse(e.details) : {}
+          eventOwner = (parsedDetails.owner as "marcin" | "patrycja") || eventOwner
+        } catch { /* ignore */ }
         return {
           id: e.id,
           date: new Date(e.date + "T00:00:00"),
@@ -410,7 +423,14 @@ function CalendarView() {
           type: e.type as EventType,
           details: e.details || undefined,
           owner: eventOwner,
-          sharedWithPartner: e.shared_with_partner,
+          calories: parsedDetails.calories as number | undefined,
+          protein: parsedDetails.protein as number | undefined,
+          carbs: parsedDetails.carbs as number | undefined,
+          fats: parsedDetails.fats as number | undefined,
+          fiber: parsedDetails.fiber as number | undefined,
+          dishId: parsedDetails.dishId as string | undefined,
+          planId: parsedDetails.planId as string | undefined,
+          sharedWithPartner: parsedDetails.shared as boolean | undefined,
         }
       })
   }
@@ -479,7 +499,7 @@ function CalendarView() {
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          Me
+          {profile?.name || "Patrycja"}
         </button>
         <button
           onClick={() => {
@@ -493,7 +513,7 @@ function CalendarView() {
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          Marcin
+          {partner?.name || "Marcin"}
         </button>
         <button
           onClick={() => {
@@ -803,7 +823,7 @@ function CalendarView() {
                       mealOwner === "patrycja" ? "bg-sage text-background shadow-sm" : "text-muted-foreground"
                     }`}
                   >
-                    Patrycja
+                    {profile?.name || "Patrycja"}
                   </button>
                   <button
                     type="button"
@@ -812,7 +832,7 @@ function CalendarView() {
                       mealOwner === "marcin" ? "bg-navy text-background shadow-sm" : "text-muted-foreground"
                     }`}
                   >
-                    Marcin
+                    {partner?.name || "Marcin"}
                   </button>
                   <button
                     type="button"
