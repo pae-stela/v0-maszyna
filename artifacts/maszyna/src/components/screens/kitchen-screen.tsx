@@ -161,6 +161,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
   const [saveRecipeSteps, setSaveRecipeSteps] = useState("")
   const [marcinServings, setMarcinServings] = useState(1)
   const [patrycjaServings, setPatrycjaServings] = useState(1)
+  const [showSaveModeModal, setShowSaveModeModal] = useState(false)
 
   const { profile, partner } = useAuth()
   const { ingredients: dbIngredients, loading: dbLoading, addIngredient } = useIngredients()
@@ -866,16 +867,26 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
                   <UtensilsCrossed className="size-4 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-foreground">Save as Dish</p>
-                  <p className="text-[10px] text-muted-foreground">Complete meal ready to log</p>
+                  <p className="text-sm font-medium text-foreground">
+                    {editMode ? `Edytujesz: ${editMode.name}` : "Save as Dish"}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {editMode ? "Wybierz jak zapisać zmiany" : "Complete meal ready to log"}
+                  </p>
                 </div>
               </div>
               <button
-                onClick={() => handleSaveDish()}
+                onClick={() => {
+                  if (editMode) {
+                    setShowSaveModeModal(true)
+                  } else {
+                    handleSaveDish()
+                  }
+                }}
                 disabled={ingredients.length === 0 || !saveName.trim()}
                 className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-40 disabled:active:scale-100 mt-2"
               >
-                Save entire recipe
+                {editMode ? "Zapisz zmiany…" : "Save entire recipe"}
               </button>
               {ingredients.length > 0 && (
                 <p className="text-[10px] text-muted-foreground text-center mt-2">
@@ -886,6 +897,60 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
           </div>
         </div>
       </div>
+
+      {/* Save Mode Modal — shown when editing a dish from planner */}
+      {showSaveModeModal && editMode && (
+        <div className="fixed inset-0 bg-black/50 z-[80] flex items-end justify-center p-4 pb-24">
+          <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden shadow-xl border border-border">
+            <div className="p-4 border-b border-border">
+              <p className="text-base font-semibold text-foreground">Jak zapisać zmiany?</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Edytujesz: <span className="font-medium">{editMode.name}</span></p>
+            </div>
+            <div className="flex flex-col divide-y divide-border">
+              {/* Overwrite original */}
+              <button
+                onClick={async () => {
+                  setShowSaveModeModal(false)
+                  await handleSaveDish(editMode.id)
+                }}
+                className="flex items-start gap-3 px-4 py-4 text-left hover:bg-secondary transition-colors"
+              >
+                <div className="size-9 rounded-xl bg-primary/15 flex items-center justify-center mt-0.5 shrink-0">
+                  <UtensilsCrossed className="size-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Nadpisz oryginał</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Zastąpi istniejące danie „{editMode.name}" w bazie</p>
+                </div>
+              </button>
+              {/* Save as new */}
+              <button
+                onClick={async () => {
+                  setShowSaveModeModal(false)
+                  await handleSaveDish()
+                }}
+                className="flex items-start gap-3 px-4 py-4 text-left hover:bg-secondary transition-colors"
+              >
+                <div className="size-9 rounded-xl bg-moss/15 flex items-center justify-center mt-0.5 shrink-0">
+                  <Plus className="size-4 text-moss" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Zapisz jako nowe danie</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Oryginał pozostaje bez zmian — powstaje nowa kopia</p>
+                </div>
+              </button>
+              {/* Cancel */}
+              <button
+                onClick={() => setShowSaveModeModal(false)}
+                className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:bg-secondary transition-colors"
+              >
+                <X className="size-4" />
+                <span>Anuluj</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
