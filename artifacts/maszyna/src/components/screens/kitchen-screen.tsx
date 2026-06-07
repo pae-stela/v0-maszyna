@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react"
 import { useUser } from "@/lib/user-context"
 import { useAuth } from "@/lib/auth-context"
 import { useIngredients, useDishes, type DbIngredient } from "@/lib/realtime-hooks"
-import { Calculator, Search, Plus, Trash2, Apple, ChefHat, UtensilsCrossed, FileText, ChevronDown } from "lucide-react"
+import { Calculator, Search, Plus, Trash2, Apple, ChefHat, UtensilsCrossed, FileText, ChevronDown, X, Pencil, Check } from "lucide-react"
 
 type SubTab = "calculator" | "ingredients" | "dishes"
 
@@ -162,6 +162,8 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
   const [marcinServings, setMarcinServings] = useState(1)
   const [patrycjaServings, setPatrycjaServings] = useState(1)
   const [showSaveModeModal, setShowSaveModeModal] = useState(false)
+  const [editingIngredientId, setEditingIngredientId] = useState<string | null>(null)
+  const [editingGrams, setEditingGrams] = useState("")
 
   const { profile, partner } = useAuth()
   const { ingredients: dbIngredients, loading: dbLoading, addIngredient } = useIngredients()
@@ -255,6 +257,32 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
 
   const removeIngredient = (id: string) => {
     setIngredients(ingredients.filter((i) => i.id !== id))
+  }
+
+  const startEditingGrams = (ing: CalculatorIngredient) => {
+    setEditingIngredientId(ing.id)
+    setEditingGrams(String(ing.grams))
+  }
+
+  const confirmEditGrams = (id: string, name: string) => {
+    const newGrams = parseFloat(editingGrams)
+    if (!isNaN(newGrams) && newGrams > 0) {
+      const dbIng = dbMap[name.toLowerCase()]
+      const multiplier = newGrams / 100
+      setIngredients(ingredients.map((i) =>
+        i.id === id ? {
+          ...i,
+          grams: newGrams,
+          calories: dbIng ? Math.round(dbIng.calories * multiplier) : Math.round((i.calories / i.grams) * newGrams),
+          protein: dbIng ? Math.round(dbIng.protein * multiplier * 10) / 10 : Math.round((i.protein / i.grams) * newGrams * 10) / 10,
+          carbs: dbIng ? Math.round(dbIng.carbohydrates * multiplier * 10) / 10 : Math.round((i.carbs / i.grams) * newGrams * 10) / 10,
+          fats: dbIng ? Math.round(dbIng.fat * multiplier * 10) / 10 : Math.round((i.fats / i.grams) * newGrams * 10) / 10,
+          fiber: dbIng ? Math.round(dbIng.fiber * multiplier * 10) / 10 : Math.round((i.fiber / i.grams) * newGrams * 10) / 10,
+        } : i
+      ))
+    }
+    setEditingIngredientId(null)
+    setEditingGrams("")
   }
 
   const toggleIngredientSelection = (id: string) => {
@@ -505,10 +533,10 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
               }`}
             >
               <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   <button
                     onClick={() => toggleIngredientSelection(ing.id)}
-                    className={`size-5 rounded-md border-2 flex items-center justify-center transition-colors ${
+                    className={`size-5 rounded-md border-2 flex items-center justify-center transition-colors shrink-0 ${
                       ing.selected 
                         ? "bg-primary border-primary" 
                         : "border-muted-foreground"
@@ -520,16 +548,53 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
                       </svg>
                     )}
                   </button>
-                  <span className="text-foreground font-medium capitalize">{ing.name}</span>
+                  <span className="text-foreground font-medium capitalize truncate">{ing.name}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">{ing.grams}g</span>
-                  <button
-                    onClick={() => removeIngredient(ing.id)}
-                    className="size-7 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center shrink-0 active:scale-95 transition-transform"
-                  >
-                    <Trash2 className="size-3.5" />
-                  </button>
+                <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                  {editingIngredientId === ing.id ? (
+                    <>
+                      <input
+                        type="number"
+                        value={editingGrams}
+                        onChange={(e) => setEditingGrams(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") confirmEditGrams(ing.id, ing.name)
+                          if (e.key === "Escape") { setEditingIngredientId(null); setEditingGrams("") }
+                        }}
+                        autoFocus
+                        className="w-16 px-2 py-1 rounded-lg border border-primary bg-background text-sm text-foreground text-right focus:outline-none"
+                      />
+                      <span className="text-xs text-muted-foreground">g</span>
+                      <button
+                        onClick={() => confirmEditGrams(ing.id, ing.name)}
+                        className="size-7 rounded-lg bg-primary/15 text-primary flex items-center justify-center active:scale-95 transition-transform"
+                      >
+                        <Check className="size-3.5" />
+                      </button>
+                      <button
+                        onClick={() => { setEditingIngredientId(null); setEditingGrams("") }}
+                        className="size-7 rounded-lg bg-secondary text-muted-foreground flex items-center justify-center active:scale-95 transition-transform"
+                      >
+                        <X className="size-3.5" />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => startEditingGrams(ing)}
+                        className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-secondary transition-colors group"
+                      >
+                        <span className="text-sm text-muted-foreground">{ing.grams}g</span>
+                        <Pencil className="size-3 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors" />
+                      </button>
+                      <button
+                        onClick={() => removeIngredient(ing.id)}
+                        className="size-7 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center shrink-0 active:scale-95 transition-transform"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
               <div className="grid grid-cols-5 gap-2">
