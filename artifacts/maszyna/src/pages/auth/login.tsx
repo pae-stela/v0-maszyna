@@ -130,6 +130,32 @@ export default function LoginPage() {
           </Button>
         </form>
 
+        <div className="mt-4 p-3 bg-secondary/50 rounded-xl border border-border">
+          <p className="text-[10px] text-muted-foreground mb-2 text-center uppercase tracking-wider font-medium">Demo Mode</p>
+          <button
+            type="button"
+            onClick={async () => {
+              setEmail('demo@maszyna.app')
+              setPassword('demo123')
+              setIsLoading(true)
+              setError(null)
+              try {
+                const { error } = await supabase.auth.signInWithPassword({
+                  email: 'demo@maszyna.app',
+                  password: 'demo123',
+                })
+                if (error) throw error
+              } catch (error: unknown) {
+                setError(error instanceof Error ? error.message : 'An error occurred')
+                setIsLoading(false)
+              }
+            }}
+            className="w-full py-2 rounded-lg bg-amber-500/10 text-amber-600 text-xs font-medium hover:bg-amber-500/20 transition-colors"
+          >
+            Sign in as Demo User
+          </button>
+        </div>
+
         <p className="text-center text-sm text-muted-foreground mt-6">
           {t('noAccount')}{' '}
           <Link href="/auth/sign-up" className="text-primary font-medium hover:underline">

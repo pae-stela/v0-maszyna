@@ -2,7 +2,7 @@ import { useLanguage } from "@/lib/i18n/context"
 import { useState, useMemo } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { useDishes, useWorkoutPlans, usePlannerEvents, useMealLogs } from "@/lib/realtime-hooks"
-import { Calendar, ShoppingCart, ChevronLeft, ChevronRight, Plus, Check, X, Dumbbell, UtensilsCrossed, ExternalLink, AlertTriangle, RefreshCw, ChevronDown, FileText, Pill } from "lucide-react"
+import { Calendar, ShoppingCart, ChevronLeft, ChevronRight, Plus, Check, X, Dumbbell, UtensilsCrossed, ExternalLink, AlertTriangle, RefreshCw, ChevronDown, FileText, Pill, Edit, Trash2 } from "lucide-react"
 
 // Re-export dishCategories for shopping view
 const dishCategories: Record<string, string[]> = {
@@ -11,8 +11,6 @@ const dishCategories: Record<string, string[]> = {
   "Snacks": ["Savoury", "Sweet"],
   "Drinks": ["Shakes & Smoothies", "Cocktails & Mocktails", "Hot drinks", "Cold drinks"],
 }
-
-export { dishCategories }
 
 type SubTab = "calendar" | "shopping"
 type CalendarViewMode = "today" | "3day" | "week"
@@ -140,15 +138,16 @@ function MacroSummary({
   date,
   ownerFilter,
   settings,
-  partner
+  partner,
+  plannerEvents
 }: {
   date: Date
   ownerFilter: OwnerFilter
   settings: { calorie_goal: number; protein_goal: number; carbs_goal: number; fats_goal: number } | null
   partner: { name: string; id: string } | null
+  plannerEvents: { id: string; date: string; time: string; type: string; name: string; details: string | null; user_id: string; logged: boolean; shared_with_partner: boolean; created_at: string; updated_at?: string }[]
 }) {
   const dateStr = date.toISOString().split('T')[0]
-  const { meals: mealLogs } = useMealLogs(dateStr)
   const { user, profile } = useAuth()
 
   const target = settings || {
@@ -158,12 +157,14 @@ function MacroSummary({
     fats_goal: 65,
   }
 
-  const filtered = mealLogs.filter(log => {
+  const filtered = plannerEvents.filter(e => {
+    if (e.date !== dateStr) return false
+    if (e.type !== 'meal') return false
     if (ownerFilter === "both") return true
     let parsedOwner: string | null = null
     try {
-      if (log.details) {
-        const d = JSON.parse(log.details)
+      if (e.details) {
+        const d = JSON.parse(e.details)
         if (d && typeof d.owner === "string") parsedOwner = d.owner.toLowerCase()
       }
     } catch { /* ignore */ }
@@ -175,12 +176,24 @@ function MacroSummary({
   })
 
   const consumed = filtered.reduce(
-    (acc, log) => ({
-      calories: acc.calories + (log.calories || 0),
-      protein: acc.protein + (log.protein || 0),
-      carbs: acc.carbs + (log.carbs || 0),
-      fats: acc.fats + (log.fats || 0),
-    }),
+    (acc, e) => {
+      let cals = 0, prot = 0, carb = 0, fat = 0
+      try {
+        if (e.details) {
+          const d = JSON.parse(e.details)
+          cals = d.calories || 0
+          prot = d.protein || 0
+          carb = d.carbs || 0
+          fat = d.fats || 0
+        }
+      } catch { /* ignore */ }
+      return {
+        calories: acc.calories + cals,
+        protein: acc.protein + prot,
+        carbs: acc.carbs + carb,
+        fats: acc.fats + fat,
+      }
+    },
     { calories: 0, protein: 0, carbs: 0, fats: 0 }
   )
 
@@ -214,6 +227,14 @@ function CalendarView() {
   const [activeUser, setActiveUser] = useState<"marcin" | "patrycja">("patrycja")
   const [showBothCalendars, setShowBothCalendars] = useState(true)
 
+  // Event menu state
+  const [showEventMenu, setShowEventMenu] = useState(false)
+  const [selectedEventForMenu, setSelectedEventForMenu] = useState<string | null>(null)
+  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 })
+  const [showSwapDishModal, setShowSwapDishModal] = useState(false)
+
+  const [onKitchenEditDish, setOnKitchenEditDish] = useState<(() => void) | null>(null)
+
   const [newEvent, setNewEvent] = useState({ title: "", time: "12:00", details: "" })
   const [inputMode, setInputMode] = useState<"preset" | "custom">("preset")
   const [selectedDishId, setSelectedDishId] = useState<string | null>(null)
@@ -231,7 +252,7 @@ function CalendarView() {
   const today = new Date()
 
   const dateStrForHook = baseDate.toISOString().split('T')[0]
-  const { events: plannerEvents, addEvent } = usePlannerEvents()
+  const { events: plannerEvents, addEvent, updateEvent, deleteEvent } = usePlannerEvents()
   const { addMeal } = useMealLogs(dateStrForHook)
 
   const navigate = (direction: "prev" | "next") => {
@@ -590,6 +611,7 @@ function CalendarView() {
                 ownerFilter={ownerFilter}
                 settings={settings}
                 partner={partner}
+                plannerEvents={plannerEvents}
               />
               
               {/* Events */}
@@ -600,7 +622,12 @@ function CalendarView() {
                           dayEvents.map((event) => (
                             <div
                               key={event.id}
-                              className={`rounded-lg p-2 text-white ${getEventColor(event.type, event.owner)}`}
+                              onClick={() => {
+                                setSelectedEventForMenu(event.id)
+                                setMenuPosition({ x: 0, y: 0 })
+                                setShowEventMenu(true)
+                              }}
+                              className={`rounded-lg p-2 text-white cursor-pointer active:scale-[0.98] transition-transform ${getEventColor(event.type, event.owner)}`}
                             >
                               <div className="flex items-center gap-1.5">
                                 {getEventIcon(event.type)}
@@ -608,10 +635,17 @@ function CalendarView() {
                                   {event.title}
                                 </span>
                               </div>
-                              <div className="flex items-center justify-between">
-                                <p className={`opacity-80 ${viewMode === "week" ? "text-[9px]" : "text-[10px]"}`}>
-                                  {event.time}
-                                </p>
+                              <div className="flex items-center justify-between mt-0.5">
+                                <div className="flex items-center gap-1.5">
+                                  <p className={`opacity-80 ${viewMode === "week" ? "text-[9px]" : "text-[10px]"}`}>
+                                    {event.time}
+                                  </p>
+                                  {event.type === "meal" && event.calories !== undefined && event.calories > 0 && (
+                                    <span className={`opacity-70 ${viewMode === "week" ? "text-[8px]" : "text-[9px]"}`}>
+                                      {Math.round(event.calories)} kcal · {Math.round(event.protein || 0)}g P
+                                    </span>
+                                  )}
+                                </div>
                                 {showBothCalendars && (
                                   <span className={`opacity-70 ${viewMode === "week" ? "text-[8px]" : "text-[9px]"}`}>
                                     {event.owner === "marcin" ? "M" : "P"}
@@ -701,6 +735,150 @@ function CalendarView() {
           </div>
         )}
       </div>
+
+      {/* Event Action Menu */}
+      {showEventMenu && selectedEventForMenu && (
+        <div
+          className="fixed inset-0 bg-black/30 z-[60]"
+          onClick={() => setShowEventMenu(false)}
+        >
+          <div className="absolute bottom-0 left-0 right-0 p-4 pb-24 z-[70]">
+            <div
+              className="bg-card rounded-2xl shadow-xl border border-border overflow-hidden max-w-md mx-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {(() => {
+                const event = plannerEvents.find((e) => e.id === selectedEventForMenu)
+                if (!event) return null
+                const isMeal = event.type === "meal"
+                return (
+                  <div className="flex flex-col">
+                    <div className="px-4 py-3 border-b border-border">
+                      <p className="text-sm font-semibold">{event.name}</p>
+                      <p className="text-xs text-muted-foreground">{event.time} · {event.type}</p>
+                    </div>
+                    {isMeal && (
+                      <button
+                        onClick={() => {
+                          setShowEventMenu(false)
+                          setShowSwapDishModal(true)
+                        }}
+                        className="flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors"
+                      >
+                        <RefreshCw className="size-4 text-amber-500" />
+                        <span>Zamień danie</span>
+                      </button>
+                    )}
+                    {isMeal && (
+                      <button
+                        onClick={() => {
+                          setShowEventMenu(false)
+                          if (onKitchenEditDish) onKitchenEditDish()
+                        }}
+                        className="flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors"
+                      >
+                        <Edit className="size-4 text-sky-500" />
+                        <span>Edytuj w kuchni</span>
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        setShowEventMenu(false)
+                        deleteEvent(selectedEventForMenu)
+                          .then(() => setShowEventMenu(false))
+                          .catch(() => {
+                            alert("Nie udało się usunąć wydarzenia. Spróbuj ponownie.")
+                          })
+                      }}
+                      className="flex items-center gap-3 px-4 py-3 text-sm text-destructive hover:bg-secondary transition-colors"
+                    >
+                      <Trash2 className="size-4 text-destructive" />
+                      <span>Usuń</span>
+                    </button>
+                    <button
+                      onClick={() => setShowEventMenu(false)}
+                      className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:bg-secondary transition-colors border-t border-border"
+                    >
+                      <X className="size-4" />
+                      <span>Anuluj</span>
+                    </button>
+                  </div>
+                )
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Swap Dish Modal */}
+      {showSwapDishModal && selectedEventForMenu && (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-end justify-center p-4 pb-24">
+          <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden max-h-[80vh] flex flex-col">
+            <div className="p-4 border-b border-border flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Zamień danie</h3>
+              <button onClick={() => setShowSwapDishModal(false)} className="p-1 rounded-lg hover:bg-secondary">
+                <X className="size-4 text-muted-foreground" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="space-y-2">
+                {allDishes.map((dish) => (
+                  <button
+                    key={dish.id}
+                    onClick={() => {
+                      const event = plannerEvents.find((e) => e.id === selectedEventForMenu)
+                      if (!event) return
+                      const owner = (event.details?.owner as "marcin" | "patrycja" | "both") || "patrycja"
+                      const dOwner = owner === "both" ? "patrycja" : owner
+                      const ratio = owner === "both" ? 1 : 1
+                      const marcinPer = dish.perMarcin || dish.perServing
+                      const patrycjaPer = dish.perPatrycja || dish.perServing
+                      const dServing = dOwner === "marcin" ? marcinPer : patrycjaPer
+                      const calories = dServing?.calories ?? 0
+                      const protein = dServing?.protein ?? 0
+                      const carbs = dServing?.carbs ?? 0
+                      const fats = dServing?.fats ?? 0
+                      const newDetails = {
+                        owner,
+                        calories: Math.round(calories),
+                        protein: Math.round(protein),
+                        carbs: Math.round(carbs),
+                        fats: Math.round(fats),
+                        dishId: dish.id,
+                        servingRatio: ratio,
+                        marcin: marcinPer || null,
+                        patrycja: patrycjaPer || null,
+                        sharedWithPartner: owner === "both",
+                        auto: true,
+                      }
+                      updateEvent(selectedEventForMenu, {
+                        name: dish.name,
+                        details: newDetails,
+                      }).then(() => {
+                        setShowSwapDishModal(false)
+                        setSelectedEventForMenu(null)
+                      })
+                    }}
+                    className="w-full text-left p-3 rounded-xl border border-border hover:bg-secondary transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">{dish.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {dish.perServing?.calories ?? dish.perMarcin?.calories ?? 0} kcal
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-muted-foreground mt-1">
+                      P:{dish.perServing?.protein ?? dish.perMarcin?.protein ?? 0}g ·
+                      C:{dish.perServing?.carbs ?? dish.perMarcin?.carbs ?? 0}g ·
+                      F:{dish.perServing?.fats ?? dish.perMarcin?.fats ?? 0}g
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add Event Modal */}
       {showAddModal && (
