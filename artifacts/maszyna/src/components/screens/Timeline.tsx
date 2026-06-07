@@ -1,11 +1,10 @@
-import { getT } from "@/lib/i18n";
 import { useMemo } from "react"
 import { useMealLogs, usePlannerEvents } from "@/lib/realtime-hooks"
 import { useAuth } from "@/lib/auth-context"
-import { Dumbbell, UtensilsCrossed, CheckCircle2, Circle } from "lucide-react"
+import { Dumbbell, UtensilsCrossed, CheckCircle2, Circle, Pill } from "lucide-react"
 
 interface TimelineProps {
-  dateStr: string // Format 'YYYY-MM-DD'
+  dateStr: string
   activeUser: "patrycja" | "marcin"
 }
 
@@ -25,16 +24,36 @@ function getOwnerFromRecord(
   profileName: string | undefined,
   partnerName: string | undefined
 ): "marcin" | "patrycja" {
-  // Try JSON details first
   try {
     const parsed = record.details ? JSON.parse(record.details) : {}
     if (parsed.owner === "marcin" || parsed.owner === "patrycja") return parsed.owner
   } catch { /* ignore */ }
-  // Fallback: derive from user_id
   if (record.user_id === userId) {
     return profileName?.toLowerCase().includes("marcin") ? "marcin" : "patrycja"
   }
   return partnerName?.toLowerCase().includes("marcin") ? "marcin" : "patrycja"
+}
+
+function parseDisplayDetails(raw: string | null | undefined): string | undefined {
+  if (!raw) return undefined
+  try {
+    const parsed = JSON.parse(raw)
+    // Strip owner — show remaining fields as readable text
+    const { owner: _owner, ...rest } = parsed
+    const entries = Object.entries(rest)
+    if (entries.length === 0) return undefined
+    const labels: Record<string, string> = {
+      workoutType: "Typ",
+      notes: "Notatki",
+      description: "Opis",
+      plan: "Plan",
+    }
+    return entries
+      .map(([k, v]) => `${labels[k] ?? k}: ${v}`)
+      .join(" · ")
+  } catch {
+    return raw
+  }
 }
 
 export function Timeline({ dateStr, activeUser }: TimelineProps) {
@@ -42,11 +61,9 @@ export function Timeline({ dateStr, activeUser }: TimelineProps) {
   const { events, toggleEventLogged } = usePlannerEvents()
   const { user, profile, partner } = useAuth()
 
-  // Łączymy dane z meal_logs i planner_events w jedną oś czasu
   const timelineItems = useMemo(() => {
     const items: TimelineItem[] = []
 
-    // 1. Mapowanie posiłków
     meals
       .filter((m) => getOwnerFromRecord(m, user?.id, profile?.name, partner?.name) === activeUser)
       .forEach((m) => {
@@ -65,29 +82,33 @@ export function Timeline({ dateStr, activeUser }: TimelineProps) {
         })
       })
 
-    // 2. Mapowanie treningów / suplementów
     events
-      .filter((e) => e.date === dateStr && getOwnerFromRecord(e, user?.id, profile?.name, partner?.name) === activeUser)
+      .filter(
+        (e) =>
+          e.date === dateStr &&
+          getOwnerFromRecord(e, user?.id, profile?.name, partner?.name) === activeUser
+      )
       .forEach((e) => {
         items.push({
           id: e.id,
           time: e.time || "00:00",
           name: e.name || "Plan",
-          type: e.type as "training" | "supplements",
-          details: e.details,
+          type: (e.type === "meal" || e.type === "training" || e.type === "supplements")
+            ? e.type
+            : "training",
+          details: parseDisplayDetails(e.details),
           logged: e.logged || false,
         })
       })
 
-    // Sortowanie chronologiczne po godzinie "HH:MM"
     return items.sort((a, b) => a.time.localeCompare(b.time))
   }, [meals, events, dateStr, activeUser, user, profile, partner])
 
   const handleToggle = async (item: TimelineItem) => {
     if (item.type === "meal") {
-      await toggleMealLogged(item.id, item.logged)
+      await toggleMealLogged?.(item.id, item.logged)
     } else {
-      await toggleEventLogged(item.id, item.logged)
+      await toggleEventLogged?.(item.id, item.logged)
     }
   }
 
@@ -103,10 +124,22 @@ export function Timeline({ dateStr, activeUser }: TimelineProps) {
     <div className="relative border-l border-muted-foreground/20 ml-3 pl-6 space-y-6 py-2">
       {timelineItems.map((item) => {
         const isMeal = item.type === "meal"
+        const isSupp = item.type === "supplements"
+
+        const iconBg = isMeal
+          ? "bg-sage/10 text-sage"
+          : isSupp
+          ? "bg-sand/10 text-sand"
+          : "bg-primary/10 text-primary"
+
+        const Icon = isMeal
+          ? UtensilsCrossed
+          : isSupp
+          ? Pill
+          : Dumbbell
 
         return (
           <div key={item.id} className="relative group">
-            {/* Kulka statusu (Klikalny Checkbox) */}
             <button
               onClick={() => handleToggle(item)}
               className="absolute -left-[35px] top-0.5 bg-background rounded-full p-0.5 text-muted-foreground hover:text-primary transition-colors z-10"
@@ -118,20 +151,19 @@ export function Timeline({ dateStr, activeUser }: TimelineProps) {
               )}
             </button>
 
-            {/* Zawartość kafelka */}
-            <div className={`p-3.5 rounded-2xl border transition-all ${
-              item.logged 
-                ? "bg-secondary/40 border-transparent opacity-70" 
-                : "bg-card border-border hover:shadow-sm"
-            }`}>
+            <div
+              className={`p-3.5 rounded-2xl border transition-all ${
+                item.logged
+                  ? "bg-secondary/40 border-transparent opacity-70"
+                  : "bg-card border-border hover:shadow-sm"
+              }`}
+            >
               <div className="flex items-center justify-between gap-2 mb-1">
                 <span className="text-xs font-mono font-semibold text-muted-foreground">
                   {item.time}
                 </span>
-                <span className={`p-1.5 rounded-lg ${
-                  isMeal ? "bg-sage/10 text-sage" : "bg-primary/10 text-primary"
-                }`}>
-                  {isMeal ? <UtensilsCrossed className="size-3.5" /> : <Dumbbell className="size-3.5" />}
+                <span className={`p-1.5 rounded-lg ${iconBg}`}>
+                  <Icon className="size-3.5" />
                 </span>
               </div>
 
@@ -141,7 +173,6 @@ export function Timeline({ dateStr, activeUser }: TimelineProps) {
                 <p className="text-xs text-muted-foreground mt-0.5">{item.details}</p>
               )}
 
-              {/* Wyświetlanie makro dla posiłków */}
               {isMeal && item.macros && !item.logged && (
                 <div className="flex gap-3 mt-2 pt-2 border-t border-border/50 text-[10px] text-muted-foreground font-mono">
                   <span>{item.macros.calories} kcal</span>

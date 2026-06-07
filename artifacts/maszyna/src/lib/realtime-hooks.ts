@@ -204,7 +204,11 @@ export function useMealLogs(date?: string) {
     return { error }
   }
 
-  return { meals, loading, addMeal, updateMeal, deleteMeal, refetch: fetchMeals }
+  const toggleMealLogged = async (id: string, currentLogged: boolean) => {
+    return updateMeal(id, { logged: !currentLogged })
+  }
+
+  return { meals, loading, addMeal, updateMeal, deleteMeal, toggleMealLogged, refetch: fetchMeals }
 }
 
 // Hook for workout logs with real-time updates
@@ -557,7 +561,11 @@ export function usePlannerEvents(date?: string) {
     return { error }
   }
 
-  return { events, loading, addEvent, updateEvent, deleteEvent, refetch: fetchEvents }
+  const toggleEventLogged = async (id: string, currentLogged: boolean) => {
+    return updateEvent(id, { logged: !currentLogged })
+  }
+
+  return { events, loading, addEvent, updateEvent, deleteEvent, toggleEventLogged, refetch: fetchEvents }
 }
 
 // Hook for user workout plans with real-time updates
