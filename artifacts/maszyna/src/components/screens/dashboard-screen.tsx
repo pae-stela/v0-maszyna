@@ -89,6 +89,7 @@ export function DashboardScreen() {
   const { events: partnerEvents } = usePlannerEvents(todayDateStr)
 
   const [water, setWater] = useState(MACRO_TARGETS[activeUser].water * 0.4) // Proste demo stanu wody
+  const [lastWaterAdd, setLastWaterAdd] = useState<number | null>(null)
   const [showStepInput, setShowStepInput] = useState(false)
   const [stepInput, setStepInput] = useState("")
   const [showSuggestions, setShowSuggestions] = useState(false)
@@ -149,7 +150,15 @@ export function DashboardScreen() {
   const hasRemainingMacros = remainingMacros.calories > 200
 
   const addWater = (amount: number) => {
+    setLastWaterAdd(amount)
     setWater((prev) => Math.min(prev + amount, targets.water + 1000))
+  }
+
+  const undoWater = () => {
+    if (lastWaterAdd !== null) {
+      setWater((prev) => Math.max(0, prev - lastWaterAdd))
+      setLastWaterAdd(null)
+    }
   }
 
   // Agregacja planu partnera do uproszczonego podglądu pod przyciskiem rozwijanym
@@ -253,6 +262,15 @@ export function DashboardScreen() {
           <button onClick={() => addWater(1000)} className="flex-1 py-2.5 rounded-xl bg-navy/10 text-navy/70 text-sm font-medium active:scale-[0.98] transition-transform">
             +1L
           </button>
+          {lastWaterAdd !== null && (
+            <button
+              onClick={undoWater}
+              className="px-3 py-2.5 rounded-xl bg-destructive/10 text-destructive text-sm font-medium active:scale-[0.98] transition-transform flex items-center gap-1 shrink-0"
+              title={`Cofnij +${lastWaterAdd}ml`}
+            >
+              ↩
+            </button>
+          )}
         </div>
       </div>
 
@@ -372,10 +390,10 @@ export function DashboardScreen() {
       </div>
 
       {/* ========================================================= */}
-      {/* KROK 3 W AKCJI: NOWY OŚ CZASU (MIRIADA POSIŁKÓW I SUPLEMENTÓW) */}
+      {/* OŚ CZASU - PLAN NA DZIŚ */}
       {/* ========================================================= */}
       <div className="mt-2">
-        <Timeline selectedDate={todayDateStr} />
+        <Timeline dateStr={todayDateStr} activeUser={activeUser} />
       </div>
 
     </div>
