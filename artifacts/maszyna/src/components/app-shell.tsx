@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { BottomNav, type Tab } from "@/components/bottom-nav"
 import { DashboardScreen } from "@/components/screens/dashboard-screen"
-import { KitchenScreen } from "@/components/screens/kitchen-screen"
+import { KitchenScreen, type EditMode } from "@/components/screens/kitchen-screen"
 import { WorkoutScreen } from "@/components/screens/workout-screen"
 import { PlannerScreen } from "@/components/screens/planner-screen"
 import { ProfileScreen } from "@/components/screens/profile-screen"
@@ -11,18 +11,35 @@ import { useLanguage } from "@/lib/i18n/context"
 
 export function AppShell() {
   const [activeTab, setActiveTab] = useState<Tab>("dashboard")
+  const [kitchenEditDish, setKitchenEditDish] = useState<EditMode | null>(null)
   const { t, language } = useLanguage()
+
+  const handleNavigateToKitchen = (dish: EditMode) => {
+    setKitchenEditDish(dish)
+    setActiveTab("kitchen")
+  }
+
+  const handleTabChange = (tab: Tab) => {
+    // Clear dish edit mode when navigating to kitchen manually (not via "edit in kitchen")
+    if (tab === "kitchen" && activeTab !== "planner") {
+      setKitchenEditDish(null)
+    }
+    if (tab !== "kitchen") {
+      setKitchenEditDish(null)
+    }
+    setActiveTab(tab)
+  }
 
   const renderScreen = () => {
     switch (activeTab) {
       case "dashboard":
         return <DashboardScreen />
       case "kitchen":
-        return <KitchenScreen />
+        return <KitchenScreen initialEditMode={kitchenEditDish} />
       case "workout":
         return <WorkoutScreen />
       case "planner":
-        return <PlannerScreen />
+        return <PlannerScreen onNavigateToKitchen={handleNavigateToKitchen} />
       case "profile":
         return <ProfileScreen />
       default:
@@ -69,7 +86,7 @@ export function AppShell() {
         </div>
       </main>
       
-      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+      <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
     </div>
   )
 }

@@ -71,7 +71,7 @@ interface CalculatorIngredient {
 // ingredientDatabase removed — now pulling from Supabase 'ingredients' table
 
 
-interface EditMode {
+export interface EditMode {
   type: 'dish' | 'component'
   id: string
   name: string
@@ -83,9 +83,9 @@ interface EditMode {
   subCategory?: string
 }
 
-export function KitchenScreen() {
-  const [subTab, setSubTab] = useState<SubTab>("calculator")
-  const [editMode, setEditMode] = useState<EditMode | null>(null)
+export function KitchenScreen({ initialEditMode }: { initialEditMode?: EditMode | null }) {
+  const [subTab, setSubTab] = useState<SubTab>(initialEditMode ? "calculator" : "calculator")
+  const [editMode, setEditMode] = useState<EditMode | null>(initialEditMode || null)
   const { activeUser } = useUser()
 
   const handleTabChange = (tab: SubTab) => {

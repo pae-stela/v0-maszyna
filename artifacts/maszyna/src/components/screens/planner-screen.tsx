@@ -3,6 +3,7 @@ import { useState, useMemo } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { useDishes, useWorkoutPlans, usePlannerEvents, useMealLogs } from "@/lib/realtime-hooks"
 import { Calendar, ShoppingCart, ChevronLeft, ChevronRight, Plus, Check, X, Dumbbell, UtensilsCrossed, ExternalLink, AlertTriangle, RefreshCw, ChevronDown, FileText, Pill, Edit, Trash2 } from "lucide-react"
+import type { EditMode } from "@/components/screens/kitchen-screen"
 
 // Re-export dishCategories for shopping view
 const dishCategories: Record<string, string[]> = {
@@ -36,7 +37,7 @@ interface PlannerEventLocal {
   sharedWithPartner?: boolean
 }
 
-export function PlannerScreen() {
+export function PlannerScreen({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: EditMode) => void }) {
   const { t } = useLanguage()
   const [subTab, setSubTab] = useState<SubTab>("calendar")
 
@@ -67,7 +68,7 @@ export function PlannerScreen() {
         </button>
       </div>
 
-      {subTab === "calendar" ? <CalendarView /> : <ShoppingView />}
+      {subTab === "calendar" ? <CalendarView onNavigateToKitchen={onNavigateToKitchen} /> : <ShoppingView />}
     </div>
   )
 }
@@ -297,7 +298,7 @@ function MacroSummary({
   )
 }
 
-function CalendarView() {
+function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: EditMode) => void }) {
   const { user, profile, settings, partner } = useAuth()
   const { dishes: allDishes } = useDishes()
   const { plans: allPlans } = useWorkoutPlans()
@@ -317,8 +318,6 @@ function CalendarView() {
   const [selectedEventForMenu, setSelectedEventForMenu] = useState<string | null>(null)
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 })
   const [showSwapDishModal, setShowSwapDishModal] = useState(false)
-
-  const [onKitchenEditDish, setOnKitchenEditDish] = useState<(() => void) | null>(null)
 
   const [newEvent, setNewEvent] = useState({ title: "", time: "12:00", details: "" })
   const [inputMode, setInputMode] = useState<"preset" | "custom">("preset")
@@ -872,11 +871,35 @@ function CalendarView() {
                         <span>Zamień danie</span>
                       </button>
                     )}
-                    {isMeal && (
+                    {isMeal && onNavigateToKitchen && (
                       <button
                         onClick={() => {
                           setShowEventMenu(false)
-                          if (onKitchenEditDish) onKitchenEditDish()
+                          // parse dishId from event details and find the dish
+                          let dishId: string | undefined
+                          try {
+                            if (event.details) {
+                              const d = JSON.parse(event.details)
+                              dishId = d.dishId
+                            }
+                          } catch {}
+                          const dish = dishId ? allDishes.find((d) => d.id === dishId) : null
+                          if (dish) {
+                            const editMode: EditMode = {
+                              type: 'dish',
+                              id: dish.id,
+                              name: dish.name,
+                              elements: Array.isArray((dish as any).elements) ? (dish as any).elements : [],
+                              recipeSteps: (dish as any).recipeSteps || (dish as any).steps || [],
+                              marcinServings: (dish as any).marcinServings,
+                              patrycjaServings: (dish as any).patrycjaServings,
+                              mainCategory: (dish as any).mainCategory,
+                              subCategory: (dish as any).subCategory,
+                            }
+                            onNavigateToKitchen(editMode)
+                          } else {
+                            alert("Nie znaleziono dania w bazie. Otwórz kuchnię ręcznie i wyszukaj danie.")
+                          }
                         }}
                         className="flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors"
                       >
