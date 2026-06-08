@@ -88,11 +88,33 @@ export function DashboardScreen() {
   const { meals: allTodayMeals } = useMealLogs(todayDateStr)
   const { events: allTodayEvents } = usePlannerEvents(todayDateStr)
 
-  // Split by owner: current user vs everyone else (= partner)
-  const myMeals = allTodayMeals.filter(m => m.user_id === user?.id)
-  const myEvents = allTodayEvents.filter(e => e.user_id === user?.id)
-  const partnerMeals = allTodayMeals.filter(m => m.user_id !== user?.id)
-  const partnerEvents = allTodayEvents.filter(e => e.user_id !== user?.id)
+  // Parse owner from details JSON (set by planner when adding events)
+  // Fallback to user_id comparison for data added without explicit owner
+  function getRecordOwner(record: { user_id?: string; details?: string | null }): "patrycja" | "marcin" | null {
+    try {
+      const d = record.details ? JSON.parse(record.details) : {}
+      if (d.owner === "patrycja" || d.owner === "marcin") return d.owner
+    } catch { /* ignore */ }
+    return null
+  }
+
+  // Filter by explicit owner in details.owner; fall back to user_id for untagged records
+  const myMeals = allTodayMeals.filter(m => {
+    const o = getRecordOwner(m)
+    return o ? o === activeUser : m.user_id === user?.id
+  })
+  const myEvents = allTodayEvents.filter(e => {
+    const o = getRecordOwner(e)
+    return o ? o === activeUser : e.user_id === user?.id
+  })
+  const partnerMeals = allTodayMeals.filter(m => {
+    const o = getRecordOwner(m)
+    return o ? o === partnerUser : m.user_id !== user?.id
+  })
+  const partnerEvents = allTodayEvents.filter(e => {
+    const o = getRecordOwner(e)
+    return o ? o === partnerUser : e.user_id !== user?.id
+  })
 
   const [water, setWater] = useState(MACRO_TARGETS[activeUser].water * 0.4) // Proste demo stanu wody
   const [lastWaterAdd, setLastWaterAdd] = useState<number | null>(null)
