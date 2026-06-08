@@ -6,6 +6,8 @@ import { Dumbbell, UtensilsCrossed, CheckCircle2, Circle, Pill } from "lucide-re
 interface TimelineProps {
   dateStr: string
   activeUser: "patrycja" | "marcin"
+  loggedOverrides?: Record<string, boolean>
+  onToggleOverride?: (id: string, newLogged: boolean) => void
 }
 
 interface TimelineItem {
@@ -53,14 +55,14 @@ function parseDisplayDetails(raw: string | null | undefined): string | undefined
   }
 }
 
-export function Timeline({ dateStr, activeUser }: TimelineProps) {
+export function Timeline({ dateStr, activeUser, loggedOverrides: externalOverrides, onToggleOverride }: TimelineProps) {
   const { meals, toggleMealLogged } = useMealLogs(dateStr)
   const { events, toggleEventLogged } = usePlannerEvents()
   const { user, profile, partner } = useAuth()
 
-  // Local override map: id → logged state
-  // Keeps visual state correct even if Supabase update is slow or blocked by RLS
-  const [loggedOverrides, setLoggedOverrides] = useState<Record<string, boolean>>({})
+  // Local override map used only when no external overrides are provided
+  const [localLoggedOverrides, setLocalLoggedOverrides] = useState<Record<string, boolean>>({})
+  const loggedOverrides = externalOverrides ?? localLoggedOverrides
 
   const timelineItems = useMemo(() => {
     const items: TimelineItem[] = []
@@ -107,8 +109,12 @@ export function Timeline({ dateStr, activeUser }: TimelineProps) {
 
   const handleToggle = (item: TimelineItem) => {
     const newLogged = !item.logged
-    // Instant visual feedback via local state — no waiting for Supabase
-    setLoggedOverrides(prev => ({ ...prev, [item.id]: newLogged }))
+    // Instant visual feedback — update either external or local overrides
+    if (onToggleOverride) {
+      onToggleOverride(item.id, newLogged)
+    } else {
+      setLocalLoggedOverrides(prev => ({ ...prev, [item.id]: newLogged }))
+    }
     // Persist in background (fire-and-forget; visual won't revert even on error)
     if (item.type === "meal") {
       toggleMealLogged?.(item.id, item.logged)

@@ -116,6 +116,12 @@ export function DashboardScreen() {
     return o ? o === partnerUser : e.user_id !== user?.id
   })
 
+  // Lifted from Timeline so macro circles react instantly to ticks
+  const [loggedOverrides, setLoggedOverrides] = useState<Record<string, boolean>>({})
+  const handleToggleOverride = (id: string, newLogged: boolean) => {
+    setLoggedOverrides(prev => ({ ...prev, [id]: newLogged }))
+  }
+
   const [water, setWater] = useState(MACRO_TARGETS[activeUser].water * 0.4) // Proste demo stanu wody
   const [lastWaterAdd, setLastWaterAdd] = useState<number | null>(null)
   const [showStepInput, setShowStepInput] = useState(false)
@@ -129,8 +135,12 @@ export function DashboardScreen() {
   const stepCalories = Math.round(todaySteps * 0.04 * (activeUser === "patrycja" ? 62 : 85))
 
   // DYNAMICZNE OBLICZANIE MAKRO NA BAZIE ZJEDZONYCH (logged === true) POSIŁKÓW
+  // Apply loggedOverrides so ticking in Timeline updates circles instantly
   const currentMacros = myMeals
-    .filter(meal => meal.logged)
+    .filter(meal => {
+      const override = loggedOverrides[meal.id]
+      return override !== undefined ? override : meal.logged
+    })
     .reduce((acc, meal) => {
       acc.calories += meal.calories || 0
       acc.protein += meal.protein || 0
@@ -436,7 +446,12 @@ export function DashboardScreen() {
             {now.toLocaleDateString("pl-PL", { weekday: "long", day: "numeric", month: "long" })}
           </span>
         </div>
-        <Timeline dateStr={todayDateStr} activeUser={activeUser} />
+        <Timeline
+          dateStr={todayDateStr}
+          activeUser={activeUser}
+          loggedOverrides={loggedOverrides}
+          onToggleOverride={handleToggleOverride}
+        />
       </div>
 
     </div>
