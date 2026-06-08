@@ -397,7 +397,16 @@ export function DashboardScreen() {
             <div className="text-left">
               <p className="text-sm font-semibold text-foreground capitalize">{partnerName}&apos;s Day</p>
               <p className="text-xs text-muted-foreground">
-                {partnerMeals.length} posiłków · {partnerEvents.filter(e => e.type === 'training').length} treningi
+                {(() => {
+                  const mealCount = partnerMeals.length + partnerEvents.filter(e => e.type === 'meal').length
+                  const trainCount = partnerEvents.filter(e => e.type === 'training').length
+                  const suppCount = partnerEvents.filter(e => e.type === 'supplements').length
+                  const parts = []
+                  if (mealCount > 0) parts.push(`${mealCount} posiłków`)
+                  if (trainCount > 0) parts.push(`${trainCount} treningów`)
+                  if (suppCount > 0) parts.push(`${suppCount} suplementów`)
+                  return parts.length > 0 ? parts.join(' · ') : 'Brak zaplanowanych pozycji'
+                })()}
               </p>
             </div>
           </div>

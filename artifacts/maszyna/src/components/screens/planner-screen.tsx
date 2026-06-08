@@ -110,6 +110,10 @@ function isSameDay(d1: Date, d2: Date): boolean {
     d1.getDate() === d2.getDate()
 }
 
+function toLocalDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 const DASHBOARD_COLORS = {
   calories: "#1A2E26",
   protein: "#3B5340",
@@ -191,7 +195,7 @@ function MacroSummary({
   partner: { name: string; id: string } | null
   plannerEvents: { id: string; date: string; time: string; type: string; name: string; details: string | null; user_id: string; logged: boolean; shared_with_partner: boolean; created_at: string; updated_at?: string }[]
 }) {
-  const dateStr = date.toISOString().split('T')[0]
+  const dateStr = toLocalDateStr(date)
   const { profile } = useAuth()
 
   const getMacros = (owner: "marcin" | "patrycja") => {
@@ -264,17 +268,17 @@ function MacroSummary({
     return (
       <div className="px-2 pb-3 pt-1 border-b border-border">
         <div className="flex gap-2">
-          <div className="flex-1 bg-sage/10 rounded-xl p-2 flex flex-col gap-1">
+          <div className="flex-1 rounded-xl p-2 flex flex-col gap-1" style={{ backgroundColor: `${DASHBOARD_COLORS.fiber}22` }}>
             <div className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-sage" />
-              <span className="text-[9px] font-semibold text-sage">{partner?.name?.includes("Patrycja") ? "Patrycja" : "Patrycja"}</span>
+              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: DASHBOARD_COLORS.fiber }} />
+              <span className="text-[9px] font-semibold" style={{ color: DASHBOARD_COLORS.fiber }}>Patrycja</span>
             </div>
             <SingleOwnerMacros owner="patrycja" consumed={patrycjaData.consumed} target={patrycjaData.target} />
           </div>
-          <div className="flex-1 bg-navy/10 rounded-xl p-2 flex flex-col gap-1">
+          <div className="flex-1 rounded-xl p-2 flex flex-col gap-1" style={{ backgroundColor: `${DASHBOARD_COLORS.calories}22` }}>
             <div className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-navy" />
-              <span className="text-[9px] font-semibold text-navy">{partner?.name?.includes("Marcin") ? "Marcin" : "Marcin"}</span>
+              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: DASHBOARD_COLORS.calories }} />
+              <span className="text-[9px] font-semibold" style={{ color: DASHBOARD_COLORS.calories }}>Marcin</span>
             </div>
             <SingleOwnerMacros owner="marcin" consumed={marcinData.consumed} target={marcinData.target} />
           </div>
@@ -318,6 +322,8 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
   const [selectedEventForMenu, setSelectedEventForMenu] = useState<string | null>(null)
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 })
   const [showSwapDishModal, setShowSwapDishModal] = useState(false)
+  const [showKitchenModeModal, setShowKitchenModeModal] = useState(false)
+  const [pendingKitchenDish, setPendingKitchenDish] = useState<EditMode | null>(null)
 
   const [newEvent, setNewEvent] = useState({ title: "", time: "12:00", details: "" })
   const [inputMode, setInputMode] = useState<"preset" | "custom">("preset")
@@ -335,7 +341,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
   const dates = getDateRange(baseDate, viewMode)
   const today = new Date()
 
-  const dateStrForHook = baseDate.toISOString().split('T')[0]
+  const dateStrForHook = toLocalDateStr(baseDate)
   const { events: plannerEvents, addEvent, updateEvent, deleteEvent } = usePlannerEvents()
   const { addMeal } = useMealLogs(dateStrForHook)
 
@@ -406,13 +412,13 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
         let current = new Date(startDate)
 
         if (daysOfWeek.includes(current.getDay())) {
-          datesList.push(current.toISOString().split('T')[0])
+          datesList.push(toLocalDateStr(current))
         }
 
         while (datesList.length < count) {
           current.setDate(current.getDate() + 1)
           if (daysOfWeek.includes(current.getDay())) {
-            datesList.push(current.toISOString().split('T')[0])
+            datesList.push(toLocalDateStr(current))
           }
           if (daysOfWeek.length === 0 || datesList.length > 100) break
         }
@@ -421,7 +427,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
 
       const targetDates = (addType === "supplements" && isRecurring && selectedDays.length > 0)
         ? getRecurringDates(selectedDate, selectedDays, totalOccurrences)
-        : [selectedDate.toISOString().split('T')[0]]
+        : [toLocalDateStr(selectedDate)]
 
       let hasError = false
 
@@ -497,7 +503,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
   }
 
   const getEventsForDate = (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0]
+    const dateStr = toLocalDateStr(date)
     return plannerEvents
       .filter(e => {
         if (e.date !== dateStr) return false
@@ -540,22 +546,23 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
       })
   }
 
-  const getEventColor = (type: EventType, owner: "marcin" | "patrycja") => {
+  const getEventColor = (type: EventType, owner: "marcin" | "patrycja"): string => {
     if (owner === "marcin") {
       switch (type) {
-        case "training": return "bg-navy"
-        case "meal": return "bg-navy/70"
-        case "supplements": return "bg-navy/50"
-        case "google": return "bg-navy"
+        case "training": return "bg-[#1A2E26]"
+        case "meal": return "bg-[#1A2E26]/70"
+        case "supplements": return "bg-[#1A2E26]/50"
+        case "google": return "bg-[#1A2E26]"
       }
     } else {
       switch (type) {
-        case "training": return "bg-sage"
-        case "meal": return "bg-sage/70"
-        case "supplements": return "bg-sage/50"
+        case "training": return "bg-[#8A9A86]"
+        case "meal": return "bg-[#8A9A86]/70"
+        case "supplements": return "bg-[#8A9A86]/50"
         case "google": return "bg-emerald-900"
       }
     }
+    return "bg-muted"
   }
 
   const getEventIcon = (type: EventType) => {
@@ -600,9 +607,10 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
           }}
           className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
             !showBothCalendars && activeUser === "patrycja"
-              ? "bg-sage text-background"
+              ? "text-white"
               : "text-muted-foreground hover:text-foreground"
           }`}
+          style={!showBothCalendars && activeUser === "patrycja" ? { backgroundColor: DASHBOARD_COLORS.fiber } : undefined}
         >
           {profile?.name || "Patrycja"}
         </button>
@@ -614,9 +622,10 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
           }}
           className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
             !showBothCalendars && activeUser === "marcin"
-              ? "bg-navy text-background"
+              ? "text-white"
               : "text-muted-foreground hover:text-foreground"
           }`}
+          style={!showBothCalendars && activeUser === "marcin" ? { backgroundColor: DASHBOARD_COLORS.calories } : undefined}
         >
           {partner?.name || "Marcin"}
         </button>
@@ -875,7 +884,6 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                       <button
                         onClick={() => {
                           setShowEventMenu(false)
-                          // parse dishId from event details and find the dish
                           let dishId: string | undefined
                           try {
                             if (event.details) {
@@ -885,7 +893,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                           } catch {}
                           const dish = dishId ? allDishes.find((d) => d.id === dishId) : null
                           if (dish) {
-                            const editMode: EditMode = {
+                            setPendingKitchenDish({
                               type: 'dish',
                               id: dish.id,
                               name: dish.name,
@@ -895,8 +903,8 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                               patrycjaServings: (dish as any).patrycjaServings,
                               mainCategory: (dish as any).mainCategory,
                               subCategory: (dish as any).subCategory,
-                            }
-                            onNavigateToKitchen(editMode)
+                            })
+                            setShowKitchenModeModal(true)
                           } else {
                             alert("Nie znaleziono dania w bazie. Otwórz kuchnię ręcznie i wyszukaj danie.")
                           }
@@ -1001,6 +1009,65 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                   </button>
                 ))}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Kitchen Mode Modal (T005) */}
+      {showKitchenModeModal && pendingKitchenDish && onNavigateToKitchen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-[70] flex items-end justify-center p-4 pb-24"
+          onClick={() => setShowKitchenModeModal(false)}
+        >
+          <div
+            className="bg-card rounded-2xl w-full max-w-md overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 border-b border-border">
+              <p className="text-sm font-semibold text-foreground">Jak chcesz edytować?</p>
+              <p className="text-xs text-muted-foreground mt-0.5 truncate">{pendingKitchenDish.name}</p>
+            </div>
+            <div className="flex flex-col divide-y divide-border">
+              <button
+                onClick={() => {
+                  setShowKitchenModeModal(false)
+                  onNavigateToKitchen(pendingKitchenDish)
+                  setPendingKitchenDish(null)
+                }}
+                className="flex items-start gap-3 px-4 py-3.5 text-left hover:bg-secondary transition-colors"
+              >
+                <div className="size-8 rounded-lg bg-sky-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Edit className="size-4 text-sky-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-foreground">Nadpisz danie</p>
+                  <p className="text-xs text-muted-foreground">Zaktualizuj przepis — zmiana widoczna wszędzie</p>
+                </div>
+              </button>
+              <button
+                onClick={() => {
+                  setShowKitchenModeModal(false)
+                  onNavigateToKitchen({ ...pendingKitchenDish, id: undefined })
+                  setPendingKitchenDish(null)
+                }}
+                className="flex items-start gap-3 px-4 py-3.5 text-left hover:bg-secondary transition-colors"
+              >
+                <div className="size-8 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <FileText className="size-4 text-emerald-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-foreground">Zapisz jako nowe danie</p>
+                  <p className="text-xs text-muted-foreground">Utwórz nową wersję — oryginał pozostaje bez zmian</p>
+                </div>
+              </button>
+              <button
+                onClick={() => setShowKitchenModeModal(false)}
+                className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:bg-secondary transition-colors border-t border-border"
+              >
+                <X className="size-4" />
+                <span>Anuluj</span>
+              </button>
             </div>
           </div>
         </div>
