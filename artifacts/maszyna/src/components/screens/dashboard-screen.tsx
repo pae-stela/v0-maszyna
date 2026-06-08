@@ -88,11 +88,11 @@ export function DashboardScreen() {
   const { meals: allTodayMeals } = useMealLogs(todayDateStr)
   const { events: allTodayEvents } = usePlannerEvents(todayDateStr)
 
-  // Split by owner using user_id
+  // Split by owner: current user vs everyone else (= partner)
   const myMeals = allTodayMeals.filter(m => m.user_id === user?.id)
   const myEvents = allTodayEvents.filter(e => e.user_id === user?.id)
-  const partnerMeals = allTodayMeals.filter(m => m.user_id === partner?.id)
-  const partnerEvents = allTodayEvents.filter(e => e.user_id === partner?.id)
+  const partnerMeals = allTodayMeals.filter(m => m.user_id !== user?.id)
+  const partnerEvents = allTodayEvents.filter(e => e.user_id !== user?.id)
 
   const [water, setWater] = useState(MACRO_TARGETS[activeUser].water * 0.4) // Proste demo stanu wody
   const [lastWaterAdd, setLastWaterAdd] = useState<number | null>(null)

@@ -1,4 +1,4 @@
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { useMealLogs, usePlannerEvents } from "@/lib/realtime-hooks"
 import { useAuth } from "@/lib/auth-context"
 import { Dumbbell, UtensilsCrossed, CheckCircle2, Circle, Pill } from "lucide-react"
@@ -38,7 +38,6 @@ function parseDisplayDetails(raw: string | null | undefined): string | undefined
   if (!raw) return undefined
   try {
     const parsed = JSON.parse(raw)
-    // Strip owner — show remaining fields as readable text
     const { owner: _owner, ...rest } = parsed
     const entries = Object.entries(rest)
     if (entries.length === 0) return undefined
@@ -48,9 +47,7 @@ function parseDisplayDetails(raw: string | null | undefined): string | undefined
       description: "Opis",
       plan: "Plan",
     }
-    return entries
-      .map(([k, v]) => `${labels[k] ?? k}: ${v}`)
-      .join(" · ")
+    return entries.map(([k, v]) => `${labels[k] ?? k}: ${v}`).join(" · ")
   } catch {
     return raw
   }
@@ -60,6 +57,10 @@ export function Timeline({ dateStr, activeUser }: TimelineProps) {
   const { meals, toggleMealLogged } = useMealLogs(dateStr)
   const { events, toggleEventLogged } = usePlannerEvents()
   const { user, profile, partner } = useAuth()
+
+  // Local override map: id → logged state
+  // Keeps visual state correct even if Supabase update is slow or blocked by RLS
+  const [loggedOverrides, setLoggedOverrides] = useState<Record<string, boolean>>({})
 
   const timelineItems = useMemo(() => {
     const items: TimelineItem[] = []
@@ -72,7 +73,7 @@ export function Timeline({ dateStr, activeUser }: TimelineProps) {
           time: m.time || "00:00",
           name: m.name,
           type: "meal",
-          logged: m.logged || false,
+          logged: loggedOverrides[m.id] !== undefined ? loggedOverrides[m.id] : (m.logged || false),
           macros: {
             calories: m.calories || 0,
             protein: m.protein || 0,
@@ -97,18 +98,22 @@ export function Timeline({ dateStr, activeUser }: TimelineProps) {
             ? e.type
             : "training",
           details: parseDisplayDetails(e.details),
-          logged: e.logged || false,
+          logged: loggedOverrides[e.id] !== undefined ? loggedOverrides[e.id] : (e.logged || false),
         })
       })
 
     return items.sort((a, b) => a.time.localeCompare(b.time))
-  }, [meals, events, dateStr, activeUser, user, profile, partner])
+  }, [meals, events, dateStr, activeUser, user, profile, partner, loggedOverrides])
 
-  const handleToggle = async (item: TimelineItem) => {
+  const handleToggle = (item: TimelineItem) => {
+    const newLogged = !item.logged
+    // Instant visual feedback via local state — no waiting for Supabase
+    setLoggedOverrides(prev => ({ ...prev, [item.id]: newLogged }))
+    // Persist in background (fire-and-forget; visual won't revert even on error)
     if (item.type === "meal") {
-      await toggleMealLogged?.(item.id, item.logged)
+      toggleMealLogged?.(item.id, item.logged)
     } else {
-      await toggleEventLogged?.(item.id, item.logged)
+      toggleEventLogged?.(item.id, item.logged)
     }
   }
 
@@ -132,11 +137,7 @@ export function Timeline({ dateStr, activeUser }: TimelineProps) {
           ? "bg-sand/10 text-sand"
           : "bg-primary/10 text-primary"
 
-        const Icon = isMeal
-          ? UtensilsCrossed
-          : isSupp
-          ? Pill
-          : Dumbbell
+        const Icon = isMeal ? UtensilsCrossed : isSupp ? Pill : Dumbbell
 
         return (
           <div key={item.id} className="relative group">
