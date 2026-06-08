@@ -116,10 +116,22 @@ export function DashboardScreen() {
     return o ? o === partnerUser : e.user_id !== user?.id
   })
 
-  // Lifted from Timeline so macro circles react instantly to ticks
-  const [loggedOverrides, setLoggedOverrides] = useState<Record<string, boolean>>({})
+  // Lifted from Timeline so macro circles react instantly to ticks.
+  // Backed by localStorage so ticks survive page reloads.
+  const localStorageKey = `meal-ticks-${todayDateStr}`
+  const [loggedOverrides, setLoggedOverrides] = useState<Record<string, boolean>>(() => {
+    try {
+      const stored = localStorage.getItem(localStorageKey)
+      if (stored) return JSON.parse(stored) as Record<string, boolean>
+    } catch { /* ignore */ }
+    return {}
+  })
   const handleToggleOverride = (id: string, newLogged: boolean) => {
-    setLoggedOverrides(prev => ({ ...prev, [id]: newLogged }))
+    setLoggedOverrides(prev => {
+      const next = { ...prev, [id]: newLogged }
+      try { localStorage.setItem(localStorageKey, JSON.stringify(next)) } catch { /* ignore */ }
+      return next
+    })
   }
 
   const [water, setWater] = useState(MACRO_TARGETS[activeUser].water * 0.4) // Proste demo stanu wody

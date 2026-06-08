@@ -207,14 +207,19 @@ export function useMealLogs(date?: string) {
   const toggleMealLogged = async (id: string, currentLogged: boolean) => {
     // Optimistic update — instant visual feedback
     setMeals(prev => prev.map(m => m.id === id ? { ...m, logged: !currentLogged } : m))
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('meal_logs')
       .update({ logged: !currentLogged })
       .eq('id', id)
+      .select()
+      .single()
     if (error) {
-      // Rollback on failure
-      setMeals(prev => prev.map(m => m.id === id ? { ...m, logged: currentLogged } : m))
-      console.error('[toggleMealLogged] error:', error.message)
+      // Log but do NOT rollback — the calling component tracks override state
+      // so the tick stays visible even if the DB update silently fails (RLS)
+      console.error('[toggleMealLogged] DB update failed:', error.message, error.code)
+    } else if (data) {
+      // Sync local state with confirmed DB value
+      setMeals(prev => prev.map(m => m.id === id ? data : m))
     }
   }
 

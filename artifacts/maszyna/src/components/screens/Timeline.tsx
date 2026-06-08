@@ -85,6 +85,12 @@ export function Timeline({ dateStr, activeUser, loggedOverrides: externalOverrid
         })
       })
 
+    // Build a set of meal name+time combos already covered by meal_logs
+    // so we don't show duplicate entries for the same meal
+    const mealLogKeys = new Set(
+      items.map(i => `${i.time}|${i.name.toLowerCase().trim()}`)
+    )
+
     events
       .filter(
         (e) =>
@@ -92,6 +98,11 @@ export function Timeline({ dateStr, activeUser, loggedOverrides: externalOverrid
           getOwnerFromRecord(e, user?.id, profile?.name, partner?.name) === activeUser
       )
       .forEach((e) => {
+        // Skip planner_events of type "meal" that are already represented by a meal_log
+        if (e.type === "meal") {
+          const key = `${e.time || "00:00"}|${(e.name || "").toLowerCase().trim()}`
+          if (mealLogKeys.has(key)) return
+        }
         items.push({
           id: e.id,
           time: e.time || "00:00",
