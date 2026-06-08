@@ -75,18 +75,24 @@ const MACRO_TARGETS = {
 export function DashboardScreen() {
   const { activeUser, getTodaySteps, updateSteps, getWeeklyAvgSteps } = useUser()
   const { dishes: allDishes } = useDishes()
-  const { profile, partner } = useAuth()
+  const { profile, partner, user } = useAuth()
 
   const partnerUser = activeUser === "patrycja" ? "marcin" : "patrycja"
   const partnerName = partner?.name || partnerUser
-  const todayDateStr = new Date().toISOString().split('T')[0] // 'YYYY-MM-DD'
 
-  // POBIERANIE DANYCH Z SUPABASE (Real-time)
-  const { meals: myMeals } = useMealLogs(todayDateStr)
-  const { events: myEvents } = usePlannerEvents(todayDateStr)
+  // Local date (not UTC) — avoids showing tomorrow after 22:00 in Poland
+  const now = new Date()
+  const todayDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 
-  const { meals: partnerMeals } = useMealLogs(todayDateStr)
-  const { events: partnerEvents } = usePlannerEvents(todayDateStr)
+  // POBIERANIE DANYCH Z SUPABASE (Real-time) — one call fetches both users
+  const { meals: allTodayMeals } = useMealLogs(todayDateStr)
+  const { events: allTodayEvents } = usePlannerEvents(todayDateStr)
+
+  // Split by owner using user_id
+  const myMeals = allTodayMeals.filter(m => m.user_id === user?.id)
+  const myEvents = allTodayEvents.filter(e => e.user_id === user?.id)
+  const partnerMeals = allTodayMeals.filter(m => m.user_id === partner?.id)
+  const partnerEvents = allTodayEvents.filter(e => e.user_id === partner?.id)
 
   const [water, setWater] = useState(MACRO_TARGETS[activeUser].water * 0.4) // Proste demo stanu wody
   const [lastWaterAdd, setLastWaterAdd] = useState<number | null>(null)
@@ -393,6 +399,12 @@ export function DashboardScreen() {
       {/* OŚ CZASU - PLAN NA DZIŚ */}
       {/* ========================================================= */}
       <div className="mt-2">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-semibold text-foreground">Dziś</h2>
+          <span className="text-xs text-muted-foreground font-mono">
+            {now.toLocaleDateString("pl-PL", { weekday: "long", day: "numeric", month: "long" })}
+          </span>
+        </div>
         <Timeline dateStr={todayDateStr} activeUser={activeUser} />
       </div>
 

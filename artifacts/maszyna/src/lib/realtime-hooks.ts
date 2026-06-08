@@ -205,7 +205,17 @@ export function useMealLogs(date?: string) {
   }
 
   const toggleMealLogged = async (id: string, currentLogged: boolean) => {
-    return updateMeal(id, { logged: !currentLogged })
+    // Optimistic update — instant visual feedback
+    setMeals(prev => prev.map(m => m.id === id ? { ...m, logged: !currentLogged } : m))
+    const { error } = await supabase
+      .from('meal_logs')
+      .update({ logged: !currentLogged })
+      .eq('id', id)
+    if (error) {
+      // Rollback on failure
+      setMeals(prev => prev.map(m => m.id === id ? { ...m, logged: currentLogged } : m))
+      console.error('[toggleMealLogged] error:', error.message)
+    }
   }
 
   return { meals, loading, addMeal, updateMeal, deleteMeal, toggleMealLogged, refetch: fetchMeals }
