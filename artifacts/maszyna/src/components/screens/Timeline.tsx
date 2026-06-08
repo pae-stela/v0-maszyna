@@ -1,13 +1,16 @@
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { useMealLogs, usePlannerEvents } from "@/lib/realtime-hooks"
 import { useAuth } from "@/lib/auth-context"
 import { Dumbbell, UtensilsCrossed, CheckCircle2, Circle, Pill } from "lucide-react"
+
+interface MacroSummary { calories: number; protein: number; carbs: number; fats: number }
 
 interface TimelineProps {
   dateStr: string
   activeUser: "patrycja" | "marcin"
   loggedOverrides?: Record<string, boolean>
   onToggleOverride?: (id: string, newLogged: boolean) => void
+  onMacrosChange?: (macros: MacroSummary) => void
 }
 
 interface TimelineItem {
@@ -55,7 +58,7 @@ function parseDisplayDetails(raw: string | null | undefined): string | undefined
   }
 }
 
-export function Timeline({ dateStr, activeUser, loggedOverrides: externalOverrides, onToggleOverride }: TimelineProps) {
+export function Timeline({ dateStr, activeUser, loggedOverrides: externalOverrides, onToggleOverride, onMacrosChange }: TimelineProps) {
   const { meals, toggleMealLogged } = useMealLogs(dateStr)
   const { events, toggleEventLogged } = usePlannerEvents()
   const { user, profile, partner } = useAuth()
@@ -117,6 +120,22 @@ export function Timeline({ dateStr, activeUser, loggedOverrides: externalOverrid
 
     return items.sort((a, b) => a.time.localeCompare(b.time))
   }, [meals, events, dateStr, activeUser, user, profile, partner, loggedOverrides])
+
+  const loggedMacros = useMemo(() =>
+    timelineItems
+      .filter(i => i.type === "meal" && i.logged && i.macros)
+      .reduce((acc, i) => ({
+        calories: acc.calories + (i.macros!.calories),
+        protein:  acc.protein  + (i.macros!.protein),
+        carbs:    acc.carbs    + (i.macros!.carbs),
+        fats:     acc.fats     + (i.macros!.fats),
+      }), { calories: 0, protein: 0, carbs: 0, fats: 0 })
+  , [timelineItems])
+
+  useEffect(() => {
+    onMacrosChange?.(loggedMacros)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loggedMacros])
 
   const handleToggle = (item: TimelineItem) => {
     const newLogged = !item.logged

@@ -146,20 +146,9 @@ export function DashboardScreen() {
   const stepGoal = 10000
   const stepCalories = Math.round(todaySteps * 0.04 * (activeUser === "patrycja" ? 62 : 85))
 
-  // DYNAMICZNE OBLICZANIE MAKRO NA BAZIE ZJEDZONYCH (logged === true) POSIŁKÓW
-  // Apply loggedOverrides so ticking in Timeline updates circles instantly
-  const currentMacros = myMeals
-    .filter(meal => {
-      const override = loggedOverrides[meal.id]
-      return override !== undefined ? override : meal.logged
-    })
-    .reduce((acc, meal) => {
-      acc.calories += meal.calories || 0
-      acc.protein += meal.protein || 0
-      acc.carbs += meal.carbs || 0
-      acc.fats += meal.fats || 0
-      return acc
-    }, { calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0 })
+  // currentMacros is reported UP from Timeline via onMacrosChange callback
+  // so macro circles update instantly when a meal is ticked, without any ID-matching.
+  const [currentMacros, setCurrentMacros] = useState({ calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0 })
 
   const targets = MACRO_TARGETS[activeUser]
 
@@ -463,6 +452,7 @@ export function DashboardScreen() {
           activeUser={activeUser}
           loggedOverrides={loggedOverrides}
           onToggleOverride={handleToggleOverride}
+          onMacrosChange={(macros) => setCurrentMacros({ ...macros, fiber: 0 })}
         />
       </div>
 

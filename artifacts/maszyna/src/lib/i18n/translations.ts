@@ -8,6 +8,7 @@ export const translations = {
     workout: "Workout",
     planner: "Planner",
     profile: "Profile",
+    shopping: "Shopping",
     
     // Common
     save: "Save",
@@ -166,6 +167,7 @@ export const translations = {
     workout: "Trening",
     planner: "Planer",
     profile: "Profil",
+    shopping: "Zakupy",
     
     // Common
     save: "Zapisz",

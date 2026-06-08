@@ -7,6 +7,7 @@ import { KitchenScreen, type EditMode } from "@/components/screens/kitchen-scree
 import { WorkoutScreen } from "@/components/screens/workout-screen"
 import { PlannerScreen } from "@/components/screens/planner-screen"
 import { ProfileScreen } from "@/components/screens/profile-screen"
+import { ShoppingListScreen } from "@/components/screens/shopping-list-screen"
 import { useLanguage } from "@/lib/i18n/context"
 
 export function AppShell() {
@@ -42,6 +43,8 @@ export function AppShell() {
         return <PlannerScreen onNavigateToKitchen={handleNavigateToKitchen} />
       case "profile":
         return <ProfileScreen />
+      case "shopping":
+        return <ShoppingListScreen />
       default:
         return <DashboardScreen />
     }
@@ -59,6 +62,8 @@ export function AppShell() {
         return t('planner')
       case "profile":
         return t('profile')
+      case "shopping":
+        return t('shopping')
       default:
         return ""
     }
