@@ -106,6 +106,21 @@ export function Timeline({ dateStr, activeUser, loggedOverrides: externalOverrid
           const key = `${e.time || "00:00"}|${(e.name || "").toLowerCase().trim()}`
           if (mealLogKeys.has(key)) return
         }
+        // Extract macros stored in planner event details JSON
+        let eventMacros: { calories: number; protein: number; carbs: number; fats: number } | undefined
+        if (e.type === "meal" && e.details) {
+          try {
+            const d = JSON.parse(e.details)
+            if (d.calories || d.protein || d.carbs || d.fats) {
+              eventMacros = {
+                calories: Number(d.calories) || 0,
+                protein:  Number(d.protein)  || 0,
+                carbs:    Number(d.carbs)    || 0,
+                fats:     Number(d.fats)     || 0,
+              }
+            }
+          } catch { }
+        }
         items.push({
           id: e.id,
           time: e.time || "00:00",
@@ -115,6 +130,7 @@ export function Timeline({ dateStr, activeUser, loggedOverrides: externalOverrid
             : "training",
           details: parseDisplayDetails(e.details),
           logged: loggedOverrides[e.id] !== undefined ? loggedOverrides[e.id] : (e.logged || false),
+          macros: eventMacros,
         })
       })
 

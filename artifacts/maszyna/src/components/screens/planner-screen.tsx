@@ -1,5 +1,6 @@
 import { useLanguage } from "@/lib/i18n/context"
 import { useState, useMemo } from "react"
+import { ShoppingListScreen } from "@/components/screens/shopping-list-screen"
 import { useAuth } from "@/lib/auth-context"
 import { useDishes, useWorkoutPlans, usePlannerEvents, useMealLogs } from "@/lib/realtime-hooks"
 import { Calendar, ShoppingCart, ChevronLeft, ChevronRight, Plus, Check, X, Dumbbell, UtensilsCrossed, ExternalLink, AlertTriangle, RefreshCw, ChevronDown, FileText, Pill, Edit, Trash2 } from "lucide-react"
@@ -1434,11 +1435,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
   )
 }
 
-// Fallback ShoppingView component to ensure layout compatibility
+// Shopping tab — renders the full shopping list screen inline
 function ShoppingView() {
-  return (
-    <div className="bg-card p-6 rounded-2xl border border-border text-center">
-      <p className="text-sm text-muted-foreground font-medium">Shopping List content coming soon.</p>
-    </div>
-  )
+  return <ShoppingListScreen />
 }

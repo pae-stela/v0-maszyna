@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback, useEffect } from "react"
-import { Plus, Trash2, Check, ShoppingCart, Calendar, ChevronDown, ChevronUp, AlertTriangle, X, Download, RefreshCw } from "lucide-react"
+import { useState, useMemo, useCallback, useEffect, useRef } from "react"
+import { Plus, Trash2, Check, ShoppingCart, Calendar, ChevronDown, ChevronUp, AlertTriangle, X, Download, RefreshCw, Pencil, CheckCheck } from "lucide-react"
 import { supabase } from "@/lib/supabase/client"
 import { useAuth } from "@/lib/auth-context"
 import { useDishes } from "@/lib/realtime-hooks"
@@ -118,6 +118,13 @@ export function ShoppingListScreen() {
   const [loadingImport, setLoadingImport] = useState(false)
   const [selectedMeals, setSelectedMeals] = useState<Set<string>>(new Set())
 
+  // Inline editing
+  const [editingItemId, setEditingItemId] = useState<string | null>(null)
+  const [editName, setEditName] = useState("")
+  const [editQty, setEditQty] = useState("")
+  const [editCat, setEditCat] = useState<CategoryId>("inne")
+  const editNameRef = useRef<HTMLInputElement>(null)
+
   const saveItems = useCallback((updated: ShoppingItem[]) => {
     setItems(updated)
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(updated)) } catch { }
@@ -155,6 +162,35 @@ export function ShoppingListScreen() {
   const clearChecked = () => {
     saveItems(items.filter(i => !i.checked))
   }
+
+  const clearAll = () => {
+    if (window.confirm("Wyczyścić całą listę zakupów?")) {
+      saveItems([])
+      setEditingItemId(null)
+    }
+  }
+
+  const startEdit = (item: ShoppingItem) => {
+    setEditingItemId(item.id)
+    setEditName(item.name)
+    setEditQty(item.quantity)
+    setEditCat(item.category)
+    setTimeout(() => editNameRef.current?.focus(), 50)
+  }
+
+  const commitEdit = () => {
+    if (!editingItemId) return
+    const trimmed = editName.trim()
+    if (!trimmed) { setEditingItemId(null); return }
+    saveItems(items.map(i =>
+      i.id === editingItemId
+        ? { ...i, name: trimmed, quantity: editQty.trim(), category: editCat }
+        : i
+    ))
+    setEditingItemId(null)
+  }
+
+  const cancelEdit = () => setEditingItemId(null)
 
   const toggleCategory = (catId: string) => {
     setCollapsedCats(prev => {
@@ -304,8 +340,18 @@ export function ShoppingListScreen() {
               onClick={clearChecked}
               className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-destructive/10 text-destructive text-xs font-medium transition-colors border border-destructive/20"
             >
-              <Trash2 className="size-3.5" />
+              <CheckCheck className="size-3.5" />
               Usuń kupione ({checkedCount})
+            </button>
+          )}
+          {totalCount > 0 && (
+            <button
+              onClick={clearAll}
+              className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-secondary/80 text-muted-foreground hover:text-destructive text-xs font-medium transition-colors border border-border"
+              title="Wyczyść całą listę"
+            >
+              <Trash2 className="size-3.5" />
+              Wyczyść
             </button>
           )}
         </div>
@@ -392,48 +438,100 @@ export function ShoppingListScreen() {
 
                 {!isCollapsed && (
                   <div className="px-4 pb-3 flex flex-col gap-1.5">
-                    {catItems.map(item => (
-                      <div
-                        key={item.id}
-                        className={`flex items-center gap-3 p-2.5 rounded-xl transition-all ${
-                          item.checked ? "opacity-50" : ""
-                        } hover:bg-secondary/30`}
-                      >
-                        <button
-                          onClick={() => toggleItem(item.id)}
-                          className={`shrink-0 size-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                            item.checked
-                              ? "bg-primary border-primary"
-                              : "border-muted-foreground/40 hover:border-primary"
-                          }`}
+                    {catItems.map(item => {
+                      const isEditing = editingItemId === item.id
+                      if (isEditing) {
+                        return (
+                          <div key={item.id} className="flex flex-col gap-2 p-2.5 rounded-xl bg-secondary/50 border border-primary/20">
+                            <div className="flex gap-2">
+                              <input
+                                ref={editNameRef}
+                                value={editName}
+                                onChange={e => setEditName(e.target.value)}
+                                onKeyDown={e => { if (e.key === "Enter") commitEdit(); if (e.key === "Escape") cancelEdit() }}
+                                className="flex-1 bg-background rounded-lg px-2.5 py-1.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/40 border border-border"
+                                placeholder="Nazwa produktu"
+                              />
+                              <input
+                                value={editQty}
+                                onChange={e => setEditQty(e.target.value)}
+                                onKeyDown={e => { if (e.key === "Enter") commitEdit(); if (e.key === "Escape") cancelEdit() }}
+                                className="w-14 bg-background rounded-lg px-2 py-1.5 text-sm text-foreground text-center outline-none focus:ring-2 focus:ring-primary/40 border border-border"
+                                placeholder="il."
+                              />
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <select
+                                value={editCat}
+                                onChange={e => setEditCat(e.target.value as CategoryId)}
+                                className="flex-1 bg-background rounded-lg px-2 py-1.5 text-xs text-foreground outline-none border border-border"
+                              >
+                                {CATEGORIES.map(c => (
+                                  <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>
+                                ))}
+                              </select>
+                              <button onClick={commitEdit} className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-medium">Zapisz</button>
+                              <button onClick={cancelEdit} className="px-2 py-1.5 rounded-lg text-xs text-muted-foreground hover:bg-secondary">Anuluj</button>
+                            </div>
+                          </div>
+                        )
+                      }
+                      return (
+                        <div
+                          key={item.id}
+                          className={`flex items-center gap-3 p-2.5 rounded-xl transition-all ${
+                            item.checked ? "opacity-50" : ""
+                          } hover:bg-secondary/30 group`}
                         >
-                          {item.checked && <Check className="size-3.5 text-primary-foreground" strokeWidth={3} />}
-                        </button>
+                          <button
+                            onClick={() => toggleItem(item.id)}
+                            className={`shrink-0 size-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                              item.checked
+                                ? "bg-primary border-primary"
+                                : "border-muted-foreground/40 hover:border-primary"
+                            }`}
+                          >
+                            {item.checked && <Check className="size-3.5 text-primary-foreground" strokeWidth={3} />}
+                          </button>
 
-                        <span className={`flex-1 text-sm ${item.checked ? "line-through text-muted-foreground" : "text-foreground"}`}>
-                          {item.name}
-                        </span>
-
-                        {item.quantity && (
-                          <span className="text-[11px] text-muted-foreground font-mono bg-secondary/70 px-1.5 py-0.5 rounded-lg">
-                            {item.quantity}
+                          <span
+                            className={`flex-1 text-sm cursor-pointer ${item.checked ? "line-through text-muted-foreground" : "text-foreground"}`}
+                            onClick={() => !item.checked && startEdit(item)}
+                          >
+                            {item.name}
                           </span>
-                        )}
 
-                        {item.importedFrom && (
-                          <span className="text-[10px] text-primary/70 bg-primary/10 px-1.5 py-0.5 rounded-full font-medium whitespace-nowrap max-w-[80px] truncate">
-                            📅 {item.importedFrom.dishName}
-                          </span>
-                        )}
+                          {item.quantity && (
+                            <span
+                              className="text-[11px] text-muted-foreground font-mono bg-secondary/70 px-1.5 py-0.5 rounded-lg cursor-pointer hover:bg-primary/10"
+                              onClick={() => !item.checked && startEdit(item)}
+                            >
+                              {item.quantity}
+                            </span>
+                          )}
 
-                        <button
-                          onClick={() => removeItem(item.id)}
-                          className="shrink-0 p-1 rounded-lg text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors"
-                        >
-                          <X className="size-3.5" />
-                        </button>
-                      </div>
-                    ))}
+                          {item.importedFrom && (
+                            <span className="text-[10px] text-primary/70 bg-primary/10 px-1.5 py-0.5 rounded-full font-medium whitespace-nowrap max-w-[80px] truncate">
+                              📅 {item.importedFrom.dishName}
+                            </span>
+                          )}
+
+                          <button
+                            onClick={() => startEdit(item)}
+                            className="shrink-0 p-1 rounded-lg text-muted-foreground/30 hover:text-primary hover:bg-primary/10 transition-colors opacity-0 group-hover:opacity-100"
+                          >
+                            <Pencil className="size-3" />
+                          </button>
+
+                          <button
+                            onClick={() => removeItem(item.id)}
+                            className="shrink-0 p-1 rounded-lg text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors"
+                          >
+                            <X className="size-3.5" />
+                          </button>
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
               </div>

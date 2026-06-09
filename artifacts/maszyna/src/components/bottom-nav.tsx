@@ -1,8 +1,8 @@
-import { Calendar, User, Soup, BicepsFlexed, Gauge, Cat, ShoppingCart } from "lucide-react"
+import { Calendar, Soup, BicepsFlexed, Gauge, Cat } from "lucide-react"
 import { useLanguage } from "@/lib/i18n/context"
 import type { TranslationKey } from "@/lib/i18n/translations"
 
-export type Tab = "kitchen" | "planner" | "dashboard" | "workout" | "profile" | "shopping"
+export type Tab = "kitchen" | "planner" | "dashboard" | "workout" | "profile"
 
 interface BottomNavProps {
   activeTab: Tab
@@ -14,7 +14,7 @@ const tabs: { id: Tab; labelKey: TranslationKey; icon: React.ElementType }[] = [
   { id: "workout",   labelKey: "Gain",      icon: BicepsFlexed  },
   { id: "dashboard", labelKey: "Dashboard", icon: Gauge         },
   { id: "planner",   labelKey: "Planner",   icon: Calendar      },
-  { id: "shopping",  labelKey: "shopping",  icon: ShoppingCart  },
+  { id: "profile",   labelKey: "Profile",   icon: Cat           },
 ]
 
 export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {

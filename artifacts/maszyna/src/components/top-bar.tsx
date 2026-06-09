@@ -45,10 +45,18 @@ interface SettingsModalProps {
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const { activeUser, setActiveUser, getWeeklyAvgSteps } = useUser()
   const { language, setLanguage, t } = useLanguage()
-  const [settingsTab, setSettingsTab] = useState<"couple" | "profile">("couple")
-  const [marcinRatio, setMarcinRatio] = useState(2)
-  const [patrycjaRatio, setPatrycjaRatio] = useState(1)
+  const [settingsTab, setSettingsTab] = useState<"couple" | "profile">("profile")
+  const [marcinPct, setMarcinPct] = useState(67)
   const [restTimerDuration, setRestTimerDuration] = useState(90)
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    try { return localStorage.getItem('darkMode') === 'true' } catch { return false }
+  })
+  const toggleDarkMode = () => {
+    const newVal = !isDarkMode
+    setIsDarkMode(newVal)
+    document.documentElement.classList.toggle('dark', newVal)
+    try { localStorage.setItem('darkMode', String(newVal)) } catch { }
+  }
   const [showMacroCalculator, setShowMacroCalculator] = useState(false)
   
   // Macro goals state (per user)
@@ -152,17 +160,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             <div className="p-4 border-b border-border shrink-0">
               <div className="flex gap-2 p-1 bg-secondary rounded-xl">
                 <button
-                  onClick={() => setSettingsTab("couple")}
-                  className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                    settingsTab === "couple"
-                      ? "bg-card text-foreground shadow-sm"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  <Users className="size-4" />
-                  Couple
-                </button>
-                <button
                   onClick={() => setSettingsTab("profile")}
                   className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
                     settingsTab === "profile"
@@ -172,6 +169,17 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 >
                   <User className="size-4" />
                   Profile
+                </button>
+                <button
+                  onClick={() => setSettingsTab("couple")}
+                  className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                    settingsTab === "couple"
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  <Users className="size-4" />
+                  Couple
                 </button>
               </div>
             </div>
@@ -187,8 +195,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       Adjust how recipes are split between you two
                     </p>
 
-                    <div className="flex gap-4 mb-4">
-                      {/* Marcin Ratio */}
+                    {/* % Slider */}
+                    <div className="flex gap-3 mb-4">
                       <div className="flex-1 bg-navy/10 rounded-xl p-3 border border-navy/20">
                         <div className="flex items-center gap-2 mb-2">
                           <div className="size-6 rounded-full bg-navy flex items-center justify-center">
@@ -197,26 +205,17 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           <span className="text-xs font-medium text-foreground">Marcin</span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] text-muted-foreground">Parts</span>
-                          <div className="flex items-center bg-background rounded-lg">
-                            <button
-                              onClick={() => setMarcinRatio(Math.max(1, marcinRatio - 1))}
-                              className="px-2 py-1 text-muted-foreground hover:text-foreground transition-colors text-sm"
-                            >
-                              -
-                            </button>
-                            <span className="w-6 text-center text-sm font-semibold text-foreground">{marcinRatio}</span>
-                            <button
-                              onClick={() => setMarcinRatio(marcinRatio + 1)}
-                              className="px-2 py-1 text-muted-foreground hover:text-foreground transition-colors text-sm"
-                            >
-                              +
-                            </button>
-                          </div>
+                          <button
+                            onClick={() => setMarcinPct(p => Math.max(10, p - 5))}
+                            className="size-7 rounded-lg bg-background text-muted-foreground hover:text-foreground text-sm flex items-center justify-center"
+                          >-</button>
+                          <span className="text-lg font-bold text-navy">{marcinPct}%</span>
+                          <button
+                            onClick={() => setMarcinPct(p => Math.min(90, p + 5))}
+                            className="size-7 rounded-lg bg-background text-muted-foreground hover:text-foreground text-sm flex items-center justify-center"
+                          >+</button>
                         </div>
                       </div>
-
-                      {/* Patrycja Ratio */}
                       <div className="flex-1 bg-sage/10 rounded-xl p-3 border border-sage/20">
                         <div className="flex items-center gap-2 mb-2">
                           <div className="size-6 rounded-full bg-sage flex items-center justify-center">
@@ -225,48 +224,25 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           <span className="text-xs font-medium text-foreground">Patrycja</span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] text-muted-foreground">Parts</span>
-                          <div className="flex items-center bg-background rounded-lg">
-                            <button
-                              onClick={() => setPatrycjaRatio(Math.max(1, patrycjaRatio - 1))}
-                              className="px-2 py-1 text-muted-foreground hover:text-foreground transition-colors text-sm"
-                            >
-                              -
-                            </button>
-                            <span className="w-6 text-center text-sm font-semibold text-foreground">{patrycjaRatio}</span>
-                            <button
-                              onClick={() => setPatrycjaRatio(patrycjaRatio + 1)}
-                              className="px-2 py-1 text-muted-foreground hover:text-foreground transition-colors text-sm"
-                            >
-                              +
-                            </button>
-                          </div>
+                          <button
+                            onClick={() => setMarcinPct(p => Math.min(90, p + 5))}
+                            className="size-7 rounded-lg bg-background text-muted-foreground hover:text-foreground text-sm flex items-center justify-center"
+                          >-</button>
+                          <span className="text-lg font-bold text-sage">{100 - marcinPct}%</span>
+                          <button
+                            onClick={() => setMarcinPct(p => Math.max(10, p - 5))}
+                            className="size-7 rounded-lg bg-background text-muted-foreground hover:text-foreground text-sm flex items-center justify-center"
+                          >+</button>
                         </div>
                       </div>
                     </div>
-
-                    {/* Ratio Preview */}
-                    <div className="bg-background rounded-lg p-3">
-                      <div className="flex justify-between text-[10px] text-muted-foreground mb-1.5">
-                        <span>Distribution Preview</span>
-                        <span>
-                          {Math.round((marcinRatio / (marcinRatio + patrycjaRatio)) * 100)}% / {Math.round((patrycjaRatio / (marcinRatio + patrycjaRatio)) * 100)}%
-                        </span>
-                      </div>
-                      <div className="h-2.5 rounded-full overflow-hidden flex bg-secondary">
-                        <div 
-                          className="bg-navy h-full transition-all duration-300" 
-                          style={{ width: `${(marcinRatio / (marcinRatio + patrycjaRatio)) * 100}%` }} 
-                        />
-                        <div 
-                          className="bg-sage h-full transition-all duration-300" 
-                          style={{ width: `${(patrycjaRatio / (marcinRatio + patrycjaRatio)) * 100}%` }} 
-                        />
-                      </div>
-                      <p className="text-[10px] text-muted-foreground text-center mt-2">
-                        For every {marcinRatio + patrycjaRatio} parts: Marcin gets {marcinRatio}, Patrycja gets {patrycjaRatio}
-                      </p>
+                    <div className="h-3 rounded-full overflow-hidden flex bg-secondary">
+                      <div className="bg-navy h-full transition-all duration-300" style={{ width: `${marcinPct}%` }} />
+                      <div className="bg-sage h-full transition-all duration-300" style={{ width: `${100 - marcinPct}%` }} />
                     </div>
+                    <p className="text-[10px] text-muted-foreground text-center mt-2">
+                      Marcin {marcinPct}% · Patrycja {100 - marcinPct}%
+                    </p>
                   </div>
 
                   {/* Shared Goals */}
@@ -442,10 +418,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     <h4 className="text-sm font-semibold text-foreground mb-3">Preferences</h4>
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-foreground">Dark Mode</span>
-                        <div className="w-11 h-6 bg-primary rounded-full relative cursor-pointer">
-                          <div className="absolute right-0.5 top-0.5 size-5 bg-background rounded-full shadow-sm" />
-                        </div>
+                        <span className="text-sm text-foreground">{t('darkMode')}</span>
+                        <button
+                          onClick={toggleDarkMode}
+                          className={`w-11 h-6 rounded-full relative transition-colors duration-300 ${isDarkMode ? 'bg-primary' : 'bg-muted-foreground/30'}`}
+                        >
+                          <div className={`absolute top-0.5 size-5 bg-background rounded-full shadow-sm transition-all duration-300 ${isDarkMode ? 'right-0.5' : 'left-0.5'}`} />
+                        </button>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-foreground">Metric Units</span>
