@@ -41,6 +41,7 @@ interface PlannerMeal {
   name: string
   time: string
   dishId?: string
+  owner: "patrycja" | "marcin" | "both" | null
 }
 
 const KEYWORD_MAP: { keywords: string[]; cat: CategoryId }[] = [
@@ -108,7 +109,6 @@ export function ShoppingListScreen() {
   const [importMealsByDate, setImportMealsByDate] = useState<Record<string, PlannerMeal[]>>({})
   const [loadingImport, setLoadingImport] = useState(false)
   const [selectedMeals, setSelectedMeals] = useState<Set<string>>(new Set())
-  const [mealPortions, setMealPortions] = useState<Record<string, number>>({})
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set())
 
   // Inline editing (UI-only, no persistence needed)
@@ -196,18 +196,15 @@ export function ShoppingListScreen() {
         .order("time", { ascending: true })
       if (!error && data) {
         const byDate: Record<string, PlannerMeal[]> = {}
-        const portions: Record<string, number> = {}
         for (const e of data as any[]) {
           let dishId: string | undefined
-          try { const d = JSON.parse(e.details || "{}"); dishId = d.dishId } catch { }
-          const meal: PlannerMeal = { id: e.id, name: e.name || "Posiłek", time: e.time || "00:00", dishId }
+          let owner: PlannerMeal["owner"] = null
+          try { const d = JSON.parse(e.details || "{}"); dishId = d.dishId; owner = d.owner || null } catch { }
+          const meal: PlannerMeal = { id: e.id, name: e.name || "Posiłek", time: e.time || "00:00", dishId, owner }
           if (!byDate[e.date]) byDate[e.date] = []
           byDate[e.date].push(meal)
-          portions[e.id] = 1
         }
         setImportMealsByDate(byDate)
-        setMealPortions(portions)
-        // auto-expand days that have meals
         setExpandedDays(new Set(Object.keys(byDate)))
       }
     } catch { }
@@ -219,54 +216,58 @@ export function ShoppingListScreen() {
   }, [importDateFrom, importDateTo, showImport])
 
   const handleImport = () => {
-    // Group selected meals by dishId to aggregate portions
-    const dishPortions: Record<string, { totalPortions: number; name: string; date: string }> = {}
-    const wholeMeals: Array<{ meal: PlannerMeal; portions: number; date: string }> = []
+    // Count unique cooking sessions per dish: same dish on same date = 1 session (one pot).
+    // Different dates = separate sessions. This matches how marcinServings/patrycjaServings
+    // are already baked into the recipe ingredient amounts.
+    const sessions: Record<string, { batches: number; name: string; firstDate: string }> = {}
+    const wholeMeals: Array<{ meal: PlannerMeal; date: string }> = []
 
     for (const [date, meals] of Object.entries(importMealsByDate)) {
+      const seenDishesThisDate = new Set<string>()
       for (const meal of meals) {
         if (!selectedMeals.has(meal.id)) continue
-        const portions = mealPortions[meal.id] || 1
         if (meal.dishId) {
-          if (!dishPortions[meal.dishId]) {
-            dishPortions[meal.dishId] = { totalPortions: 0, name: meal.name, date }
+          if (!sessions[meal.dishId]) sessions[meal.dishId] = { batches: 0, name: meal.name, firstDate: date }
+          if (!seenDishesThisDate.has(meal.dishId)) {
+            sessions[meal.dishId].batches += 1
+            seenDishesThisDate.add(meal.dishId)
           }
-          dishPortions[meal.dishId].totalPortions += portions
         } else {
-          wholeMeals.push({ meal, portions, date })
+          wholeMeals.push({ meal, date })
         }
       }
     }
 
-    // Import dish ingredients × total portions
-    for (const [dishId, { totalPortions, name, date }] of Object.entries(dishPortions)) {
+    // Import ingredients scaled by number of cooking sessions
+    for (const [dishId, { batches, name, firstDate }] of Object.entries(sessions)) {
       const dish = dishes.find(d => d.id === dishId)
-      const importedFrom = { dishName: name, date }
+      const importedFrom = { dishName: name, date: firstDate }
       if (dish && Array.isArray(dish.elements) && dish.elements.length > 0) {
         for (const el of dish.elements) {
           const elName: string = el?.name || el?.ingredient_name || (typeof el === "string" ? el : "")
           if (!elName) continue
           const baseGrams = el?.grams ? Number(el.grams) : 0
-          const scaledQty = baseGrams > 0 ? `${Math.round(baseGrams * totalPortions)}g` : totalPortions > 1 ? `×${totalPortions}` : ""
-          // Find existing item and update quantity, or add new
+          const scaledQty = baseGrams > 0 ? `${Math.round(baseGrams * batches)}g` : batches > 1 ? `×${batches}` : ""
           const existing = items.find(i => i.name.toLowerCase() === elName.toLowerCase())
           if (existing) {
-            // Already in list — update quantity note
             updateItem(existing.id, { quantity: scaledQty || existing.quantity })
           } else {
             hookAddItem({ name: elName, category: categorize(elName), checked: false, quantity: scaledQty, imported_from: importedFrom })
           }
         }
       } else {
-        const qtyNote = totalPortions > 1 ? `×${totalPortions} porcje` : ""
+        const qtyNote = batches > 1 ? `×${batches} razy` : ""
         hookAddItem({ name: name, category: categorize(name), checked: false, quantity: qtyNote, imported_from: importedFrom })
       }
     }
 
-    // Whole meals (no dishId)
-    for (const { meal, portions, date } of wholeMeals) {
-      const qtyNote = portions > 1 ? `×${portions}` : ""
-      hookAddItem({ name: meal.name, category: categorize(meal.name), checked: false, quantity: qtyNote, imported_from: { dishName: meal.name, date } })
+    // Whole meals (no dishId linked) — add once per unique meal name
+    const addedWhole = new Set<string>()
+    for (const { meal, date } of wholeMeals) {
+      if (!addedWhole.has(meal.name.toLowerCase())) {
+        hookAddItem({ name: meal.name, category: categorize(meal.name), checked: false, quantity: "", imported_from: { dishName: meal.name, date } })
+        addedWhole.add(meal.name.toLowerCase())
+      }
     }
 
     setShowImport(false)
@@ -630,21 +631,22 @@ export function ShoppingListScreen() {
                             const dish = meal.dishId ? dishes.find(d => d.id === meal.dishId) : null
                             const hasIngredients = dish && Array.isArray(dish.elements) && dish.elements.length > 0
                             const selected = selectedMeals.has(meal.id)
-                            const portions = mealPortions[meal.id] || 1
+                            const ownerLabel = meal.owner === "marcin" ? "M" : meal.owner === "patrycja" ? "P" : null
 
                             return (
-                              <div key={meal.id} className={`mt-2 p-3 rounded-xl border-2 transition-all ${selected ? "border-primary bg-primary/5" : "border-transparent bg-background"}`}>
-                                <div className="flex items-start gap-2">
-                                  <button
-                                    onClick={() => setSelectedMeals(prev => {
-                                      const next = new Set(prev)
-                                      if (next.has(meal.id)) next.delete(meal.id); else next.add(meal.id)
-                                      return next
-                                    })}
-                                    className={`shrink-0 size-5 rounded-full border-2 mt-0.5 flex items-center justify-center transition-all ${selected ? "bg-primary border-primary" : "border-muted-foreground/40"}`}
-                                  >
+                              <button
+                                key={meal.id}
+                                onClick={() => setSelectedMeals(prev => {
+                                  const next = new Set(prev)
+                                  if (next.has(meal.id)) next.delete(meal.id); else next.add(meal.id)
+                                  return next
+                                })}
+                                className={`mt-2 w-full p-3 rounded-xl border-2 text-left transition-all ${selected ? "border-primary bg-primary/5" : "border-transparent bg-background hover:border-border"}`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <div className={`shrink-0 size-5 rounded-full border-2 flex items-center justify-center transition-all ${selected ? "bg-primary border-primary" : "border-muted-foreground/40"}`}>
                                     {selected && <Check className="size-3 text-primary-foreground" strokeWidth={3} />}
-                                  </button>
+                                  </div>
                                   <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium text-foreground truncate">{meal.name}</p>
                                     <p className="text-[11px] text-muted-foreground">
@@ -652,23 +654,13 @@ export function ShoppingListScreen() {
                                       {hasIngredients ? ` · ${(dish as any).elements.length} skł.` : " · całe danie"}
                                     </p>
                                   </div>
-                                  {/* Portions stepper */}
-                                  <div className="flex items-center bg-secondary rounded-lg overflow-hidden border border-border shrink-0">
-                                    <button
-                                      onClick={() => setMealPortions(p => ({ ...p, [meal.id]: Math.max(1, (p[meal.id] || 1) - 1) }))}
-                                      className="px-2 py-1 text-muted-foreground hover:text-foreground text-sm leading-none"
-                                    >−</button>
-                                    <span className="px-1 text-xs font-semibold text-foreground min-w-[18px] text-center">{portions}</span>
-                                    <button
-                                      onClick={() => setMealPortions(p => ({ ...p, [meal.id]: Math.min(20, (p[meal.id] || 1) + 1) }))}
-                                      className="px-2 py-1 text-muted-foreground hover:text-foreground text-sm leading-none"
-                                    >+</button>
-                                  </div>
+                                  {ownerLabel && (
+                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${ownerLabel === "M" ? "bg-navy/15 text-navy" : "bg-sage/20 text-sage"}`}>
+                                      {ownerLabel}
+                                    </span>
+                                  )}
                                 </div>
-                                {portions > 1 && hasIngredients && (
-                                  <p className="text-[10px] text-primary mt-1.5 ml-7">Składniki ×{portions} — ilości przeskalowane</p>
-                                )}
-                              </div>
+                              </button>
                             )
                           })}
                         </div>
