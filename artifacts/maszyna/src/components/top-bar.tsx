@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import { useUser } from "@/lib/user-context"
-import { Settings, X, Users, User, Calculator, Sparkles, Footprints, Globe } from "lucide-react"
+import { useAuth } from "@/lib/auth-context"
+import { Settings, X, Users, User, Calculator, Sparkles, Footprints, Globe, LogOut } from "lucide-react"
 import { useLanguage } from "@/lib/i18n/context"
 
 export function WhiteCat() {
@@ -43,7 +44,8 @@ interface SettingsModalProps {
 }
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
-  const { activeUser, setActiveUser, getWeeklyAvgSteps } = useUser()
+  const { activeUser, getWeeklyAvgSteps } = useUser()
+  const { signOut } = useAuth()
   const { language, setLanguage, t } = useLanguage()
   const [settingsTab, setSettingsTab] = useState<"couple" | "profile">("profile")
   const [marcinPct, setMarcinPct] = useState(67)
@@ -261,49 +263,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 </div>
               ) : (
                 <div className="flex flex-col gap-5">
-                  {/* Profile Selector */}
-                  <div className="bg-secondary/50 rounded-xl p-4">
-                    <h4 className="text-sm font-semibold text-foreground mb-3">Active Profile</h4>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setActiveUser("patrycja")}
-                        className={`flex-1 p-3 rounded-xl flex items-center gap-3 transition-all ${
-                          activeUser === "patrycja"
-                            ? "bg-sage/20 border-2 border-sage"
-                            : "bg-background border-2 border-transparent hover:border-border"
-                        }`}
-                      >
-                        <div className="size-10 rounded-full bg-sage flex items-center justify-center">
-                          <WhiteCat />
-                        </div>
-                        <div className="text-left">
-                          <p className="text-sm font-medium text-foreground">Patrycja</p>
-                          {activeUser === "patrycja" && (
-                            <p className="text-[10px] text-sage">Active</p>
-                          )}
-                        </div>
-                      </button>
-                      <button
-                        onClick={() => setActiveUser("marcin")}
-                        className={`flex-1 p-3 rounded-xl flex items-center gap-3 transition-all ${
-                          activeUser === "marcin"
-                            ? "bg-navy/20 border-2 border-navy"
-                            : "bg-background border-2 border-transparent hover:border-border"
-                        }`}
-                      >
-                        <div className="size-10 rounded-full bg-navy flex items-center justify-center">
-                          <BlackCat />
-                        </div>
-                        <div className="text-left">
-                          <p className="text-sm font-medium text-foreground">Marcin</p>
-                          {activeUser === "marcin" && (
-                            <p className="text-[10px] text-navy">Active</p>
-                          )}
-                        </div>
-                      </button>
-                    </div>
-                  </div>
-
                   {/* Language Setting */}
                   <div className="bg-secondary/50 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-3">
@@ -463,6 +422,15 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       </div>
                     </div>
                   </div>
+
+                  {/* Logout */}
+                  <button
+                    onClick={async () => { await signOut() }}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors text-sm font-medium border border-destructive/20"
+                  >
+                    <LogOut className="size-4" />
+                    Wyloguj się
+                  </button>
                 </div>
               )}
             </div>

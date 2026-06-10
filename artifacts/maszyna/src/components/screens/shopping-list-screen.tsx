@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react"
-import { Plus, Trash2, Check, ShoppingCart, Calendar, ChevronDown, ChevronUp, AlertTriangle, X, RefreshCw, Pencil, CheckCheck, Wifi, WifiOff } from "lucide-react"
+import { Plus, Trash2, Check, ShoppingCart, Calendar, ChevronDown, ChevronUp, X, RefreshCw, Pencil, CheckCheck, Wifi, WifiOff, Download } from "lucide-react"
 import { supabase } from "@/lib/supabase/client"
 import { useAuth } from "@/lib/auth-context"
 import { useDishes, useShoppingList } from "@/lib/realtime-hooks"
@@ -101,10 +101,15 @@ export function ShoppingListScreen() {
   const [collapsedCats, setCollapsedCats] = useState<Set<string>>(new Set())
 
   const [showImport, setShowImport] = useState(false)
-  const [importDate, setImportDate] = useState(toLocalDateStr(new Date()))
-  const [importMeals, setImportMeals] = useState<PlannerMeal[]>([])
+  const [importDateFrom, setImportDateFrom] = useState(toLocalDateStr(new Date()))
+  const [importDateTo, setImportDateTo] = useState(() => {
+    const d = new Date(); d.setDate(d.getDate() + 6); return toLocalDateStr(d)
+  })
+  const [importMealsByDate, setImportMealsByDate] = useState<Record<string, PlannerMeal[]>>({})
   const [loadingImport, setLoadingImport] = useState(false)
   const [selectedMeals, setSelectedMeals] = useState<Set<string>>(new Set())
+  const [mealPortions, setMealPortions] = useState<Record<string, number>>({})
+  const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set())
 
   // Inline editing (UI-only, no persistence needed)
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
@@ -173,62 +178,95 @@ export function ShoppingListScreen() {
   const checkedCount = items.filter(i => i.checked).length
   const totalCount = items.length
 
-  const fetchImportMeals = async (date: string) => {
+  const fetchImportMeals = async () => {
     if (!user) return
     setLoadingImport(true)
-    setImportMeals([])
+    setImportMealsByDate({})
     setSelectedMeals(new Set())
+    setMealPortions({})
+    setExpandedDays(new Set())
     try {
       const { data, error } = await supabase
         .from("planner_events")
         .select("*")
-        .eq("date", date)
+        .gte("date", importDateFrom)
+        .lte("date", importDateTo)
         .eq("type", "meal")
+        .order("date", { ascending: true })
         .order("time", { ascending: true })
       if (!error && data) {
-        const meals: PlannerMeal[] = data.map((e: any) => {
+        const byDate: Record<string, PlannerMeal[]> = {}
+        const portions: Record<string, number> = {}
+        for (const e of data as any[]) {
           let dishId: string | undefined
-          try {
-            const d = JSON.parse(e.details || "{}")
-            dishId = d.dishId
-          } catch { }
-          return { id: e.id, name: e.name || "Posiłek", time: e.time || "00:00", dishId }
-        })
-        setImportMeals(meals)
+          try { const d = JSON.parse(e.details || "{}"); dishId = d.dishId } catch { }
+          const meal: PlannerMeal = { id: e.id, name: e.name || "Posiłek", time: e.time || "00:00", dishId }
+          if (!byDate[e.date]) byDate[e.date] = []
+          byDate[e.date].push(meal)
+          portions[e.id] = 1
+        }
+        setImportMealsByDate(byDate)
+        setMealPortions(portions)
+        // auto-expand days that have meals
+        setExpandedDays(new Set(Object.keys(byDate)))
       }
     } catch { }
     setLoadingImport(false)
   }
 
   useEffect(() => {
-    if (showImport) fetchImportMeals(importDate)
-  }, [importDate, showImport])
+    if (showImport) fetchImportMeals()
+  }, [importDateFrom, importDateTo, showImport])
 
   const handleImport = () => {
-    const mealsToImport = importMeals.filter(m => selectedMeals.has(m.id))
+    // Group selected meals by dishId to aggregate portions
+    const dishPortions: Record<string, { totalPortions: number; name: string; date: string }> = {}
+    const wholeMeals: Array<{ meal: PlannerMeal; portions: number; date: string }> = []
 
-    for (const meal of mealsToImport) {
-      const dish = meal.dishId ? dishes.find(d => d.id === meal.dishId) : null
-      const importedFrom = { dishName: meal.name, date: importDate, dishId: meal.dishId }
-      let addedCount = 0
+    for (const [date, meals] of Object.entries(importMealsByDate)) {
+      for (const meal of meals) {
+        if (!selectedMeals.has(meal.id)) continue
+        const portions = mealPortions[meal.id] || 1
+        if (meal.dishId) {
+          if (!dishPortions[meal.dishId]) {
+            dishPortions[meal.dishId] = { totalPortions: 0, name: meal.name, date }
+          }
+          dishPortions[meal.dishId].totalPortions += portions
+        } else {
+          wholeMeals.push({ meal, portions, date })
+        }
+      }
+    }
 
+    // Import dish ingredients × total portions
+    for (const [dishId, { totalPortions, name, date }] of Object.entries(dishPortions)) {
+      const dish = dishes.find(d => d.id === dishId)
+      const importedFrom = { dishName: name, date }
       if (dish && Array.isArray(dish.elements) && dish.elements.length > 0) {
         for (const el of dish.elements) {
           const elName: string = el?.name || el?.ingredient_name || (typeof el === "string" ? el : "")
-          if (elName && !items.some(i => i.name.toLowerCase() === elName.toLowerCase())) {
-            const qty = el?.grams ? `${el.grams}g` : ""
-            hookAddItem({ name: elName, category: categorize(elName), checked: false, quantity: qty, imported_from: importedFrom })
-            addedCount++
+          if (!elName) continue
+          const baseGrams = el?.grams ? Number(el.grams) : 0
+          const scaledQty = baseGrams > 0 ? `${Math.round(baseGrams * totalPortions)}g` : totalPortions > 1 ? `×${totalPortions}` : ""
+          // Find existing item and update quantity, or add new
+          const existing = items.find(i => i.name.toLowerCase() === elName.toLowerCase())
+          if (existing) {
+            // Already in list — update quantity note
+            updateItem(existing.id, { quantity: scaledQty || existing.quantity })
+          } else {
+            hookAddItem({ name: elName, category: categorize(elName), checked: false, quantity: scaledQty, imported_from: importedFrom })
           }
         }
-        if (addedCount === 0) {
-          hookAddItem({ name: meal.name, category: categorize(meal.name), checked: false, quantity: "", imported_from: importedFrom })
-        }
       } else {
-        if (!items.some(i => i.name.toLowerCase() === meal.name.toLowerCase())) {
-          hookAddItem({ name: meal.name, category: categorize(meal.name), checked: false, quantity: "", imported_from: { dishName: meal.name, date: importDate } })
-        }
+        const qtyNote = totalPortions > 1 ? `×${totalPortions} porcje` : ""
+        hookAddItem({ name: name, category: categorize(name), checked: false, quantity: qtyNote, imported_from: importedFrom })
       }
+    }
+
+    // Whole meals (no dishId)
+    for (const { meal, portions, date } of wholeMeals) {
+      const qtyNote = portions > 1 ? `×${portions}` : ""
+      hookAddItem({ name: meal.name, category: categorize(meal.name), checked: false, quantity: qtyNote, imported_from: { dishName: meal.name, date } })
     }
 
     setShowImport(false)
@@ -494,10 +532,11 @@ export function ShoppingListScreen() {
           })
       )}
 
-      {/* Import Modal */}
+      {/* Import Modal — multi-day + portions */}
       {showImport && (
         <div className="fixed inset-0 bg-black/60 flex items-end justify-center z-50 p-4 pb-24">
-          <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[75vh]">
+          <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[82vh]">
+            {/* Header */}
             <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                 <Calendar className="size-5 text-primary" />
@@ -508,75 +547,139 @@ export function ShoppingListScreen() {
               </button>
             </div>
 
-            <div className="p-4 border-b border-border shrink-0">
-              <label className="block text-xs text-muted-foreground mb-1.5 font-medium">Wybierz dzień</label>
-              <input
-                type="date"
-                value={importDate}
-                onChange={e => setImportDate(e.target.value)}
-                className="w-full bg-secondary/50 rounded-xl px-4 py-2.5 text-sm text-foreground border border-border outline-none focus:ring-2 focus:ring-primary/30"
-              />
+            {/* Date range */}
+            <div className="p-4 border-b border-border shrink-0 flex gap-3">
+              <div className="flex-1">
+                <label className="block text-[10px] text-muted-foreground mb-1 font-medium uppercase tracking-wide">Od</label>
+                <input
+                  type="date"
+                  value={importDateFrom}
+                  onChange={e => setImportDateFrom(e.target.value)}
+                  className="w-full bg-secondary/50 rounded-xl px-3 py-2 text-sm text-foreground border border-border outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-[10px] text-muted-foreground mb-1 font-medium uppercase tracking-wide">Do</label>
+                <input
+                  type="date"
+                  value={importDateTo}
+                  min={importDateFrom}
+                  onChange={e => setImportDateTo(e.target.value)}
+                  className="w-full bg-secondary/50 rounded-xl px-3 py-2 text-sm text-foreground border border-border outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
+            {/* Meals grouped by day */}
+            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
               {loadingImport ? (
-                <div className="flex items-center justify-center py-8">
+                <div className="flex items-center justify-center py-10">
                   <RefreshCw className="size-5 text-muted-foreground animate-spin" />
                 </div>
-              ) : importMeals.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-sm text-muted-foreground">Brak posiłków zaplanowanych na ten dzień</p>
+              ) : Object.keys(importMealsByDate).length === 0 ? (
+                <div className="text-center py-10">
+                  <p className="text-sm text-muted-foreground">Brak posiłków w wybranym zakresie dat</p>
                 </div>
               ) : (
-                <>
-                  <p className="text-xs text-muted-foreground mb-1">
-                    Wybierz posiłki do zaimportowania:
-                  </p>
-                  {importMeals.map(meal => {
-                    const dish = meal.dishId ? dishes.find(d => d.id === meal.dishId) : null
-                    const hasIngredients = dish && Array.isArray(dish.elements) && dish.elements.length > 0
-                    const selected = selectedMeals.has(meal.id)
-                    return (
-                      <button
-                        key={meal.id}
-                        onClick={() => {
-                          setSelectedMeals(prev => {
+                Object.entries(importMealsByDate).map(([date, meals]) => {
+                  const isExpanded = expandedDays.has(date)
+                  const daySelected = meals.filter(m => selectedMeals.has(m.id)).length
+                  const allSelected = daySelected === meals.length
+
+                  return (
+                    <div key={date} className="bg-secondary/40 rounded-xl border border-border overflow-hidden">
+                      {/* Day header */}
+                      <div className="flex items-center gap-2 p-3">
+                        <button
+                          onClick={() => {
+                            setSelectedMeals(prev => {
+                              const next = new Set(prev)
+                              if (allSelected) meals.forEach(m => next.delete(m.id))
+                              else meals.forEach(m => next.add(m.id))
+                              return next
+                            })
+                          }}
+                          className={`shrink-0 size-5 rounded border-2 flex items-center justify-center transition-all ${
+                            allSelected ? "bg-primary border-primary" : daySelected > 0 ? "bg-primary/30 border-primary" : "border-muted-foreground/40"
+                          }`}
+                        >
+                          {allSelected && <Check className="size-3 text-primary-foreground" strokeWidth={3} />}
+                        </button>
+                        <button
+                          className="flex-1 flex items-center justify-between"
+                          onClick={() => setExpandedDays(prev => {
                             const next = new Set(prev)
-                            if (next.has(meal.id)) next.delete(meal.id)
-                            else next.add(meal.id)
+                            if (next.has(date)) next.delete(date); else next.add(date)
                             return next
-                          })
-                        }}
-                        className={`w-full p-3 rounded-xl border-2 text-left transition-all ${
-                          selected
-                            ? "border-primary bg-primary/5"
-                            : "border-border bg-secondary/30 hover:border-primary/40"
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className={`shrink-0 size-5 rounded-full border-2 mt-0.5 flex items-center justify-center ${
-                            selected ? "bg-primary border-primary" : "border-muted-foreground/40"
-                          }`}>
-                            {selected && <Check className="size-3 text-primary-foreground" strokeWidth={3} />}
+                          })}
+                        >
+                          <span className="text-sm font-semibold text-foreground">{formatDatePl(date)}</span>
+                          <div className="flex items-center gap-2">
+                            {daySelected > 0 && (
+                              <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">{daySelected}/{meals.length}</span>
+                            )}
+                            {isExpanded ? <ChevronUp className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground">{meal.name}</p>
-                            <p className="text-[11px] text-muted-foreground mt-0.5">
-                              {meal.time}
-                              {hasIngredients
-                                ? ` · ${dish.elements.length} składników`
-                                : " · dodany jako całe danie"
-                              }
-                            </p>
-                          </div>
+                        </button>
+                      </div>
+
+                      {/* Meals in this day */}
+                      {isExpanded && (
+                        <div className="px-3 pb-3 flex flex-col gap-2 border-t border-border/50">
+                          {meals.map(meal => {
+                            const dish = meal.dishId ? dishes.find(d => d.id === meal.dishId) : null
+                            const hasIngredients = dish && Array.isArray(dish.elements) && dish.elements.length > 0
+                            const selected = selectedMeals.has(meal.id)
+                            const portions = mealPortions[meal.id] || 1
+
+                            return (
+                              <div key={meal.id} className={`mt-2 p-3 rounded-xl border-2 transition-all ${selected ? "border-primary bg-primary/5" : "border-transparent bg-background"}`}>
+                                <div className="flex items-start gap-2">
+                                  <button
+                                    onClick={() => setSelectedMeals(prev => {
+                                      const next = new Set(prev)
+                                      if (next.has(meal.id)) next.delete(meal.id); else next.add(meal.id)
+                                      return next
+                                    })}
+                                    className={`shrink-0 size-5 rounded-full border-2 mt-0.5 flex items-center justify-center transition-all ${selected ? "bg-primary border-primary" : "border-muted-foreground/40"}`}
+                                  >
+                                    {selected && <Check className="size-3 text-primary-foreground" strokeWidth={3} />}
+                                  </button>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-foreground truncate">{meal.name}</p>
+                                    <p className="text-[11px] text-muted-foreground">
+                                      {meal.time}
+                                      {hasIngredients ? ` · ${(dish as any).elements.length} skł.` : " · całe danie"}
+                                    </p>
+                                  </div>
+                                  {/* Portions stepper */}
+                                  <div className="flex items-center bg-secondary rounded-lg overflow-hidden border border-border shrink-0">
+                                    <button
+                                      onClick={() => setMealPortions(p => ({ ...p, [meal.id]: Math.max(1, (p[meal.id] || 1) - 1) }))}
+                                      className="px-2 py-1 text-muted-foreground hover:text-foreground text-sm leading-none"
+                                    >−</button>
+                                    <span className="px-1 text-xs font-semibold text-foreground min-w-[18px] text-center">{portions}</span>
+                                    <button
+                                      onClick={() => setMealPortions(p => ({ ...p, [meal.id]: Math.min(20, (p[meal.id] || 1) + 1) }))}
+                                      className="px-2 py-1 text-muted-foreground hover:text-foreground text-sm leading-none"
+                                    >+</button>
+                                  </div>
+                                </div>
+                                {portions > 1 && hasIngredients && (
+                                  <p className="text-[10px] text-primary mt-1.5 ml-7">Składniki ×{portions} — ilości przeskalowane</p>
+                                )}
+                              </div>
+                            )
+                          })}
                         </div>
-                      </button>
-                    )
-                  })}
-                </>
+                      )}
+                    </div>
+                  )
+                })
               )}
             </div>
 
+            {/* Footer */}
             <div className="p-4 border-t border-border shrink-0">
               <button
                 onClick={handleImport}
@@ -584,7 +687,7 @@ export function ShoppingListScreen() {
                 className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium text-sm disabled:opacity-40 flex items-center justify-center gap-2"
               >
                 <Download className="size-4" />
-                Dodaj do listy ({selectedMeals.size})
+                Dodaj do listy ({selectedMeals.size} posiłków)
               </button>
             </div>
           </div>
