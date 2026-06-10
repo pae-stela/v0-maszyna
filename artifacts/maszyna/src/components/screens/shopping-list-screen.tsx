@@ -1,8 +1,9 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from "react"
-import { Plus, Trash2, Check, ShoppingCart, Calendar, ChevronDown, ChevronUp, AlertTriangle, X, Download, RefreshCw, Pencil, CheckCheck } from "lucide-react"
+import { useState, useMemo, useEffect, useRef } from "react"
+import { Plus, Trash2, Check, ShoppingCart, Calendar, ChevronDown, ChevronUp, AlertTriangle, X, RefreshCw, Pencil, CheckCheck, Wifi, WifiOff } from "lucide-react"
 import { supabase } from "@/lib/supabase/client"
 import { useAuth } from "@/lib/auth-context"
-import { useDishes } from "@/lib/realtime-hooks"
+import { useDishes, useShoppingList } from "@/lib/realtime-hooks"
+import type { ShoppingListRow } from "@/lib/realtime-hooks"
 
 const CATEGORIES = [
   { id: "owoce-warzywa", label: "Owoce, warzywa i zioła", emoji: "🥬" },
@@ -34,14 +35,6 @@ const CATEGORIES = [
 
 type CategoryId = typeof CATEGORIES[number]["id"]
 
-interface ShoppingItem {
-  id: string
-  name: string
-  category: CategoryId
-  checked: boolean
-  quantity: string
-  importedFrom?: { dishName: string; date: string; dishId?: string }
-}
 
 interface PlannerMeal {
   id: string
@@ -97,16 +90,11 @@ function formatDatePl(dateStr: string): string {
 export function ShoppingListScreen() {
   const { user } = useAuth()
   const { dishes } = useDishes()
-
-  const STORAGE_KEY = `shopping-list-v2-${user?.id || "local"}`
-
-  const [items, setItems] = useState<ShoppingItem[]>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY)
-      if (stored) return JSON.parse(stored) as ShoppingItem[]
-    } catch { }
-    return []
-  })
+  const {
+    items, loading: listLoading, useLocal,
+    addItem: hookAddItem, updateItem, removeItem,
+    toggleItem, clearChecked, clearAll: hookClearAll,
+  } = useShoppingList()
 
   const [inputName, setInputName] = useState("")
   const [inputQty, setInputQty] = useState("")
@@ -118,79 +106,50 @@ export function ShoppingListScreen() {
   const [loadingImport, setLoadingImport] = useState(false)
   const [selectedMeals, setSelectedMeals] = useState<Set<string>>(new Set())
 
-  // Inline editing
+  // Inline editing (UI-only, no persistence needed)
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const [editName, setEditName] = useState("")
   const [editQty, setEditQty] = useState("")
   const [editCat, setEditCat] = useState<CategoryId>("inne")
   const editNameRef = useRef<HTMLInputElement>(null)
 
-  const saveItems = useCallback((updated: ShoppingItem[]) => {
-    setItems(updated)
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(updated)) } catch { }
-  }, [STORAGE_KEY])
-
-  const addItem = (name: string, qty: string, category?: CategoryId, importedFrom?: ShoppingItem["importedFrom"]) => {
-    const trimmed = name.trim()
-    if (!trimmed) return
-    const cat = category ?? categorize(trimmed)
-    const newItem: ShoppingItem = {
-      id: crypto.randomUUID(),
-      name: trimmed,
-      category: cat,
-      checked: false,
-      quantity: qty.trim(),
-      importedFrom,
-    }
-    saveItems([...items, newItem])
-  }
-
   const handleAdd = () => {
-    addItem(inputName, inputQty)
+    const trimmed = inputName.trim()
+    if (!trimmed) return
+    hookAddItem({
+      name: trimmed,
+      category: categorize(trimmed),
+      checked: false,
+      quantity: inputQty.trim(),
+      imported_from: null,
+    })
     setInputName("")
     setInputQty("")
   }
 
-  const toggleItem = (id: string) => {
-    saveItems(items.map(i => i.id === id ? { ...i, checked: !i.checked } : i))
-  }
-
-  const removeItem = (id: string) => {
-    saveItems(items.filter(i => i.id !== id))
-  }
-
-  const clearChecked = () => {
-    saveItems(items.filter(i => !i.checked))
-  }
-
-  const clearAll = () => {
-    if (window.confirm("Wyczyścić całą listę zakupów?")) {
-      saveItems([])
-      setEditingItemId(null)
-    }
-  }
-
-  const startEdit = (item: ShoppingItem) => {
+  const startEdit = (item: ShoppingListRow) => {
     setEditingItemId(item.id)
     setEditName(item.name)
     setEditQty(item.quantity)
-    setEditCat(item.category)
+    setEditCat(item.category as CategoryId)
     setTimeout(() => editNameRef.current?.focus(), 50)
   }
 
   const commitEdit = () => {
     if (!editingItemId) return
     const trimmed = editName.trim()
-    if (!trimmed) { setEditingItemId(null); return }
-    saveItems(items.map(i =>
-      i.id === editingItemId
-        ? { ...i, name: trimmed, quantity: editQty.trim(), category: editCat }
-        : i
-    ))
+    if (trimmed) updateItem(editingItemId, { name: trimmed, quantity: editQty.trim(), category: editCat })
     setEditingItemId(null)
   }
 
   const cancelEdit = () => setEditingItemId(null)
+
+  const handleClearAll = () => {
+    if (window.confirm("Wyczyścić całą listę zakupów?")) {
+      hookClearAll()
+      setEditingItemId(null)
+    }
+  }
 
   const toggleCategory = (catId: string) => {
     setCollapsedCats(prev => {
@@ -202,10 +161,11 @@ export function ShoppingListScreen() {
   }
 
   const itemsByCategory = useMemo(() => {
-    const map = new Map<CategoryId, ShoppingItem[]>()
+    const map = new Map<CategoryId, ShoppingListRow[]>()
     for (const item of items) {
-      if (!map.has(item.category)) map.set(item.category, [])
-      map.get(item.category)!.push(item)
+      const cat = item.category as CategoryId
+      if (!map.has(cat)) map.set(cat, [])
+      map.get(cat)!.push(item)
     }
     return map
   }, [items])
@@ -246,61 +206,56 @@ export function ShoppingListScreen() {
 
   const handleImport = () => {
     const mealsToImport = importMeals.filter(m => selectedMeals.has(m.id))
-    const newItems: ShoppingItem[] = []
 
     for (const meal of mealsToImport) {
       const dish = meal.dishId ? dishes.find(d => d.id === meal.dishId) : null
+      const importedFrom = { dishName: meal.name, date: importDate, dishId: meal.dishId }
+      let addedCount = 0
 
       if (dish && Array.isArray(dish.elements) && dish.elements.length > 0) {
         for (const el of dish.elements) {
           const elName: string = el?.name || el?.ingredient_name || (typeof el === "string" ? el : "")
-          if (elName) {
+          if (elName && !items.some(i => i.name.toLowerCase() === elName.toLowerCase())) {
             const qty = el?.grams ? `${el.grams}g` : ""
-            newItems.push({
-              id: crypto.randomUUID(),
-              name: elName,
-              category: categorize(elName),
-              checked: false,
-              quantity: qty,
-              importedFrom: { dishName: meal.name, date: importDate, dishId: meal.dishId },
-            })
+            hookAddItem({ name: elName, category: categorize(elName), checked: false, quantity: qty, imported_from: importedFrom })
+            addedCount++
           }
         }
-        if (newItems.filter(n => n.importedFrom?.dishId === meal.dishId).length === 0) {
-          newItems.push({
-            id: crypto.randomUUID(),
-            name: meal.name,
-            category: categorize(meal.name),
-            checked: false,
-            quantity: "",
-            importedFrom: { dishName: meal.name, date: importDate, dishId: meal.dishId },
-          })
+        if (addedCount === 0) {
+          hookAddItem({ name: meal.name, category: categorize(meal.name), checked: false, quantity: "", imported_from: importedFrom })
         }
       } else {
-        newItems.push({
-          id: crypto.randomUUID(),
-          name: meal.name,
-          category: categorize(meal.name),
-          checked: false,
-          quantity: "",
-          importedFrom: { dishName: meal.name, date: importDate },
-        })
+        if (!items.some(i => i.name.toLowerCase() === meal.name.toLowerCase())) {
+          hookAddItem({ name: meal.name, category: categorize(meal.name), checked: false, quantity: "", imported_from: { dishName: meal.name, date: importDate } })
+        }
       }
     }
 
-    const dedupedItems = newItems.filter(n => !items.some(i => i.name.toLowerCase() === n.name.toLowerCase()))
-    saveItems([...items, ...dedupedItems])
     setShowImport(false)
   }
 
   const importedDates = useMemo(() => {
     const dates = new Set<string>()
-    items.forEach(i => { if (i.importedFrom?.date) dates.add(i.importedFrom.date) })
+    items.forEach(i => { if (i.imported_from?.date) dates.add(i.imported_from.date) })
     return [...dates].sort()
   }, [items])
 
   return (
     <div className="flex flex-col gap-4 pb-24">
+      {/* Sync status banner */}
+      {useLocal && (
+        <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl text-xs text-amber-700 dark:text-amber-400">
+          <WifiOff className="size-3.5 shrink-0" />
+          <span>Tryb lokalny — uruchom migrację SQL w Supabase, aby włączyć synchronizację między urządzeniami.</span>
+        </div>
+      )}
+      {!useLocal && !listLoading && (
+        <div className="flex items-center justify-end gap-1.5 px-1">
+          <Wifi className="size-3 text-primary/60" />
+          <span className="text-[10px] text-primary/60 font-medium">Synchronizowane</span>
+        </div>
+      )}
+
       {/* Add Item Input */}
       <div className="bg-card rounded-2xl border border-border p-4 flex flex-col gap-3">
         <div className="flex gap-2">
@@ -346,7 +301,7 @@ export function ShoppingListScreen() {
           )}
           {totalCount > 0 && (
             <button
-              onClick={clearAll}
+              onClick={handleClearAll}
               className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-secondary/80 text-muted-foreground hover:text-destructive text-xs font-medium transition-colors border border-border"
               title="Wyczyść całą listę"
             >
@@ -510,9 +465,9 @@ export function ShoppingListScreen() {
                             </span>
                           )}
 
-                          {item.importedFrom && (
+                          {item.imported_from && (
                             <span className="text-[10px] text-primary/70 bg-primary/10 px-1.5 py-0.5 rounded-full font-medium whitespace-nowrap max-w-[80px] truncate">
-                              📅 {item.importedFrom.dishName}
+                              📅 {item.imported_from.dishName}
                             </span>
                           )}
 

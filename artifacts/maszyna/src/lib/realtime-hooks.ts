@@ -1010,3 +1010,158 @@ export function useDishes() {
 
   return { dishes, loading, addDish, deleteDish, updateDish, refetch: fetchDishes }
 }
+
+// ─── Shopping List (real-time, shared between partners) ───────────────────────
+
+export interface ShoppingListRow {
+  id: string
+  user_id: string
+  name: string
+  category: string
+  checked: boolean
+  quantity: string
+  imported_from: { dishName: string; date: string; dishId?: string } | null
+  created_at: string
+  updated_at: string
+}
+
+const SHOPPING_LS_KEY = (userId: string) => `shopping-list-v2-${userId}`
+
+function lsLoad(userId: string): ShoppingListRow[] {
+  try {
+    const raw = localStorage.getItem(SHOPPING_LS_KEY(userId))
+    if (raw) return JSON.parse(raw) as ShoppingListRow[]
+  } catch { }
+  return []
+}
+
+function lsSave(userId: string, items: ShoppingListRow[]) {
+  try { localStorage.setItem(SHOPPING_LS_KEY(userId), JSON.stringify(items)) } catch { }
+}
+
+export function useShoppingList() {
+  const { user, loading: authLoading } = useAuth()
+  const [items, setItems] = useState<ShoppingListRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [useLocal, setUseLocal] = useState(false) // fallback when table not yet created
+
+  // ── Fetch ────────────────────────────────────────────────────────────────────
+  const fetchItems = useCallback(async () => {
+    if (authLoading) return
+    if (!user) {
+      setItems([])
+      setLoading(false)
+      return
+    }
+
+    const { data, error } = await supabase
+      .from('shopping_list')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: true })
+
+    if (error) {
+      // Table doesn't exist yet — fall back to localStorage
+      if (error.code === '42P01' || error.message?.includes('does not exist')) {
+        console.warn('[useShoppingList] table not ready, using localStorage')
+        setUseLocal(true)
+        setItems(lsLoad(user.id))
+      } else {
+        console.error('[useShoppingList] fetch error:', error.message)
+      }
+      setLoading(false)
+      return
+    }
+
+    setUseLocal(false)
+    setItems(data || [])
+    setLoading(false)
+  }, [user, authLoading])
+
+  useEffect(() => { fetchItems() }, [fetchItems])
+
+  // ── Real-time subscription ────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!user || useLocal) return
+
+    const channel: RealtimeChannel = supabase
+      .channel(`shopping-list-${Math.random().toString(36).slice(2)}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'shopping_list' }, (payload) => {
+        const rec = payload.new as ShoppingListRow
+        if (rec?.user_id && rec.user_id !== user.id) return
+
+        if (payload.eventType === 'INSERT') {
+          setItems(prev => prev.some(i => i.id === rec.id) ? prev : [...prev, rec])
+        } else if (payload.eventType === 'UPDATE') {
+          setItems(prev => prev.map(i => i.id === rec.id ? rec : i))
+        } else if (payload.eventType === 'DELETE') {
+          const del = payload.old as { id: string }
+          setItems(prev => prev.filter(i => i.id !== del.id))
+        }
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [user, useLocal])
+
+  // ── Write helpers ─────────────────────────────────────────────────────────────
+  const _localSave = (updated: ShoppingListRow[]) => {
+    setItems(updated)
+    if (user) lsSave(user.id, updated)
+  }
+
+  const addItem = async (item: Omit<ShoppingListRow, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+    if (!user) return
+    if (useLocal) {
+      const row: ShoppingListRow = {
+        ...item, id: crypto.randomUUID(), user_id: user.id,
+        created_at: new Date().toISOString(), updated_at: new Date().toISOString()
+      }
+      _localSave([...items, row])
+      return
+    }
+    const { error } = await supabase.from('shopping_list').insert({ ...item, user_id: user.id })
+    if (error) console.error('[useShoppingList] insert error:', error.message)
+  }
+
+  const updateItem = async (id: string, changes: Partial<Pick<ShoppingListRow, 'name' | 'quantity' | 'category' | 'checked'>>) => {
+    if (!user) return
+    if (useLocal) {
+      _localSave(items.map(i => i.id === id ? { ...i, ...changes } : i))
+      return
+    }
+    const { error } = await supabase.from('shopping_list').update({ ...changes, updated_at: new Date().toISOString() }).eq('id', id).eq('user_id', user.id)
+    if (error) console.error('[useShoppingList] update error:', error.message)
+  }
+
+  const removeItem = async (id: string) => {
+    if (!user) return
+    if (useLocal) { _localSave(items.filter(i => i.id !== id)); return }
+    const { error } = await supabase.from('shopping_list').delete().eq('id', id).eq('user_id', user.id)
+    if (error) console.error('[useShoppingList] delete error:', error.message)
+  }
+
+  const clearChecked = async () => {
+    if (!user) return
+    const checkedIds = items.filter(i => i.checked).map(i => i.id)
+    if (!checkedIds.length) return
+    if (useLocal) { _localSave(items.filter(i => !i.checked)); return }
+    const { error } = await supabase.from('shopping_list').delete().in('id', checkedIds).eq('user_id', user.id)
+    if (error) console.error('[useShoppingList] clearChecked error:', error.message)
+  }
+
+  const clearAll = async () => {
+    if (!user) return
+    if (useLocal) { _localSave([]); return }
+    const { error } = await supabase.from('shopping_list').delete().eq('user_id', user.id)
+    if (error) console.error('[useShoppingList] clearAll error:', error.message)
+    else setItems([])
+  }
+
+  const toggleItem = (id: string) => {
+    const item = items.find(i => i.id === id)
+    if (item) updateItem(id, { checked: !item.checked })
+  }
+
+  return { items, loading, useLocal, addItem, updateItem, removeItem, toggleItem, clearChecked, clearAll, refetch: fetchItems }
+}
