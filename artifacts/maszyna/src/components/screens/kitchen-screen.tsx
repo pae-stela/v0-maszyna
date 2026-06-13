@@ -97,10 +97,10 @@ export function KitchenScreen({ initialEditMode }: { initialEditMode?: EditMode 
 
   return (
     <div className="flex flex-col gap-4 pb-24">
-      <div className="flex gap-1 p-1 bg-secondary rounded-xl">
+      <div className="flex gap-1 p-1 bg-secondary rounded-xl items-stretch">
         <button
           onClick={() => handleTabChange("calculator")}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+          className={`flex-[2] flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
             subTab === "calculator"
               ? "bg-moss/20 text-moss shadow-sm"
               : "text-muted-foreground font-medium"
@@ -109,27 +109,28 @@ export function KitchenScreen({ initialEditMode }: { initialEditMode?: EditMode 
           <Calculator className="size-4" />
           Calculator
         </button>
+        <div className="w-px bg-border/60 my-1.5 shrink-0" />
         <button
           onClick={() => handleTabChange("dishes")}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-lg transition-all ${
             subTab === "dishes"
               ? "bg-card text-foreground shadow-sm"
               : "text-muted-foreground"
           }`}
         >
-          <UtensilsCrossed className="size-4" />
-          Dishes
+          <UtensilsCrossed className="size-3.5" />
+          <span className="text-[10px] font-medium leading-none">Dishes</span>
         </button>
         <button
           onClick={() => handleTabChange("ingredients")}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-lg transition-all ${
             subTab === "ingredients"
               ? "bg-card text-foreground shadow-sm"
               : "text-muted-foreground"
           }`}
         >
-          <Apple className="size-4" />
-          Library
+          <Apple className="size-3.5" />
+          <span className="text-[10px] font-medium leading-none">Library</span>
         </button>
       </div>
 

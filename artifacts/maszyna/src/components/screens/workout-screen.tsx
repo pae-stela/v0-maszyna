@@ -78,10 +78,10 @@ export function WorkoutScreen() {
 
   return (
     <div className="flex flex-col gap-4 pb-24">
-      <div className="flex gap-1 p-1 bg-secondary rounded-xl">
+      <div className="flex gap-1 p-1 bg-secondary rounded-xl items-stretch">
         <button
           onClick={() => setSubTab("journal")}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+          className={`flex-[2] flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
             subTab === "journal"
               ? "bg-navy/20 text-navy shadow-sm"
               : "text-muted-foreground font-medium"
@@ -90,27 +90,28 @@ export function WorkoutScreen() {
           <Play className="size-4" />
           Live Journal
         </button>
+        <div className="w-px bg-border/60 my-1.5 shrink-0" />
         <button
           onClick={() => setSubTab("plans")}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-lg transition-all ${
             subTab === "plans"
               ? "bg-card text-foreground shadow-sm"
               : "text-muted-foreground"
           }`}
         >
-          <Dumbbell className="size-4" />
-          Plans
+          <Dumbbell className="size-3.5" />
+          <span className="text-[10px] font-medium leading-none">Plans</span>
         </button>
         <button
           onClick={() => setSubTab("exercises")}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-lg transition-all ${
             subTab === "exercises"
               ? "bg-card text-foreground shadow-sm"
               : "text-muted-foreground"
           }`}
         >
-          <Dumbbell className="size-4" />
-          Exercises
+          <Dumbbell className="size-3.5" />
+          <span className="text-[10px] font-medium leading-none">Exercises</span>
         </button>
       </div>
 
