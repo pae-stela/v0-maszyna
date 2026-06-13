@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react"
 import { useUser } from "@/lib/user-context"
 import { useAuth } from "@/lib/auth-context"
 import { useIngredients, useDishes, type DbIngredient } from "@/lib/realtime-hooks"
-import { Calculator, Search, Plus, Trash2, Apple, ChefHat, UtensilsCrossed, FileText, ChevronDown, X, Pencil, Check } from "lucide-react"
+import { Calculator, Search, Plus, Trash2, Apple, ChefHat, UtensilsCrossed, FileText, ChevronDown, X, Pencil, Check, Link, ImagePlus, Camera, ExternalLink } from "lucide-react"
 
 type SubTab = "calculator" | "ingredients" | "dishes"
 
@@ -159,6 +159,9 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
   const [saveRecipeSteps, setSaveRecipeSteps] = useState("")
   const [marcinServings, setMarcinServings] = useState(1)
   const [patrycjaServings, setPatrycjaServings] = useState(1)
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null)
+  const [galleryImages, setGalleryImages] = useState<string[]>([])
+  const [recipeUrl, setRecipeUrl] = useState("")
   const [showSaveModeModal, setShowSaveModeModal] = useState(false)
   const [editingIngredientId, setEditingIngredientId] = useState<string | null>(null)
   const [editingGrams, setEditingGrams] = useState("")
@@ -377,6 +380,19 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
     }
   }
 
+  const handleImageFile = (file: File, isProfile: boolean) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string
+      if (isProfile) {
+        setProfileImageUrl(dataUrl)
+      } else {
+        setGalleryImages(prev => [...prev, dataUrl])
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
   const handleSaveDish = async (overwriteId?: string) => {
     if (ingredients.length > 0 && saveName.trim()) {
       const steps = saveRecipeSteps.trim()
@@ -395,6 +411,19 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
         marcinServings,
         patrycjaServings,
         recipeSteps: steps,
+        profileImageUrl: profileImageUrl || null,
+        galleryImages: galleryImages.length > 0 ? galleryImages : null,
+        recipeUrl: recipeUrl.trim() || null,
+      }
+
+      const resetForm = () => {
+        setSaveName("")
+        setSaveSubCategory("")
+        setSaveRecipeSteps("")
+        setProfileImageUrl(null)
+        setGalleryImages([])
+        setRecipeUrl("")
+        onClearEdit()
       }
 
       if (overwriteId) {
@@ -402,10 +431,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
         if (dish.error) {
           alert("Failed to update dish. Check the console for details.")
         } else {
-          setSaveName("")
-          setSaveSubCategory("")
-          setSaveRecipeSteps("")
-          onClearEdit()
+          resetForm()
           alert(`Dish "${saveName}" updated successfully!`)
         }
       } else {
@@ -413,10 +439,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
         if (dish.error) {
           alert("Failed to save dish. Check the console for details.")
         } else {
-          setSaveName("")
-          setSaveSubCategory("")
-          setSaveRecipeSteps("")
-          onClearEdit()
+          resetForm()
           alert(`Dish "${saveName}" saved successfully!`)
         }
       }
@@ -880,6 +903,83 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
                 ))}
                 <option value="Custom">Custom</option>
               </select>
+            </div>
+          </div>
+
+          {/* Photo — profile pic + gallery */}
+          <div className="mb-4">
+            <label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">Photos</label>
+            <div className="flex gap-2 flex-wrap">
+              {/* Profile picture slot */}
+              <label className="cursor-pointer group relative">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageFile(f, true) }}
+                />
+                <div className={`size-16 rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden transition-colors ${profileImageUrl ? "border-transparent" : "border-border hover:border-primary/50"}`}>
+                  {profileImageUrl ? (
+                    <>
+                      <img src={profileImageUrl} alt="cover" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); setProfileImageUrl(null) }}
+                        className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-xl transition-opacity"
+                      >
+                        <X className="size-4 text-white" />
+                      </button>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center gap-1">
+                      <Camera className="size-4 text-muted-foreground" />
+                      <span className="text-[9px] text-muted-foreground leading-tight text-center">Cover</span>
+                    </div>
+                  )}
+                </div>
+              </label>
+              {/* Gallery images */}
+              {galleryImages.map((img, i) => (
+                <div key={i} className="relative size-16 rounded-xl overflow-hidden group">
+                  <img src={img} alt={`photo ${i + 1}`} className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setGalleryImages(prev => prev.filter((_, j) => j !== i))}
+                    className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-xl transition-opacity"
+                  >
+                    <X className="size-4 text-white" />
+                  </button>
+                </div>
+              ))}
+              {/* Add gallery photo */}
+              <label className="cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageFile(f, false) }}
+                />
+                <div className="size-16 rounded-xl border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center gap-1 transition-colors">
+                  <ImagePlus className="size-4 text-muted-foreground" />
+                  <span className="text-[9px] text-muted-foreground">Add</span>
+                </div>
+              </label>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-1.5">First photo becomes the cover shown in Dishes</p>
+          </div>
+
+          {/* Recipe URL */}
+          <div className="mb-4">
+            <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 block">Original Recipe Link</label>
+            <div className="relative">
+              <Link className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+              <input
+                type="url"
+                placeholder="https://..."
+                value={recipeUrl}
+                onChange={(e) => setRecipeUrl(e.target.value)}
+                className="w-full bg-secondary rounded-xl pl-9 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
             </div>
           </div>
 
@@ -1586,8 +1686,12 @@ function DishesView({ onEditDish }: { onEditDish: (mode: EditMode) => void }) {
                 className="w-full p-4 flex items-start justify-between text-left"
               >
                 <div className="flex items-center gap-3">
-                  <div className="size-12 rounded-xl bg-secondary flex items-center justify-center shrink-0">
-                    <UtensilsCrossed className="size-6 text-muted-foreground" />
+                  <div className="size-12 rounded-xl bg-secondary flex items-center justify-center shrink-0 overflow-hidden">
+                    {dish.profileImageUrl ? (
+                      <img src={dish.profileImageUrl} alt={dish.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <UtensilsCrossed className="size-6 text-muted-foreground" />
+                    )}
                   </div>
                   <div>
                     <h4 className="font-medium text-foreground">{dish.name}</h4>
@@ -1667,6 +1771,39 @@ function DishesView({ onEditDish }: { onEditDish: (mode: EditMode) => void }) {
                       ))}
                     </div>
                   </div>
+
+                  {/* Gallery strip */}
+                  {dish.galleryImages && dish.galleryImages.length > 0 && (
+                    <div className="mb-4">
+                      <p className="text-xs font-medium text-muted-foreground mb-2">Photos</p>
+                      <div className="flex gap-2 overflow-x-auto">
+                        {dish.profileImageUrl && (
+                          <img src={dish.profileImageUrl} alt="cover" className="size-16 rounded-xl object-cover shrink-0" />
+                        )}
+                        {dish.galleryImages.map((img, i) => (
+                          <img key={i} src={img} alt={`photo ${i + 1}`} className="size-16 rounded-xl object-cover shrink-0" />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Recipe link */}
+                  {dish.recipeUrl && (
+                    <div className="mb-4">
+                      <a
+                        href={dish.recipeUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-secondary hover:bg-secondary/70 transition-colors group"
+                      >
+                        <ExternalLink className="size-4 text-muted-foreground shrink-0" />
+                        <span className="text-sm text-foreground truncate flex-1">Original Recipe</span>
+                        <span className="text-[10px] text-muted-foreground truncate max-w-[120px] group-hover:text-foreground transition-colors">
+                          {new URL(dish.recipeUrl).hostname.replace('www.', '')}
+                        </span>
+                      </a>
+                    </div>
+                  )}
 
                   {/* Recipe Steps (if any) */}
                   {(dish.recipeSteps && dish.recipeSteps.length > 0) && (

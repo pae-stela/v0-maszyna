@@ -841,6 +841,9 @@ export interface DishItem {
   isCustom?: boolean
   recipeSteps?: string[] | null
   steps?: string[] | null
+  profileImageUrl?: string | null
+  galleryImages?: string[] | null
+  recipeUrl?: string | null
 }
 
 function mapDishFromDb(dbDish: any): DishItem {
@@ -864,6 +867,9 @@ function mapDishFromDb(dbDish: any): DishItem {
     isCustom: dbDish.is_custom ?? false,
     recipeSteps: Array.isArray(dbDish.recipe_steps) ? dbDish.recipe_steps : null,
     steps: Array.isArray(dbDish.steps) ? dbDish.steps : null,
+    profileImageUrl: dbDish.profile_image_url ?? null,
+    galleryImages: Array.isArray(dbDish.gallery_images) ? dbDish.gallery_images : null,
+    recipeUrl: dbDish.recipe_url ?? null,
   }
 }
 
@@ -887,6 +893,9 @@ function mapDishToDb(dish: Omit<DishItem, 'id' | 'user_id' | 'created_at'>): any
     is_custom: dish.isCustom ?? false,
     recipe_steps: Array.isArray(dish.recipeSteps) ? dish.recipeSteps : null,
     steps: Array.isArray(dish.steps) ? dish.steps : null,
+    profile_image_url: dish.profileImageUrl ?? null,
+    gallery_images: Array.isArray(dish.galleryImages) ? dish.galleryImages : null,
+    recipe_url: dish.recipeUrl ?? null,
   }
 }
 
