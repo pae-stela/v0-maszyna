@@ -1,6 +1,4 @@
 import { Calendar, Soup, BicepsFlexed, Gauge, Cat } from "lucide-react"
-import { useLanguage } from "@/lib/i18n/context"
-import type { TranslationKey } from "@/lib/i18n/translations"
 
 export type Tab = "kitchen" | "planner" | "dashboard" | "workout" | "profile"
 
@@ -9,20 +7,19 @@ interface BottomNavProps {
   onTabChange: (tab: Tab) => void
 }
 
-const tabs: { id: Tab; labelKey: TranslationKey; icon: React.ElementType }[] = [
-  { id: "kitchen",   labelKey: "Fuel",      icon: Soup          },
-  { id: "workout",   labelKey: "Gain",      icon: BicepsFlexed  },
-  { id: "dashboard", labelKey: "Dashboard", icon: Gauge         },
-  { id: "planner",   labelKey: "Planner",   icon: Calendar      },
-  { id: "profile",   labelKey: "Profile",   icon: Cat           },
+const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
+  { id: "kitchen",   label: "Fuel",      icon: Soup          },
+  { id: "workout",   label: "Gain",      icon: BicepsFlexed  },
+  { id: "dashboard", label: "Dashboard", icon: Gauge         },
+  { id: "planner",   label: "Plan",      icon: Calendar      },
+  { id: "profile",   label: "Track",     icon: Cat           },
 ]
 
 export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
-  const { t } = useLanguage()
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/80 backdrop-blur-xl border-t border-border pb-safe">
       <div className="flex items-center justify-around px-2 py-2">
-        {tabs.map(({ id, labelKey, icon: Icon }) => (
+        {tabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             onClick={() => onTabChange(id)}
@@ -47,7 +44,7 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
                 activeTab === id ? "text-primary" : ""
               }`}
             >
-              {t(labelKey)}
+              {label}
             </span>
           </button>
         ))}

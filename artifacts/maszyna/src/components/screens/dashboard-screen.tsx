@@ -134,7 +134,7 @@ export function DashboardScreen() {
     })
   }
 
-  const [water, setWater] = useState(MACRO_TARGETS[activeUser].water * 0.4) // Proste demo stanu wody
+  const [water, setWater] = useState(0)
   const [lastWaterAdd, setLastWaterAdd] = useState<number | null>(null)
   const [showStepInput, setShowStepInput] = useState(false)
   const [stepInput, setStepInput] = useState("")
@@ -210,67 +210,62 @@ export function DashboardScreen() {
     <div className="flex flex-col gap-5 pb-24">
 
       {/* SEKCJA MAKROSKŁADNIKÓW - ZASILANA DANYMI LIVE */}
-      <div className="bg-card rounded-2xl p-5 border border-border">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 items-center">
-
-          {/* LEWA STRONA: Kalorie */}
-          <div className="md:col-span-2 flex justify-center border-b md:border-b-0 md:border-r border-border pb-4 md:pb-0 md:pr-4">
-            <ProgressRing
-              value={currentMacros.calories}
-              max={targets.calories}
-              color="var(--color-navy, #1A2E26)"
-              label="kcal"
-              unit="kcal"
-              size={140}
-              strokeWidth={8}
-              textSize="text-xl"
-            />
-          </div>
-
-          {/* PRAWA STRONA: Układ Ringów Makro */}
-          <div className="md:col-span-3 grid grid-cols-2 gap-4">
-            <ProgressRing
-              value={currentMacros.protein}
-              max={targets.protein}
-              color="var(--color-moss, #3B5340)"
-              label="Białko"
-              unit="g"
-              size={76}
-              strokeWidth={5.5}
-              textSize="text-sm"
-            />
-            <ProgressRing
-              value={currentMacros.carbs}
-              max={targets.carbs}
-              color="var(--color-sand, #D4A373)"
-              label="Węgle"
-              unit="g"
-              size={76}
-              strokeWidth={5.5}
-              textSize="text-sm"
-            />
-            <ProgressRing
-              value={currentMacros.fats}
-              max={targets.fats}
-              color="var(--color-terracotta, #CD7F67)"
-              label="Tłuszcze"
-              unit="g"
-              size={76}
-              strokeWidth={5.5}
-              textSize="text-sm"
-            />
-            <ProgressRing
-              value={currentMacros.fiber}
-              max={targets.fiber}
-              color="var(--color-sage, #8A9A86)"
-              label="Błonnik"
-              unit="g"
-              size={76}
-              strokeWidth={5.5}
-              textSize="text-sm"
-            />
-          </div>
-
+      <div className="bg-card rounded-2xl p-4 border border-border">
+        {/* kcal — visually separate at top */}
+        <div className="flex justify-center pb-4 mb-4 border-b border-border">
+          <ProgressRing
+            value={currentMacros.calories}
+            max={targets.calories}
+            color="var(--color-navy, #1A2E26)"
+            label="kcal"
+            unit="kcal"
+            size={110}
+            strokeWidth={7}
+            textSize="text-lg"
+          />
+        </div>
+        {/* 4 macros in a compact row */}
+        <div className="grid grid-cols-4 gap-2">
+          <ProgressRing
+            value={currentMacros.protein}
+            max={targets.protein}
+            color="var(--color-moss, #3B5340)"
+            label="Białko"
+            unit="g"
+            size={60}
+            strokeWidth={4.5}
+            textSize="text-[10px]"
+          />
+          <ProgressRing
+            value={currentMacros.carbs}
+            max={targets.carbs}
+            color="var(--color-sand, #D4A373)"
+            label="Węgle"
+            unit="g"
+            size={60}
+            strokeWidth={4.5}
+            textSize="text-[10px]"
+          />
+          <ProgressRing
+            value={currentMacros.fats}
+            max={targets.fats}
+            color="var(--color-terracotta, #CD7F67)"
+            label="Tłuszcze"
+            unit="g"
+            size={60}
+            strokeWidth={4.5}
+            textSize="text-[10px]"
+          />
+          <ProgressRing
+            value={currentMacros.fiber}
+            max={targets.fiber}
+            color="var(--color-sage, #8A9A86)"
+            label="Błonnik"
+            unit="g"
+            size={60}
+            strokeWidth={4.5}
+            textSize="text-[10px]"
+          />
         </div>
       </div>
 

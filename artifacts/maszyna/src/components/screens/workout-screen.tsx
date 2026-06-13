@@ -88,7 +88,7 @@ export function WorkoutScreen() {
           }`}
         >
           <Play className="size-4" />
-          Journal
+          Live Journal
         </button>
         <button
           onClick={() => setSubTab("plans")}

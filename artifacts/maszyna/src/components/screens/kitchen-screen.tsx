@@ -107,20 +107,7 @@ export function KitchenScreen({ initialEditMode }: { initialEditMode?: EditMode 
           }`}
         >
           <Calculator className="size-4" />
-          <span className="hidden xs:inline">Calculator</span>
-          <span className="xs:hidden">Calc</span>
-        </button>
-        <button
-          onClick={() => handleTabChange("ingredients")}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
-            subTab === "ingredients"
-              ? "bg-card text-foreground shadow-sm"
-              : "text-muted-foreground"
-          }`}
-        >
-          <Apple className="size-4" />
-          <span className="hidden xs:inline">Ingredients</span>
-          <span className="xs:hidden">Ingr.</span>
+          Calculator
         </button>
         <button
           onClick={() => handleTabChange("dishes")}
@@ -132,6 +119,17 @@ export function KitchenScreen({ initialEditMode }: { initialEditMode?: EditMode 
         >
           <UtensilsCrossed className="size-4" />
           Dishes
+        </button>
+        <button
+          onClick={() => handleTabChange("ingredients")}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
+            subTab === "ingredients"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground"
+          }`}
+        >
+          <Apple className="size-4" />
+          Library
         </button>
       </div>
 
@@ -432,7 +430,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
         <div className="bg-primary/10 px-5 py-3 border-b border-border flex items-center gap-3">
           <div className="size-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">1</div>
           <div>
-            <h3 className="text-sm font-semibold text-foreground">Build Your Recipe</h3>
+            <h3 className="text-sm font-semibold text-foreground">Build</h3>
             <p className="text-xs text-muted-foreground">Add ingredients to calculate macros</p>
           </div>
         </div>
@@ -656,8 +654,8 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
         <div className="bg-secondary/50 px-5 py-3 border-b border-border flex items-center gap-3">
           <div className="size-7 rounded-full bg-foreground text-background flex items-center justify-center text-sm font-bold">2</div>
           <div>
-            <h3 className="text-sm font-semibold text-foreground">Split Into Portions</h3>
-            <p className="text-xs text-muted-foreground">Divide between {profile?.name || "Marcin"} and {partner?.name || "Patrycja"}</p>
+            <h3 className="text-sm font-semibold text-foreground">Split</h3>
+            <p className="text-xs text-muted-foreground">Divide between Marcin and Patrycja</p>
           </div>
         </div>
 
@@ -670,7 +668,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
                 <div className="size-6 rounded-full bg-navy flex items-center justify-center">
                   <span className="text-[10px] font-bold text-background">M</span>
                 </div>
-                <span className="text-xs font-medium text-foreground">{profile?.name || "Marcin"}</span>
+                <span className="text-xs font-medium text-foreground">{partner?.name || "Marcin"}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-muted-foreground">Servings</span>
@@ -698,7 +696,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
                 <div className="size-6 rounded-full bg-sage flex items-center justify-center">
                   <span className="text-[10px] font-bold text-background">P</span>
                 </div>
-                <span className="text-xs font-medium text-foreground">{partner?.name || "Patrycja"}</span>
+                <span className="text-xs font-medium text-foreground">{profile?.name || "Patrycja"}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-muted-foreground">Servings</span>
@@ -823,7 +821,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
           </div>
 
           <p className="text-[10px] text-muted-foreground text-center mt-4">
-            Ratio: {profile?.name || "Marcin"} gets 2 parts, {partner?.name || "Patrycja"} gets 1 part per serving
+            Ratio: {partner?.name || "Marcin"} gets 2 parts, {profile?.name || "Patrycja"} gets 1 part per serving
           </p>
         </div>
       </div>
@@ -833,7 +831,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
         <div className="bg-sage/10 px-5 py-3 border-b border-border flex items-center gap-3">
           <div className="size-7 rounded-full bg-sage text-background flex items-center justify-center text-sm font-bold">3</div>
           <div>
-            <h3 className="text-sm font-semibold text-foreground">Save Your Creation</h3>
+            <h3 className="text-sm font-semibold text-foreground">Save</h3>
             <p className="text-xs text-muted-foreground">Store as a dish or reusable component</p>
           </div>
         </div>

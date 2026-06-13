@@ -50,15 +50,15 @@ export function AppShell() {
   const getScreenTitle = () => {
     switch (activeTab) {
       case "dashboard":
-        return t('dashboard')
+        return "Dashboard"
       case "kitchen":
-        return t('kitchen')
+        return "Fuel"
       case "workout":
-        return t('workout')
+        return "Gain"
       case "planner":
-        return t('planner')
+        return "Plan"
       case "profile":
-        return t('profile')
+        return "Track"
       default:
         return ""
     }

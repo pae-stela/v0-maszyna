@@ -54,7 +54,7 @@ export function PlannerScreen({ onNavigateToKitchen }: { onNavigateToKitchen?: (
           }`}
         >
           <Calendar className="size-4" />
-         {t("planner")}
+          Calendar
         </button>
         <button
           onClick={() => setSubTab("shopping")}
@@ -405,6 +405,36 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
 
     if (!title) return
 
+    // Pre-compute per-person portion macros for preset dishes
+    let marcinMacros = { calories, protein, carbs, fats, fiber }
+    let patrycjaMacros = { calories, protein, carbs, fats, fiber }
+    if (addType === "meal" && inputMode === "preset" && selectedDishId) {
+      const dish = allDishes.find(d => d.id === selectedDishId)
+      if (dish && (dish.marcinServings || dish.patrycjaServings)) {
+        const marcinS = dish.marcinServings || 1
+        const patrycjaS = dish.patrycjaServings || 1
+        const totalParts = (marcinS * 2) + (patrycjaS * 1)
+        if (totalParts > 0) {
+          const marcinMult = 2 / totalParts
+          const patrycjaMult = 1 / totalParts
+          marcinMacros = {
+            calories: Math.round(calories * marcinMult),
+            protein: Math.round(protein * marcinMult * 10) / 10,
+            carbs: Math.round(carbs * marcinMult * 10) / 10,
+            fats: Math.round(fats * marcinMult * 10) / 10,
+            fiber: Math.round(fiber * marcinMult * 10) / 10,
+          }
+          patrycjaMacros = {
+            calories: Math.round(calories * patrycjaMult),
+            protein: Math.round(protein * patrycjaMult * 10) / 10,
+            carbs: Math.round(carbs * patrycjaMult * 10) / 10,
+            fats: Math.round(fats * patrycjaMult * 10) / 10,
+            fiber: Math.round(fiber * patrycjaMult * 10) / 10,
+          }
+        }
+      }
+    }
+
     const targetOwners = mealOwner === "both" ? ["patrycja", "marcin"] : [mealOwner]
 
     try {
@@ -434,13 +464,14 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
 
       for (const targetDateStr of targetDates) {
         for (const owner of targetOwners) {
+          const ownerMacros = owner === "marcin" ? marcinMacros : patrycjaMacros
           const detailsJson = JSON.stringify({
             owner,
-            calories: addType === "meal" ? calories : undefined,
-            protein: addType === "meal" ? protein : undefined,
-            carbs: addType === "meal" ? carbs : undefined,
-            fats: addType === "meal" ? fats : undefined,
-            fiber: addType === "meal" ? fiber : undefined,
+            calories: addType === "meal" ? ownerMacros.calories : undefined,
+            protein: addType === "meal" ? ownerMacros.protein : undefined,
+            carbs: addType === "meal" ? ownerMacros.carbs : undefined,
+            fats: addType === "meal" ? ownerMacros.fats : undefined,
+            fiber: addType === "meal" ? ownerMacros.fiber : undefined,
             dishId,
             planId,
             shared,
@@ -453,11 +484,11 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
               time: newEvent.time,
               name: title,
               details: JSON.stringify({ owner }),
-              calories,
-              protein,
-              carbs,
-              fats,
-              fiber,
+              calories: ownerMacros.calories,
+              protein: ownerMacros.protein,
+              carbs: ownerMacros.carbs,
+              fats: ownerMacros.fats,
+              fiber: ownerMacros.fiber,
               logged: false,
             })
             if (mealResult?.error) {
@@ -735,11 +766,11 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                                         setMenuPosition({ x: 0, y: 0 })
                                         setShowEventMenu(true)
                                       }}
-                                      className={`rounded-lg p-2 text-white cursor-pointer active:scale-[0.98] transition-transform ${isMulti ? 'flex-1' : ''} ${getEventColor(event.type, event.owner)}`}
+                                      className={`rounded-lg p-2 text-white cursor-pointer active:scale-[0.98] transition-transform overflow-hidden ${isMulti ? 'flex-1 min-w-0' : 'w-full'} ${getEventColor(event.type, event.owner)}`}
                                     >
-                                      <div className="flex items-center gap-1.5">
-                                        {getEventIcon(event.type)}
-                                        <span className={`font-medium truncate ${viewMode === "week" ? "text-[10px]" : "text-xs"}`}>
+                                      <div className="flex items-center gap-1.5 min-w-0">
+                                        <span className="shrink-0">{getEventIcon(event.type)}</span>
+                                        <span className={`font-medium truncate overflow-hidden ${viewMode === "week" ? "text-[10px]" : "text-xs"}`}>
                                           {event.title}
                                         </span>
                                       </div>
