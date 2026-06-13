@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth-context"
 import { useIngredients, useDishes, type DbIngredient } from "@/lib/realtime-hooks"
 import { Calculator, Search, Plus, Trash2, Apple, ChefHat, UtensilsCrossed, FileText, ChevronDown, X, Pencil, Check, Link, ImagePlus, Camera, ExternalLink } from "lucide-react"
 
-type SubTab = "calculator" | "ingredients" | "dishes"
+type LibraryPanel = "ingredients" | "dishes" | null
 
 // Unified type for both raw ingredients and components (bulk preparations)
 // Components have recipe steps and sub-ingredients, regular ingredients don't
@@ -84,65 +84,66 @@ export interface EditMode {
 }
 
 export function KitchenScreen({ initialEditMode }: { initialEditMode?: EditMode | null }) {
-  const [subTab, setSubTab] = useState<SubTab>(initialEditMode ? "calculator" : "calculator")
+  const [libraryPanel, setLibraryPanel] = useState<LibraryPanel>(null)
   const [editMode, setEditMode] = useState<EditMode | null>(initialEditMode || null)
   const { activeUser } = useUser()
 
-  const handleTabChange = (tab: SubTab) => {
-    setSubTab(tab)
-    if (tab !== 'calculator') {
-      setEditMode(null)
-    }
-  }
+  const openLibrary = (panel: LibraryPanel) => setLibraryPanel(panel)
+  const closeLibrary = () => setLibraryPanel(null)
 
   return (
     <div className="flex flex-col gap-4 pb-24">
-      <div className="flex gap-1 p-1 bg-secondary rounded-xl items-stretch">
+      {/* Library access — compact secondary strip */}
+      <div className="flex items-center justify-end gap-2">
+        <span className="text-[10px] text-muted-foreground uppercase tracking-wider mr-auto">Libraries</span>
         <button
-          onClick={() => handleTabChange("calculator")}
-          className={`flex-[2] flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-            subTab === "calculator"
-              ? "bg-moss/20 text-moss shadow-sm"
-              : "text-muted-foreground font-medium"
-          }`}
-        >
-          <Calculator className="size-4" />
-          Calculator
-        </button>
-        <div className="w-px bg-border/60 my-1.5 shrink-0" />
-        <button
-          onClick={() => handleTabChange("dishes")}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-lg transition-all ${
-            subTab === "dishes"
-              ? "bg-card text-foreground shadow-sm"
-              : "text-muted-foreground"
-          }`}
+          onClick={() => openLibrary("dishes")}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-muted-foreground hover:text-foreground text-xs font-medium transition-colors"
         >
           <UtensilsCrossed className="size-3.5" />
-          <span className="text-[10px] font-medium leading-none">Dishes</span>
+          Dishes
         </button>
         <button
-          onClick={() => handleTabChange("ingredients")}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-lg transition-all ${
-            subTab === "ingredients"
-              ? "bg-card text-foreground shadow-sm"
-              : "text-muted-foreground"
-          }`}
+          onClick={() => openLibrary("ingredients")}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-muted-foreground hover:text-foreground text-xs font-medium transition-colors"
         >
           <Apple className="size-3.5" />
-          <span className="text-[10px] font-medium leading-none">Library</span>
+          Ingredients
         </button>
       </div>
 
-      {subTab === "calculator" && (
-        <CalculatorView
-          activeUser={activeUser}
-          editMode={editMode}
-          onClearEdit={() => setEditMode(null)}
-        />
+      {/* Calculator — always the main tool */}
+      <CalculatorView
+        activeUser={activeUser}
+        editMode={editMode}
+        onClearEdit={() => setEditMode(null)}
+      />
+
+      {/* Library overlays */}
+      {libraryPanel && (
+        <div className="fixed inset-0 z-50 bg-background flex flex-col">
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0">
+            <button
+              onClick={closeLibrary}
+              className="size-8 flex items-center justify-center rounded-lg bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X className="size-4" />
+            </button>
+            <div className="flex items-center gap-2">
+              {libraryPanel === "dishes" ? <UtensilsCrossed className="size-4 text-muted-foreground" /> : <Apple className="size-4 text-muted-foreground" />}
+              <span className="font-semibold text-foreground">{libraryPanel === "dishes" ? "Dishes" : "Ingredients"}</span>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+            {libraryPanel === "dishes" && (
+              <DishesView onEditDish={(mode) => { setEditMode(mode); closeLibrary() }} />
+            )}
+            {libraryPanel === "ingredients" && (
+              <IngredientsView onEditComponent={(mode) => { setEditMode(mode); closeLibrary() }} />
+            )}
+          </div>
+        </div>
       )}
-      {subTab === "ingredients" && <IngredientsView onEditComponent={(mode) => { setEditMode(mode); setSubTab('calculator') }} />}
-      {subTab === "dishes" && <DishesView onEditDish={(mode) => { setEditMode(mode); setSubTab('calculator') }} />}
     </div>
   )
 }

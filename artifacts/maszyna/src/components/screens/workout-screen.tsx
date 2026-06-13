@@ -5,7 +5,7 @@ import { useUser } from "@/lib/user-context"
 import { useWorkoutPlans } from "@/lib/realtime-hooks"
 import { Play, Plus, ChevronRight, Timer, Flame, Dumbbell, Search, X, Check, Link2, Trash2, Pause, Square } from "lucide-react"
 
-type SubTab = "journal" | "plans" | "exercises"
+type LibraryPanel = "plans" | "exercises" | null
 
 interface Exercise {
   id: string
@@ -74,50 +74,55 @@ const exerciseLibrary: Exercise[] = [
 ]
 
 export function WorkoutScreen() {
-  const [subTab, setSubTab] = useState<SubTab>("journal")
+  const [libraryPanel, setLibraryPanel] = useState<LibraryPanel>(null)
+
+  const closeLibrary = () => setLibraryPanel(null)
 
   return (
     <div className="flex flex-col gap-4 pb-24">
-      <div className="flex gap-1 p-1 bg-secondary rounded-xl items-stretch">
+      {/* Library access — compact secondary strip */}
+      <div className="flex items-center justify-end gap-2">
+        <span className="text-[10px] text-muted-foreground uppercase tracking-wider mr-auto">Libraries</span>
         <button
-          onClick={() => setSubTab("journal")}
-          className={`flex-[2] flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-            subTab === "journal"
-              ? "bg-navy/20 text-navy shadow-sm"
-              : "text-muted-foreground font-medium"
-          }`}
-        >
-          <Play className="size-4" />
-          Live Journal
-        </button>
-        <div className="w-px bg-border/60 my-1.5 shrink-0" />
-        <button
-          onClick={() => setSubTab("plans")}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-lg transition-all ${
-            subTab === "plans"
-              ? "bg-card text-foreground shadow-sm"
-              : "text-muted-foreground"
-          }`}
+          onClick={() => setLibraryPanel("plans")}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-muted-foreground hover:text-foreground text-xs font-medium transition-colors"
         >
           <Dumbbell className="size-3.5" />
-          <span className="text-[10px] font-medium leading-none">Plans</span>
+          Plans
         </button>
         <button
-          onClick={() => setSubTab("exercises")}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-lg transition-all ${
-            subTab === "exercises"
-              ? "bg-card text-foreground shadow-sm"
-              : "text-muted-foreground"
-          }`}
+          onClick={() => setLibraryPanel("exercises")}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-muted-foreground hover:text-foreground text-xs font-medium transition-colors"
         >
           <Dumbbell className="size-3.5" />
-          <span className="text-[10px] font-medium leading-none">Exercises</span>
+          Exercises
         </button>
       </div>
 
-      {subTab === "journal" && <JournalView />}
-      {subTab === "plans" && <PlansView />}
-      {subTab === "exercises" && <ExercisesView />}
+      {/* Live Journal — always the main tool */}
+      <JournalView />
+
+      {/* Library overlays */}
+      {libraryPanel && (
+        <div className="fixed inset-0 z-50 bg-background flex flex-col">
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0">
+            <button
+              onClick={closeLibrary}
+              className="size-8 flex items-center justify-center rounded-lg bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X className="size-4" />
+            </button>
+            <div className="flex items-center gap-2">
+              <Dumbbell className="size-4 text-muted-foreground" />
+              <span className="font-semibold text-foreground">{libraryPanel === "plans" ? "Plans" : "Exercises"}</span>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+            {libraryPanel === "plans" && <PlansView />}
+            {libraryPanel === "exercises" && <ExercisesView />}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

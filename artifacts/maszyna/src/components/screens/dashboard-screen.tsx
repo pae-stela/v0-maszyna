@@ -159,14 +159,24 @@ export function DashboardScreen() {
     fats: targets.fats - currentMacros.fats,
   }
 
+  // Compute the user's portion ratio from a dish's servings split
+  const getPortionRatio = (dish: { marcinServings?: number; patrycjaServings?: number }) => {
+    const mS = dish.marcinServings ?? 1
+    const pS = dish.patrycjaServings ?? 1
+    const total = mS + pS
+    const mine = activeUser === "patrycja" ? pS : mS
+    return mine / total
+  }
+
   // Podpowiedzi przepisów dopasowane do brakujących makroskładników
   const getSuggestedRecipes = () => {
     return allDishes
       .map(dish => {
-        const cals = dish.totalCalories
-        const protein = dish.totalProtein
-        const carbs = dish.totalCarbs
-        const fats = dish.totalFats
+        const ratio = getPortionRatio(dish)
+        const cals = Math.round(dish.totalCalories * ratio)
+        const protein = Math.round(dish.totalProtein * ratio)
+        const carbs = Math.round(dish.totalCarbs * ratio)
+        const fats = Math.round(dish.totalFats * ratio)
 
         const calorieScore = cals <= remainingMacros.calories
           ? cals / Math.max(remainingMacros.calories, 1)
@@ -178,9 +188,9 @@ export function DashboardScreen() {
 
         const totalScore = calorieScore + proteinScore * 1.5
 
-        return { ...dish, score: totalScore }
+        return { ...dish, portionCalories: cals, portionProtein: protein, portionCarbs: carbs, portionFats: fats, score: totalScore }
       })
-      .filter(dish => dish.totalCalories <= remainingMacros.calories + 100)
+      .filter(dish => dish.portionCalories <= remainingMacros.calories + 100)
       .sort((a, b) => b.score - a.score)
       .slice(0, 3)
   }
@@ -381,10 +391,11 @@ export function DashboardScreen() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3 mt-2 text-[10px]">
-                    <span className="text-foreground font-medium">{recipe.totalCalories} kcal</span>
-                    <span className="text-primary">{recipe.totalProtein}g B</span>
-                    <span className="text-wheat">{recipe.totalCarbs}g W</span>
-                    <span className="text-terracotta/70">{recipe.totalFats}g T</span>
+                    <span className="text-foreground font-medium">{recipe.portionCalories} kcal</span>
+                    <span className="text-primary">{recipe.portionProtein}g B</span>
+                    <span className="text-wheat">{recipe.portionCarbs}g W</span>
+                    <span className="text-terracotta/70">{recipe.portionFats}g T</span>
+                    <span className="text-muted-foreground ml-auto">twoja porcja</span>
                   </div>
                 </div>
               ))}
