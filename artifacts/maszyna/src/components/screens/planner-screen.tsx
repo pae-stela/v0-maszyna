@@ -188,16 +188,17 @@ function MacroRing({
 function MacroSummary({
   date,
   ownerFilter,
+  selfProfile,
   partner,
   plannerEvents
 }: {
   date: Date
   ownerFilter: OwnerFilter
+  selfProfile: { name: string } | null
   partner: { name: string; id: string } | null
   plannerEvents: { id: string; date: string; time: string; type: string; name: string; details: string | null; user_id: string; logged: boolean; shared_with_partner: boolean; created_at: string; updated_at?: string }[]
 }) {
   const dateStr = toLocalDateStr(date)
-  const { profile } = useAuth()
 
   const getMacros = (owner: "marcin" | "patrycja") => {
     const target = MACRO_TARGETS[owner] || MACRO_TARGETS.patrycja
@@ -272,14 +273,14 @@ function MacroSummary({
           <div className="flex-1 rounded-xl p-2 flex flex-col gap-1" style={{ backgroundColor: `${DASHBOARD_COLORS.fiber}22` }}>
             <div className="flex items-center gap-1">
               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: DASHBOARD_COLORS.fiber }} />
-              <span className="text-[9px] font-semibold" style={{ color: DASHBOARD_COLORS.fiber }}>Patrycja</span>
+              <span className="text-[9px] font-semibold" style={{ color: DASHBOARD_COLORS.fiber }}>{selfProfile?.name || "You"}</span>
             </div>
             <SingleOwnerMacros owner="patrycja" consumed={patrycjaData.consumed} target={patrycjaData.target} />
           </div>
           <div className="flex-1 rounded-xl p-2 flex flex-col gap-1" style={{ backgroundColor: `${DASHBOARD_COLORS.calories}22` }}>
             <div className="flex items-center gap-1">
               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: DASHBOARD_COLORS.calories }} />
-              <span className="text-[9px] font-semibold" style={{ color: DASHBOARD_COLORS.calories }}>Marcin</span>
+              <span className="text-[9px] font-semibold" style={{ color: DASHBOARD_COLORS.calories }}>{partner?.name || "Partner"}</span>
             </div>
             <SingleOwnerMacros owner="marcin" consumed={marcinData.consumed} target={marcinData.target} />
           </div>
@@ -734,7 +735,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
               <MacroSummary
                 date={date}
                 ownerFilter={ownerFilter}
-                settings={settings}
+                selfProfile={profile}
                 partner={partner}
                 plannerEvents={plannerEvents}
               />

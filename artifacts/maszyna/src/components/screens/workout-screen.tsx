@@ -81,10 +81,10 @@ export function WorkoutScreen() {
       <div className="flex gap-1 p-1 bg-secondary rounded-xl">
         <button
           onClick={() => setSubTab("journal")}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
             subTab === "journal"
-              ? "bg-card text-foreground shadow-sm"
-              : "text-muted-foreground"
+              ? "bg-navy/20 text-navy shadow-sm"
+              : "text-muted-foreground font-medium"
           }`}
         >
           <Play className="size-4" />

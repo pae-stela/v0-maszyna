@@ -100,10 +100,10 @@ export function KitchenScreen({ initialEditMode }: { initialEditMode?: EditMode 
       <div className="flex gap-1 p-1 bg-secondary rounded-xl">
         <button
           onClick={() => handleTabChange("calculator")}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
             subTab === "calculator"
-              ? "bg-card text-foreground shadow-sm"
-              : "text-muted-foreground"
+              ? "bg-moss/20 text-moss shadow-sm"
+              : "text-muted-foreground font-medium"
           }`}
         >
           <Calculator className="size-4" />
@@ -655,7 +655,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
           <div className="size-7 rounded-full bg-foreground text-background flex items-center justify-center text-sm font-bold">2</div>
           <div>
             <h3 className="text-sm font-semibold text-foreground">Split</h3>
-            <p className="text-xs text-muted-foreground">Divide between Marcin and Patrycja</p>
+            <p className="text-xs text-muted-foreground">Divide between {partner?.name || "Partner"} and {profile?.name || "You"}</p>
           </div>
         </div>
 

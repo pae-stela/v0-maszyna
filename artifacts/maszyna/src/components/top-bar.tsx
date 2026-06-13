@@ -45,7 +45,7 @@ interface SettingsModalProps {
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const { activeUser, getWeeklyAvgSteps } = useUser()
-  const { signOut } = useAuth()
+  const { signOut, profile, partner } = useAuth()
   const { language, setLanguage, t } = useLanguage()
   const [settingsTab, setSettingsTab] = useState<"couple" | "profile">("profile")
   const [marcinPct, setMarcinPct] = useState(67)
@@ -204,7 +204,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           <div className="size-6 rounded-full bg-navy flex items-center justify-center">
                             <span className="text-[10px] font-bold text-background">M</span>
                           </div>
-                          <span className="text-xs font-medium text-foreground">Marcin</span>
+                          <span className="text-xs font-medium text-foreground">{partner?.name || "Partner"}</span>
                         </div>
                         <div className="flex items-center justify-between">
                           <button
@@ -223,7 +223,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           <div className="size-6 rounded-full bg-sage flex items-center justify-center">
                             <span className="text-[10px] font-bold text-background">P</span>
                           </div>
-                          <span className="text-xs font-medium text-foreground">Patrycja</span>
+                          <span className="text-xs font-medium text-foreground">{profile?.name || "You"}</span>
                         </div>
                         <div className="flex items-center justify-between">
                           <button
@@ -243,7 +243,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       <div className="bg-sage h-full transition-all duration-300" style={{ width: `${100 - marcinPct}%` }} />
                     </div>
                     <p className="text-[10px] text-muted-foreground text-center mt-2">
-                      Marcin {marcinPct}% · Patrycja {100 - marcinPct}%
+                      {partner?.name || "Partner"} {marcinPct}% · {profile?.name || "You"} {100 - marcinPct}%
                     </p>
                   </div>
 
