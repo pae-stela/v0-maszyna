@@ -22,6 +22,10 @@ export const translations = {
     loading: "Loading...",
     settings: "Settings",
     logout: "Log out",
+    today: "Today",
+    threeDays: "3 Days",
+    week: "Week",
+    fiber: "Fiber",
     
     // Auth
     login: "Log in",
@@ -54,6 +58,7 @@ export const translations = {
     carbs: "Carbs",
     fats: "Fats",
     remaining: "remaining",
+    yourPortion: "your portion",
     waterIntake: "Water Intake",
     glasses: "glasses",
     steps: "Steps",
@@ -84,7 +89,14 @@ export const translations = {
     
     // Kitchen / Recipes
     recipes: "Recipes",
+    dishes: "Dishes",
     ingredients: "Ingredients",
+    libraryLabel: "Library",
+    libraries: "Libraries",
+    photos: "Photos",
+    coverPhoto: "Cover",
+    originalRecipeLink: "Original Recipe Link",
+    recipeStepsLabel: "Recipe Steps (optional, one per line)",
     cookingTime: "Cooking time",
     servings: "Servings",
     minutes: "min",
@@ -129,6 +141,8 @@ export const translations = {
     pantryMeals: "Pantry Meals",
     
     // Workout
+    calculator: "Calculator",
+    liveJournal: "Live Journal",
     journal: "Journal",
     plans: "Plans",
     exercises: "Exercises",
@@ -153,11 +167,13 @@ export const translations = {
     activeProfile: "Active Profile",
     active: "Active",
     dailyGoals: "Daily Goals",
+    saveGoals: "Save Goals",
     coupleSettings: "Couple Settings",
     portionRatio: "Portion Ratio",
     appearance: "Appearance",
     darkMode: "Dark Mode",
     notifications: "Notifications",
+    calendar: "Calendar",
   },
   
   pl: {
@@ -181,6 +197,10 @@ export const translations = {
     loading: "Ładowanie...",
     settings: "Ustawienia",
     logout: "Wyloguj",
+    today: "Dziś",
+    threeDays: "3 dni",
+    week: "Tydzień",
+    fiber: "Błonnik",
     
     // Auth
     login: "Zaloguj się",
@@ -213,6 +233,7 @@ export const translations = {
     carbs: "Węglowodany",
     fats: "Tłuszcze",
     remaining: "pozostało",
+    yourPortion: "twoja porcja",
     waterIntake: "Nawodnienie",
     glasses: "szklanek",
     steps: "Kroki",
@@ -243,7 +264,14 @@ export const translations = {
     
     // Kitchen / Recipes
     recipes: "Przepisy",
+    dishes: "Dania",
     ingredients: "Składniki",
+    libraryLabel: "Biblioteka",
+    libraries: "Biblioteki",
+    photos: "Zdjęcia",
+    coverPhoto: "Okładka",
+    originalRecipeLink: "Link do przepisu",
+    recipeStepsLabel: "Kroki przepisu (opcjonalnie, jeden na linię)",
     cookingTime: "Czas przygotowania",
     servings: "Porcje",
     minutes: "min",
@@ -288,6 +316,8 @@ export const translations = {
     pantryMeals: "Z szafek",
     
     // Workout
+    calculator: "Kalkulator",
+    liveJournal: "Dziennik treningowy",
     journal: "Dziennik",
     plans: "Plany",
     exercises: "Ćwiczenia",
@@ -312,11 +342,13 @@ export const translations = {
     activeProfile: "Aktywny profil",
     active: "Aktywny",
     dailyGoals: "Cele dzienne",
+    saveGoals: "Zapisz cele",
     coupleSettings: "Ustawienia pary",
     portionRatio: "Proporcje porcji",
     appearance: "Wygląd",
     darkMode: "Tryb ciemny",
     notifications: "Powiadomienia",
+    calendar: "Kalendarz",
   },
 } as const
 

@@ -956,7 +956,14 @@ export function useDishes() {
     }
 
     if (data) {
-      setDishes(prev => [mapDishFromDb(data), ...prev])
+      // Merge in locally-known image/URL data in case the server response is missing these columns
+      const mapped = mapDishFromDb(data)
+      setDishes(prev => [{
+        ...mapped,
+        profileImageUrl: mapped.profileImageUrl ?? dish.profileImageUrl ?? null,
+        galleryImages: mapped.galleryImages ?? dish.galleryImages ?? null,
+        recipeUrl: mapped.recipeUrl ?? dish.recipeUrl ?? null,
+      }, ...prev])
     }
     return { data, error }
   }
@@ -997,6 +1004,9 @@ export function useDishes() {
     if (updates.isCustom !== undefined) payload.is_custom = updates.isCustom
     if (updates.recipeSteps !== undefined) payload.recipe_steps = Array.isArray(updates.recipeSteps) ? updates.recipeSteps : null
     if (updates.steps !== undefined) payload.steps = Array.isArray(updates.steps) ? updates.steps : null
+    if (updates.profileImageUrl !== undefined) payload.profile_image_url = updates.profileImageUrl ?? null
+    if (updates.galleryImages !== undefined) payload.gallery_images = Array.isArray(updates.galleryImages) ? updates.galleryImages : null
+    if (updates.recipeUrl !== undefined) payload.recipe_url = updates.recipeUrl ?? null
 
     const { data, error } = await supabase
       .from('recipes')

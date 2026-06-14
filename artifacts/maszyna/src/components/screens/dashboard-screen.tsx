@@ -75,7 +75,7 @@ const MACRO_TARGETS = {
 export function DashboardScreen() {
   const { activeUser, getTodaySteps, updateSteps, getWeeklyAvgSteps } = useUser()
   const { dishes: allDishes } = useDishes()
-  const { profile, partner, user } = useAuth()
+  const { profile, partner, user, settings } = useAuth()
 
   const partnerUser = activeUser === "patrycja" ? "marcin" : "patrycja"
   const partnerName = partner?.name || partnerUser
@@ -150,7 +150,14 @@ export function DashboardScreen() {
   // so macro circles update instantly when a meal is ticked, without any ID-matching.
   const [currentMacros, setCurrentMacros] = useState({ calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0 })
 
-  const targets = MACRO_TARGETS[activeUser]
+  const targets = {
+    calories: settings?.calorie_goal || MACRO_TARGETS[activeUser].calories,
+    protein: settings?.protein_goal || MACRO_TARGETS[activeUser].protein,
+    carbs: settings?.carbs_goal || MACRO_TARGETS[activeUser].carbs,
+    fats: settings?.fats_goal || MACRO_TARGETS[activeUser].fats,
+    fiber: MACRO_TARGETS[activeUser].fiber,
+    water: MACRO_TARGETS[activeUser].water,
+  }
 
   const remainingMacros = {
     calories: targets.calories - currentMacros.calories,

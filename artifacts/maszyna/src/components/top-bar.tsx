@@ -1,6 +1,6 @@
 
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useUser } from "@/lib/user-context"
 import { useAuth } from "@/lib/auth-context"
 import { Settings, X, Users, User, Calculator, Sparkles, Footprints, Globe, LogOut } from "lucide-react"
@@ -45,7 +45,7 @@ interface SettingsModalProps {
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const { activeUser, getWeeklyAvgSteps } = useUser()
-  const { signOut, profile, partner } = useAuth()
+  const { signOut, profile, partner, settings, updateSettings } = useAuth()
   const { language, setLanguage, t } = useLanguage()
   const [settingsTab, setSettingsTab] = useState<"couple" | "profile">("profile")
   const [marcinPct, setMarcinPct] = useState(67)
@@ -60,12 +60,27 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     try { localStorage.setItem('darkMode', String(newVal)) } catch { }
   }
   const [showMacroCalculator, setShowMacroCalculator] = useState(false)
+  const [isSavingGoals, setIsSavingGoals] = useState(false)
   
-  // Macro goals state (per user)
+  // Macro goals state — seeded from Supabase settings when they load
   const [macroGoals, setMacroGoals] = useState({
     patrycja: { calories: 1800, protein: 100, carbs: 180, fats: 65 },
     marcin: { calories: 2500, protein: 150, carbs: 250, fats: 85 }
   })
+
+  useEffect(() => {
+    if (settings) {
+      setMacroGoals(prev => ({
+        ...prev,
+        [activeUser]: {
+          calories: settings.calorie_goal || prev[activeUser].calories,
+          protein: settings.protein_goal || prev[activeUser].protein,
+          carbs: settings.carbs_goal || prev[activeUser].carbs,
+          fats: settings.fats_goal || prev[activeUser].fats,
+        }
+      }))
+    }
+  }, [settings, activeUser])
   
   // Calculator inputs
   const [calcGoal, setCalcGoal] = useState<"maintain" | "cut" | "bulk">("maintain")
@@ -126,6 +141,17 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       [activeUser]: calculated
     }))
     setShowMacroCalculator(false)
+  }
+
+  const handleSaveGoals = async () => {
+    setIsSavingGoals(true)
+    await updateSettings({
+      calorie_goal: currentGoals.calories,
+      protein_goal: currentGoals.protein,
+      carbs_goal: currentGoals.carbs,
+      fats_goal: currentGoals.fats,
+    })
+    setIsSavingGoals(false)
   }
   
   const updateMacroGoal = (macro: "calories" | "protein" | "carbs" | "fats", delta: number) => {
@@ -296,17 +322,17 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   {/* Daily Goals */}
                   <div className="bg-secondary/50 rounded-xl p-4">
                     <div className="flex items-center justify-between mb-1">
-                      <h4 className="text-sm font-semibold text-foreground">Daily Goals</h4>
+                      <h4 className="text-sm font-semibold text-foreground">{t('dailyGoals')}</h4>
                       <button
                         onClick={() => setShowMacroCalculator(true)}
                         className="flex items-center gap-1 text-xs text-primary font-medium"
                       >
                         <Sparkles className="size-3" />
-                        Calculate
+                        <Calculator className="size-3" />
                       </button>
                     </div>
                     <p className="text-xs text-muted-foreground mb-3">
-                      Set your personal macro targets
+                      {t('yourPortion')}
                     </p>
                     <div className="space-y-2.5">
                       {/* Calories */}
@@ -356,7 +382,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       </div>
                       {/* Fats */}
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-terracotta/70">Fats</span>
+                        <span className="text-sm text-terracotta/70">{t('fats')}</span>
                         <div className="flex items-center bg-background rounded-lg">
                           <button
                             onClick={() => updateMacroGoal("fats", -5)}
@@ -370,6 +396,14 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         </div>
                       </div>
                     </div>
+                    {/* Save button */}
+                    <button
+                      onClick={handleSaveGoals}
+                      disabled={isSavingGoals}
+                      className="mt-3 w-full py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50 transition-opacity"
+                    >
+                      {isSavingGoals ? t('loading') : t('saveGoals')}
+                    </button>
                   </div>
 
                   {/* Preferences */}

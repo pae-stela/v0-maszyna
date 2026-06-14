@@ -306,6 +306,7 @@ function MacroSummary({
 
 function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: EditMode) => void }) {
   const { user, profile, settings, partner } = useAuth()
+  const { t } = useLanguage()
   const { dishes: allDishes } = useDishes()
   const { plans: allPlans } = useWorkoutPlans()
 
@@ -613,68 +614,51 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
 
   return (
     <div className="flex flex-col gap-4">
-      {/* View Mode Toggle */}
-      <div className="flex gap-2 p-1 bg-card border border-border rounded-xl">
-        {(["today", "3day", "week"] as CalendarViewMode[]).map((mode) => (
+      {/* Compact single row: view mode (left) + owner filter (right) */}
+      <div className="flex items-center gap-2">
+        <div className="flex gap-0.5 p-0.5 bg-card border border-border rounded-xl">
+          {(["today", "3day", "week"] as CalendarViewMode[]).map((mode) => (
+            <button
+              key={mode}
+              onClick={() => setViewMode(mode)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                viewMode === mode
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {mode === "today" ? t('today') : mode === "3day" ? t('threeDays') : t('week')}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-0.5 p-0.5 bg-card border border-border rounded-xl ml-auto">
           <button
-            key={mode}
-            onClick={() => setViewMode(mode)}
-            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-              viewMode === mode
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground"
+            onClick={() => { setShowBothCalendars(false); setActiveUser("patrycja"); setOwnerFilter("patrycja") }}
+            className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              !showBothCalendars && activeUser === "patrycja" ? "text-white" : "text-muted-foreground hover:text-foreground"
+            }`}
+            style={!showBothCalendars && activeUser === "patrycja" ? { backgroundColor: DASHBOARD_COLORS.fiber } : undefined}
+          >
+            {profile?.name?.split(' ')[0] || "Patrycja"}
+          </button>
+          <button
+            onClick={() => { setShowBothCalendars(false); setActiveUser("marcin"); setOwnerFilter("marcin") }}
+            className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              !showBothCalendars && activeUser === "marcin" ? "text-white" : "text-muted-foreground hover:text-foreground"
+            }`}
+            style={!showBothCalendars && activeUser === "marcin" ? { backgroundColor: DASHBOARD_COLORS.calories } : undefined}
+          >
+            {partner?.name?.split(' ')[0] || "Marcin"}
+          </button>
+          <button
+            onClick={() => { setShowBothCalendars(true); setOwnerFilter("both") }}
+            className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              showBothCalendars ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            {mode === "today" ? "Today" : mode === "3day" ? "3 Days" : "Week"}
+            {t('both')}
           </button>
-        ))}
-      </div>
-
-      {/* Calendar View Toggle */}
-      <div className="flex gap-1 p-1 bg-card border border-border rounded-xl">
-        <button
-          onClick={() => {
-            setShowBothCalendars(false)
-            setActiveUser("patrycja")
-            setOwnerFilter("patrycja")
-          }}
-          className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
-            !showBothCalendars && activeUser === "patrycja"
-              ? "text-white"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-          style={!showBothCalendars && activeUser === "patrycja" ? { backgroundColor: DASHBOARD_COLORS.fiber } : undefined}
-        >
-          {profile?.name || "Patrycja"}
-        </button>
-        <button
-          onClick={() => {
-            setShowBothCalendars(false)
-            setActiveUser("marcin")
-            setOwnerFilter("marcin")
-          }}
-          className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
-            !showBothCalendars && activeUser === "marcin"
-              ? "text-white"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-          style={!showBothCalendars && activeUser === "marcin" ? { backgroundColor: DASHBOARD_COLORS.calories } : undefined}
-        >
-          {partner?.name || "Marcin"}
-        </button>
-        <button
-          onClick={() => {
-            setShowBothCalendars(true)
-            setOwnerFilter("both")
-          }}
-          className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
-            showBothCalendars
-              ? "bg-primary text-primary-foreground"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          Both
-        </button>
+        </div>
       </div>
 
       {/* Navigation */}
