@@ -118,7 +118,7 @@ export function KitchenScreen({ initialEditMode }: { initialEditMode?: EditMode 
               : "text-muted-foreground"
           }`}
         >
-          <UtensilsCrossed className="size-3.5" />
+          <ChefHat className="size-3.5" />
           <span className="text-[10px] font-medium leading-none">{t('dishes')}</span>
         </button>
         <button

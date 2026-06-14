@@ -585,7 +585,7 @@ export function usePlannerEvents(date?: string) {
 
 // Hook for user workout plans with real-time updates
 export function useWorkoutPlans() {
-  const { user, loading: authLoading } = useAuth()
+  const { user, partner, loading: authLoading } = useAuth()
   const [plans, setPlans] = useState<WorkoutPlan[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -597,10 +597,13 @@ export function useWorkoutPlans() {
       return
     }
 
+    const userIds = [user.id]
+    if (partner) userIds.push(partner.id)
+
     const { data, error } = await supabase
       .from('user_workout_plans')
       .select('*')
-      .eq('user_id', user.id)
+      .in('user_id', userIds)
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -609,15 +612,18 @@ export function useWorkoutPlans() {
     }
     setPlans(data || [])
     setLoading(false)
-  }, [user, authLoading, supabase])
+  }, [user, partner, authLoading, supabase])
 
   useEffect(() => {
     fetchPlans()
   }, [fetchPlans])
 
-  // Real-time subscription
+  // Real-time subscription — shared between partners
   useEffect(() => {
     if (!user) return
+
+    const userIds = [user.id]
+    if (partner) userIds.push(partner.id)
 
     const uniqueChannelId = `user-workout-plans-changes-${Math.random().toString(36).substring(2, 9)}`
 
@@ -632,10 +638,10 @@ export function useWorkoutPlans() {
         },
         (payload) => {
           const record = payload.new as WorkoutPlan
-          if (record?.user_id !== user.id) return
+          if (!userIds.includes(record?.user_id)) return
 
           if (payload.eventType === 'INSERT') {
-            setPlans(prev => [record, ...prev])
+            setPlans(prev => prev.some(p => p.id === record.id) ? prev : [record, ...prev])
           } else if (payload.eventType === 'UPDATE') {
             setPlans(prev => prev.map(p => p.id === record.id ? record : p))
           } else if (payload.eventType === 'DELETE') {
@@ -649,7 +655,7 @@ export function useWorkoutPlans() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [user, supabase])
+  }, [user, partner, supabase])
 
   const addPlan = async (plan: Omit<WorkoutPlan, 'id' | 'user_id' | 'created_at'>) => {
     if (!user) return
@@ -706,6 +712,23 @@ export function useIngredients() {
   const [ingredients, setIngredients] = useState<DbIngredient[]>([])
   const [loading, setLoading] = useState(true)
 
+  const mapIngredient = (item: any): DbIngredient => ({
+    id: item.id,
+    name: item.name,
+    category: item.category,
+    protein: item.protein ?? item.total_protein ?? 0,
+    fat: item.fat ?? item.total_fat ?? 0,
+    carbohydrates: item.carbohydrates ?? item.carbs ?? item.total_carbs ?? 0,
+    fiber: item.fiber ?? item.total_fiber ?? 0,
+    calories: item.calories ?? item.total_calories ?? 0,
+    average_weight: item.average_weight ?? null,
+    recipe_steps: Array.isArray(item.recipe_steps) ? item.recipe_steps : [],
+    sub_ingredients: Array.isArray(item.sub_ingredients) ? item.sub_ingredients : [],
+    yield_grams: item.yield_grams ?? null,
+    marcin_servings: item.marcin_servings ?? null,
+    patrycja_servings: item.patrycja_servings ?? null,
+  })
+
   const fetchIngredients = useCallback(async () => {
     const { data, error } = await supabase
       .from('ingredients')
@@ -720,33 +743,37 @@ export function useIngredients() {
       return
     }
 
-    if (data) {
-      const mapped = data.map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        category: item.category,
-        protein: item.protein ?? item.total_protein ?? 0,
-        fat: item.fat ?? item.total_fat ?? 0,
-        carbohydrates: item.carbohydrates ?? item.carbs ?? item.total_carbs ?? 0,
-        fiber: item.fiber ?? item.total_fiber ?? 0,
-        calories: item.calories ?? item.total_calories ?? 0,
-        average_weight: item.average_weight ?? null,
-        recipe_steps: Array.isArray(item.recipe_steps) ? item.recipe_steps : [],
-        sub_ingredients: Array.isArray(item.sub_ingredients) ? item.sub_ingredients : [],
-        yield_grams: item.yield_grams ?? null,
-        marcin_servings: item.marcin_servings ?? null,
-        patrycja_servings: item.patrycja_servings ?? null,
-      }))
-      setIngredients(mapped)
-    } else {
-      setIngredients([])
-    }
+    setIngredients(data ? data.map(mapIngredient) : [])
     setLoading(false)
   }, [supabase])
 
   useEffect(() => {
     fetchIngredients()
   }, [fetchIngredients])
+
+  // Real-time subscription — ingredients are global (shared by both partners)
+  useEffect(() => {
+    const channel = supabase
+      .channel(`ingredients-changes-${Math.random().toString(36).slice(2)}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ingredients' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          const rec = mapIngredient(payload.new)
+          setIngredients(prev => {
+            if (prev.some(i => i.id === rec.id)) return prev
+            return [...prev, rec].sort((a, b) => a.name.localeCompare(b.name))
+          })
+        } else if (payload.eventType === 'UPDATE') {
+          const rec = mapIngredient(payload.new)
+          setIngredients(prev => prev.map(i => i.id === rec.id ? rec : i))
+        } else if (payload.eventType === 'DELETE') {
+          const del = payload.old as { id: string }
+          setIngredients(prev => prev.filter(i => i.id !== del.id))
+        }
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [supabase])
 
   const addIngredient = async (ingredient: Omit<DbIngredient, 'id'>) => {
     const payload = {
@@ -937,6 +964,35 @@ export function useDishes() {
   useEffect(() => {
     fetchDishes()
   }, [fetchDishes])
+
+  // Real-time subscription — dishes are shared between partners
+  useEffect(() => {
+    if (!user) return
+
+    const userIds = [user.id]
+    if (partner) userIds.push(partner.id)
+
+    const channel = supabase
+      .channel(`recipes-changes-${Math.random().toString(36).slice(2)}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'recipes' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          const rec = payload.new as any
+          if (!userIds.includes(rec?.user_id)) return
+          const mapped = mapDishFromDb(rec)
+          setDishes(prev => prev.some(d => d.id === mapped.id) ? prev : [mapped, ...prev])
+        } else if (payload.eventType === 'UPDATE') {
+          const rec = payload.new as any
+          if (!userIds.includes(rec?.user_id)) return
+          setDishes(prev => prev.map(d => d.id === rec.id ? mapDishFromDb(rec) : d))
+        } else if (payload.eventType === 'DELETE') {
+          const del = payload.old as { id: string }
+          setDishes(prev => prev.filter(d => d.id !== del.id))
+        }
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [user, partner, supabase])
 
   const addDish = async (dish: Omit<DishItem, 'id' | 'user_id' | 'created_at'>) => {
     if (!user) return { data: null, error: new Error('Not logged in') }
