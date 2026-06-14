@@ -130,7 +130,7 @@ export function KitchenScreen({ initialEditMode }: { initialEditMode?: EditMode 
           }`}
         >
           <Apple className="size-3.5" />
-          <span className="text-[10px] font-medium leading-none">{t('libraryLabel')}</span>
+          <span className="text-[10px] font-medium leading-none">{t('ingredients')}</span>
         </button>
       </div>
 
@@ -1123,7 +1123,31 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
   )
 }
 
-const ingredientCategories = ["All", "Protein", "Carbs", "Vegetables", "Fruits", "Dairy", "Fats", "Nuts", "Component"]
+const ingredientCategories = [
+  "All",
+  "Dairy & Eggs",
+  "Grains & Legumes",
+  "Condiments",
+  "Meat & Fish",
+  "Vegetables & Fruit",
+  "Fats & Nuts",
+  "Drinks",
+  "Other",
+  "Component",
+]
+
+const ingredientCategoryLabels: Record<string, string> = {
+  "All": "Wszystkie",
+  "Dairy & Eggs": "Nabiał i jaja",
+  "Grains & Legumes": "Ziarna i strączki",
+  "Condiments": "Przyprawy",
+  "Meat & Fish": "Mięso i ryby",
+  "Vegetables & Fruit": "Warzywa i owoce",
+  "Fats & Nuts": "Tłuszcze i orzechy",
+  "Drinks": "Napoje",
+  "Other": "Inne",
+  "Component": "Komponent",
+}
 
 function IngredientsView({ onEditComponent }: { onEditComponent: (mode: EditMode) => void }) {
   const { ingredients: dbIngredients, loading, addIngredient, deleteIngredient, updateIngredient } = useIngredients()
@@ -1139,7 +1163,7 @@ function IngredientsView({ onEditComponent }: { onEditComponent: (mode: EditMode
     carbsPer100g: "",
     fatsPer100g: "",
     fiberPer100g: "",
-    category: "Protein",
+    category: "Dairy & Eggs",
     instructions: "",
   })
   const [newIngredient, setNewIngredient] = useState({
@@ -1149,7 +1173,7 @@ function IngredientsView({ onEditComponent }: { onEditComponent: (mode: EditMode
     carbsPer100g: "",
     fatsPer100g: "",
     fiberPer100g: "",
-    category: "Protein",
+    category: "Dairy & Eggs",
     instructions: "",
   })
 
@@ -1206,7 +1230,7 @@ function IngredientsView({ onEditComponent }: { onEditComponent: (mode: EditMode
         carbsPer100g: "",
         fatsPer100g: "",
         fiberPer100g: "",
-        category: "Protein",
+        category: "Dairy & Eggs",
         instructions: "",
       })
       setShowAddForm(false)
@@ -1297,7 +1321,7 @@ function IngredientsView({ onEditComponent }: { onEditComponent: (mode: EditMode
                 : "bg-card border border-border text-muted-foreground hover:text-foreground"
             }`}
           >
-            {cat}
+            {ingredientCategoryLabels[cat] || cat}
           </button>
         ))}
       </div>
@@ -1321,7 +1345,7 @@ function IngredientsView({ onEditComponent }: { onEditComponent: (mode: EditMode
               className="bg-secondary rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
             >
               {ingredientCategories.slice(1).map((cat) => (
-                <option key={cat} value={cat}>{cat}</option>
+                <option key={cat} value={cat}>{ingredientCategoryLabels[cat] || cat}</option>
               ))}
             </select>
 
@@ -1492,8 +1516,8 @@ function IngredientsView({ onEditComponent }: { onEditComponent: (mode: EditMode
                         onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
                         className="bg-secondary rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                       >
-                        {ingredientCategories.slice(1).map((cat) => (
-                          <option key={cat} value={cat}>{cat}</option>
+                          {ingredientCategories.slice(1).map((cat) => (
+                          <option key={cat} value={cat}>{ingredientCategoryLabels[cat] || cat}</option>
                         ))}
                       </select>
                       {editForm.category === "Component" && (

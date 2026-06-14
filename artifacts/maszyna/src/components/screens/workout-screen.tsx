@@ -3,7 +3,7 @@ import { useLanguage } from "@/lib/i18n/context";
 import { useState, useEffect } from "react"
 import { useUser } from "@/lib/user-context"
 import { useWorkoutPlans } from "@/lib/realtime-hooks"
-import { Play, Plus, ChevronRight, Timer, Flame, Dumbbell, Search, X, Check, Link2, Trash2, Pause, Square } from "lucide-react"
+import { Play, Plus, ChevronRight, Timer, Flame, Dumbbell, ClipboardList, Search, X, Check, Link2, Trash2, Pause, Square, Wind, Footprints } from "lucide-react"
 
 type SubTab = "journal" | "plans" | "exercises"
 
@@ -101,7 +101,7 @@ export function WorkoutScreen() {
               : "text-muted-foreground"
           }`}
         >
-          <Dumbbell className="size-3.5" />
+          <ClipboardList className="size-3.5" />
           <span className="text-[10px] font-medium leading-none">{t('plans')}</span>
         </button>
         <button
@@ -112,7 +112,7 @@ export function WorkoutScreen() {
               : "text-muted-foreground"
           }`}
         >
-          <Timer className="size-3.5" />
+          <Dumbbell className="size-3.5" />
           <span className="text-[10px] font-medium leading-none">{t('exercises')}</span>
         </button>
       </div>
@@ -883,7 +883,7 @@ function PlansView() {
       {!loading && plans.length === 0 && (
         <div className="bg-card rounded-2xl p-8 border border-dashed border-border text-center">
           <div className="size-14 rounded-full bg-secondary mx-auto mb-4 flex items-center justify-center">
-            <Dumbbell className="size-6 text-muted-foreground" />
+            <ClipboardList className="size-6 text-muted-foreground" />
           </div>
           <p className="text-sm text-muted-foreground">No plans yet</p>
           <p className="text-xs text-muted-foreground mt-1">Create your first workout plan below</p>
@@ -900,8 +900,8 @@ function PlansView() {
             key={plan.id}
             className="bg-card rounded-2xl p-4 border border-border flex items-center gap-4 text-left active:scale-[0.98] transition-transform"
           >
-            <div className="size-14 rounded-xl bg-primary/20 flex items-center justify-center">
-              <Dumbbell className="size-6 text-primary" />
+            <div className={`size-14 rounded-xl flex items-center justify-center ${plan.type === 'cardio' ? 'bg-terracotta/20' : plan.type === 'flexibility' ? 'bg-sand/20' : 'bg-primary/20'}`}>
+              {plan.type === 'cardio' ? <Footprints className="size-6 text-terracotta" /> : plan.type === 'flexibility' ? <Wind className="size-6 text-sand" /> : <ClipboardList className="size-6 text-primary" />}
             </div>
             <div className="flex-1 min-w-0">
               <h4 className="font-medium text-foreground">{plan.name}</h4>
@@ -1201,8 +1201,8 @@ function PlansView() {
                   onClick={() => addExerciseToPlan(exercise)}
                   className="bg-secondary/50 rounded-xl p-3 text-left flex items-center gap-3 active:scale-[0.98] transition-transform"
                 >
-                  <div className="size-10 rounded-lg bg-secondary flex items-center justify-center">
-                    <Dumbbell className="size-5 text-muted-foreground" />
+                  <div className={`size-10 rounded-lg flex items-center justify-center ${exercise.type === 'cardio' ? 'bg-terracotta/10' : exercise.type === 'flexibility' ? 'bg-sand/10' : 'bg-secondary'}`}>
+                    {exercise.type === 'cardio' ? <Footprints className="size-5 text-terracotta" /> : exercise.type === 'flexibility' ? <Wind className="size-5 text-sand" /> : <Dumbbell className="size-5 text-muted-foreground" />}
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-medium text-foreground">{exercise.name}</p>
@@ -1328,7 +1328,7 @@ function ExercisesView() {
                     className="bg-card rounded-xl p-3 border border-border flex items-center gap-3"
                   >
                     <div className={`size-10 rounded-lg ${iconBg} flex items-center justify-center`}>
-                      <Dumbbell className={`size-5 ${iconColor}`} />
+                      {exercise.type === 'cardio' ? <Footprints className={`size-5 ${iconColor}`} /> : exercise.type === 'flexibility' ? <Wind className={`size-5 ${iconColor}`} /> : <Dumbbell className={`size-5 ${iconColor}`} />}
                     </div>
                     <div className="flex-1">
                       <p className="text-sm font-medium text-foreground">{exercise.name}</p>

@@ -1,10 +1,10 @@
-import { getT } from "@/lib/i18n";
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useUser } from "@/lib/user-context"
 import { useAuth } from "@/lib/auth-context"
-import { Droplets, Dumbbell, Pill, Check, ChevronRight, Calculator, Footprints, Sparkles, ChevronDown, Users } from "lucide-react"
-import { useDishes, useMealLogs, usePlannerEvents } from "@/lib/realtime-hooks"
+import { Droplets, Footprints } from "lucide-react"
+import { useMealLogs } from "@/lib/realtime-hooks"
 import { Timeline } from "./Timeline"
+import { AIMealSuggestion } from "@/components/AIMealSuggestion"
 
 function ProgressRing({ 
   value, 
@@ -66,7 +66,6 @@ function ProgressRing({
   )
 }
 
-// Cele makro (wartości bazowe, dopasuj je do Waszych rzeczywistych celów)
 const MACRO_TARGETS = {
   patrycja: { calories: 1900, protein: 120, carbs: 200, fats: 65, fiber: 25, water: 2500 },
   marcin: { calories: 2500, protein: 160, carbs: 280, fats: 80, fiber: 30, water: 3000 }
@@ -74,22 +73,17 @@ const MACRO_TARGETS = {
 
 export function DashboardScreen() {
   const { activeUser, getTodaySteps, updateSteps, getWeeklyAvgSteps } = useUser()
-  const { dishes: allDishes } = useDishes()
   const { profile, partner, user, settings } = useAuth()
 
   const partnerUser = activeUser === "patrycja" ? "marcin" : "patrycja"
   const partnerName = partner?.name || partnerUser
+  const myName = profile?.name || activeUser
 
-  // Local date (not UTC) — avoids showing tomorrow after 22:00 in Poland
   const now = new Date()
   const todayDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 
-  // POBIERANIE DANYCH Z SUPABASE (Real-time) — one call fetches both users
   const { meals: allTodayMeals } = useMealLogs(todayDateStr)
-  const { events: allTodayEvents } = usePlannerEvents(todayDateStr)
 
-  // Parse owner from details JSON (set by planner when adding events)
-  // Fallback to user_id comparison for data added without explicit owner
   function getRecordOwner(record: { user_id?: string; details?: string | null }): "patrycja" | "marcin" | null {
     try {
       const d = record.details ? JSON.parse(record.details) : {}
@@ -98,30 +92,25 @@ export function DashboardScreen() {
     return null
   }
 
-  // Filter by explicit owner in details.owner; fall back to user_id for untagged records
   const myMeals = allTodayMeals.filter(m => {
     const o = getRecordOwner(m)
     return o ? o === activeUser : m.user_id === user?.id
   })
-  const myEvents = allTodayEvents.filter(e => {
-    const o = getRecordOwner(e)
-    return o ? o === activeUser : e.user_id === user?.id
-  })
-  const partnerMeals = allTodayMeals.filter(m => {
-    const o = getRecordOwner(m)
-    return o ? o === partnerUser : m.user_id !== user?.id
-  })
-  const partnerEvents = allTodayEvents.filter(e => {
-    const o = getRecordOwner(e)
-    return o ? o === partnerUser : e.user_id !== user?.id
-  })
 
-  // Lifted from Timeline so macro circles react instantly to ticks.
-  // Backed by localStorage so ticks survive page reloads.
-  const localStorageKey = `meal-ticks-${todayDateStr}`
+  // All planned macros = sum ALL my meal logs regardless of logged status
+  const allPlannedMacros = useMemo(() => myMeals.reduce(
+    (acc, m) => ({
+      calories: acc.calories + (m.calories || 0),
+      protein:  acc.protein  + (m.protein  || 0),
+      carbs:    acc.carbs    + (m.carbs    || 0),
+      fats:     acc.fats     + (m.fats     || 0),
+    }),
+    { calories: 0, protein: 0, carbs: 0, fats: 0 }
+  ), [myMeals])
+
   const [loggedOverrides, setLoggedOverrides] = useState<Record<string, boolean>>(() => {
     try {
-      const stored = localStorage.getItem(localStorageKey)
+      const stored = localStorage.getItem(`meal-ticks-${todayDateStr}`)
       if (stored) return JSON.parse(stored) as Record<string, boolean>
     } catch { /* ignore */ }
     return {}
@@ -129,7 +118,7 @@ export function DashboardScreen() {
   const handleToggleOverride = (id: string, newLogged: boolean) => {
     setLoggedOverrides(prev => {
       const next = { ...prev, [id]: newLogged }
-      try { localStorage.setItem(localStorageKey, JSON.stringify(next)) } catch { /* ignore */ }
+      try { localStorage.setItem(`meal-ticks-${todayDateStr}`, JSON.stringify(next)) } catch { /* ignore */ }
       return next
     })
   }
@@ -138,16 +127,13 @@ export function DashboardScreen() {
   const [lastWaterAdd, setLastWaterAdd] = useState<number | null>(null)
   const [showStepInput, setShowStepInput] = useState(false)
   const [stepInput, setStepInput] = useState("")
-  const [showSuggestions, setShowSuggestions] = useState(false)
-  const [showPartnerDay, setShowPartnerDay] = useState(false)
+  const [viewingPartner, setViewingPartner] = useState(false)
 
   const todaySteps = getTodaySteps()
   const weeklyAvg = getWeeklyAvgSteps()
   const stepGoal = 10000
   const stepCalories = Math.round(todaySteps * 0.04 * (activeUser === "patrycja" ? 62 : 85))
 
-  // currentMacros is reported UP from Timeline via onMacrosChange callback
-  // so macro circles update instantly when a meal is ticked, without any ID-matching.
   const [currentMacros, setCurrentMacros] = useState({ calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0 })
 
   const targets = {
@@ -160,56 +146,16 @@ export function DashboardScreen() {
   }
 
   const remainingMacros = {
-    calories: targets.calories - currentMacros.calories,
-    protein: targets.protein - currentMacros.protein,
-    carbs: targets.carbs - currentMacros.carbs,
-    fats: targets.fats - currentMacros.fats,
+    calories: Math.max(0, targets.calories - allPlannedMacros.calories),
+    protein:  Math.max(0, targets.protein  - allPlannedMacros.protein),
+    carbs:    Math.max(0, targets.carbs    - allPlannedMacros.carbs),
+    fats:     Math.max(0, targets.fats     - allPlannedMacros.fats),
   }
-
-  // Compute the user's portion ratio from a dish's servings split
-  const getPortionRatio = (dish: { marcinServings?: number; patrycjaServings?: number }) => {
-    const mS = dish.marcinServings ?? 1
-    const pS = dish.patrycjaServings ?? 1
-    const total = mS + pS
-    const mine = activeUser === "patrycja" ? pS : mS
-    return mine / total
-  }
-
-  // Podpowiedzi przepisów dopasowane do brakujących makroskładników
-  const getSuggestedRecipes = () => {
-    return allDishes
-      .map(dish => {
-        const ratio = getPortionRatio(dish)
-        const cals = Math.round(dish.totalCalories * ratio)
-        const protein = Math.round(dish.totalProtein * ratio)
-        const carbs = Math.round(dish.totalCarbs * ratio)
-        const fats = Math.round(dish.totalFats * ratio)
-
-        const calorieScore = cals <= remainingMacros.calories
-          ? cals / Math.max(remainingMacros.calories, 1)
-          : -0.5 * (cals - remainingMacros.calories) / cals
-
-        const proteinScore = protein <= remainingMacros.protein + 10
-          ? protein / Math.max(remainingMacros.protein, 1)
-          : -0.3 * (protein - remainingMacros.protein) / protein
-
-        const totalScore = calorieScore + proteinScore * 1.5
-
-        return { ...dish, portionCalories: cals, portionProtein: protein, portionCarbs: carbs, portionFats: fats, score: totalScore }
-      })
-      .filter(dish => dish.portionCalories <= remainingMacros.calories + 100)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 3)
-  }
-
-  const suggestedRecipes = getSuggestedRecipes()
-  const hasRemainingMacros = remainingMacros.calories > 200
 
   const addWater = (amount: number) => {
     setLastWaterAdd(amount)
     setWater((prev) => Math.min(prev + amount, targets.water + 1000))
   }
-
   const undoWater = () => {
     if (lastWaterAdd !== null) {
       setWater((prev) => Math.max(0, prev - lastWaterAdd))
@@ -217,18 +163,13 @@ export function DashboardScreen() {
     }
   }
 
-  // Agregacja planu partnera do uproszczonego podglądu pod przyciskiem rozwijanym
-  const partnerDayPlan = [
-    ...partnerMeals.map(m => ({ ...m, type: 'meal' as const })),
-    ...partnerEvents.map(e => ({ ...e, type: e.type }))
-  ].sort((a, b) => a.time.localeCompare(b.time))
+  const displayUser = viewingPartner ? partnerUser : activeUser
 
   return (
     <div className="flex flex-col gap-5 pb-24">
 
-      {/* SEKCJA MAKROSKŁADNIKÓW - ZASILANA DANYMI LIVE */}
+      {/* MACROS */}
       <div className="bg-card rounded-2xl p-4 border border-border">
-        {/* kcal — visually separate at top */}
         <div className="flex justify-center pb-4 mb-4 border-b border-border">
           <ProgressRing
             value={currentMacros.calories}
@@ -241,102 +182,45 @@ export function DashboardScreen() {
             textSize="text-lg"
           />
         </div>
-        {/* 4 macros in a compact row */}
         <div className="grid grid-cols-4 gap-2">
-          <ProgressRing
-            value={currentMacros.protein}
-            max={targets.protein}
-            color="var(--color-moss, #3B5340)"
-            label="Białko"
-            unit="g"
-            size={60}
-            strokeWidth={4.5}
-            textSize="text-[10px]"
-          />
-          <ProgressRing
-            value={currentMacros.carbs}
-            max={targets.carbs}
-            color="var(--color-sand, #D4A373)"
-            label="Węgle"
-            unit="g"
-            size={60}
-            strokeWidth={4.5}
-            textSize="text-[10px]"
-          />
-          <ProgressRing
-            value={currentMacros.fats}
-            max={targets.fats}
-            color="var(--color-terracotta, #CD7F67)"
-            label="Tłuszcze"
-            unit="g"
-            size={60}
-            strokeWidth={4.5}
-            textSize="text-[10px]"
-          />
-          <ProgressRing
-            value={currentMacros.fiber}
-            max={targets.fiber}
-            color="var(--color-sage, #8A9A86)"
-            label="Błonnik"
-            unit="g"
-            size={60}
-            strokeWidth={4.5}
-            textSize="text-[10px]"
-          />
+          <ProgressRing value={currentMacros.protein} max={targets.protein} color="var(--color-moss, #3B5340)" label="Białko" unit="g" size={60} strokeWidth={4.5} textSize="text-[10px]" />
+          <ProgressRing value={currentMacros.carbs}   max={targets.carbs}   color="var(--color-sand, #D4A373)" label="Węgle"  unit="g" size={60} strokeWidth={4.5} textSize="text-[10px]" />
+          <ProgressRing value={currentMacros.fats}    max={targets.fats}    color="var(--color-terracotta, #CD7F67)" label="Tłuszcze" unit="g" size={60} strokeWidth={4.5} textSize="text-[10px]" />
+          <ProgressRing value={currentMacros.fiber}   max={targets.fiber}   color="var(--color-sage, #8A9A86)" label="Błonnik" unit="g" size={60} strokeWidth={4.5} textSize="text-[10px]" />
         </div>
       </div>
 
-      {/* Water Intake */}
+      {/* WATER */}
       <div className="bg-card rounded-2xl p-4 border border-border">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Droplets className="size-5 text-navy/70" />
             <span className="text-sm font-semibold text-foreground">Woda</span>
           </div>
-          <span className="text-sm text-muted-foreground">
-            {water}ml / {targets.water}ml
-          </span>
+          <span className="text-sm text-muted-foreground">{water}ml / {targets.water}ml</span>
         </div>
         <div className="h-2 bg-secondary rounded-full overflow-hidden mb-3">
-          <div 
-            className="h-full bg-navy/70 rounded-full transition-all duration-500"
-            style={{ width: `${Math.min((water / targets.water) * 100, 100)}%` }}
-          />
+          <div className="h-full bg-navy/70 rounded-full transition-all duration-500" style={{ width: `${Math.min((water / targets.water) * 100, 100)}%` }} />
         </div>
         <div className="flex gap-2">
-          <button onClick={() => addWater(300)} className="flex-1 py-2.5 rounded-xl bg-navy/10 text-navy/70 text-sm font-medium active:scale-[0.98] transition-transform">
-            +300ml
-          </button>
-          <button onClick={() => addWater(500)} className="flex-1 py-2.5 rounded-xl bg-navy/10 text-navy/70 text-sm font-medium active:scale-[0.98] transition-transform">
-            +500ml
-          </button>
-          <button onClick={() => addWater(1000)} className="flex-1 py-2.5 rounded-xl bg-navy/10 text-navy/70 text-sm font-medium active:scale-[0.98] transition-transform">
-            +1L
-          </button>
+          <button onClick={() => addWater(300)} className="flex-1 py-2.5 rounded-xl bg-navy/10 text-navy/70 text-sm font-medium active:scale-[0.98] transition-transform">+300ml</button>
+          <button onClick={() => addWater(500)} className="flex-1 py-2.5 rounded-xl bg-navy/10 text-navy/70 text-sm font-medium active:scale-[0.98] transition-transform">+500ml</button>
+          <button onClick={() => addWater(1000)} className="flex-1 py-2.5 rounded-xl bg-navy/10 text-navy/70 text-sm font-medium active:scale-[0.98] transition-transform">+1L</button>
           {lastWaterAdd !== null && (
-            <button
-              onClick={undoWater}
-              className="px-3 py-2.5 rounded-xl bg-destructive/10 text-destructive text-sm font-medium active:scale-[0.98] transition-transform flex items-center gap-1 shrink-0"
-              title={`Cofnij +${lastWaterAdd}ml`}
-            >
-              ↩
-            </button>
+            <button onClick={undoWater} className="px-3 py-2.5 rounded-xl bg-destructive/10 text-destructive text-sm font-medium active:scale-[0.98] transition-transform flex items-center gap-1 shrink-0" title={`Cofnij +${lastWaterAdd}ml`}>↩</button>
           )}
         </div>
       </div>
 
-      {/* Step Tracker */}
+      {/* STEPS */}
       <div className="bg-card rounded-2xl p-4 border border-border">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Footprints className="size-5 text-sage/70" />
             <span className="text-sm font-semibold text-foreground">Kroki</span>
           </div>
-          <button onClick={() => { setStepInput(todaySteps.toString()); setShowStepInput(true) }} className="text-xs text-primary font-medium">
-            Zmień
-          </button>
+          <button onClick={() => { setStepInput(todaySteps.toString()); setShowStepInput(true) }} className="text-xs text-primary font-medium">Zmień</button>
         </div>
-
         <div className="flex items-end justify-between mb-3">
           <div>
             <span className="text-2xl font-bold text-foreground">{todaySteps.toLocaleString()}</span>
@@ -347,11 +231,9 @@ export function DashboardScreen() {
             <p className="text-[10px] text-muted-foreground">Śr: {weeklyAvg.toLocaleString()}/dzień</p>
           </div>
         </div>
-
         <div className="h-2 bg-secondary rounded-full overflow-hidden">
           <div className="h-full bg-sage/70 rounded-full transition-all duration-500" style={{ width: `${Math.min((todaySteps / stepGoal) * 100, 100)}%` }} />
         </div>
-
         {showStepInput && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-card rounded-2xl w-full max-w-xs p-5">
@@ -372,102 +254,43 @@ export function DashboardScreen() {
         )}
       </div>
 
-      {/* Recipe Suggestions */}
-      {hasRemainingMacros && suggestedRecipes.length > 0 && (
-        <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl border border-primary/20 overflow-hidden">
-          <button onClick={() => setShowSuggestions(!showSuggestions)} className="w-full p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="size-10 rounded-xl bg-primary/20 flex items-center justify-center">
-                <Sparkles className="size-5 text-primary" />
-              </div>
-              <div className="text-left">
-                <p className="text-sm font-semibold text-foreground">Propozycje posiłków</p>
-                <p className="text-xs text-muted-foreground">Zostało: {remainingMacros.calories} kcal · {remainingMacros.protein}g białka</p>
-              </div>
-            </div>
-            <ChevronDown className={`size-5 text-muted-foreground transition-transform ${showSuggestions ? "rotate-180" : ""}`} />
-          </button>
-
-          {showSuggestions && (
-            <div className="px-4 pb-4 flex flex-col gap-2">
-              {suggestedRecipes.map((recipe, index) => (
-                <div key={recipe.id} className="bg-card rounded-xl p-3 border border-border">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{recipe.name}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 mt-2 text-[10px]">
-                    <span className="text-foreground font-medium">{recipe.portionCalories} kcal</span>
-                    <span className="text-primary">{recipe.portionProtein}g B</span>
-                    <span className="text-wheat">{recipe.portionCarbs}g W</span>
-                    <span className="text-terracotta/70">{recipe.portionFats}g T</span>
-                    <span className="text-muted-foreground ml-auto">twoja porcja</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Partner's Day Card */}
-      <div className="bg-card rounded-2xl border border-border overflow-hidden">
-        <button onClick={() => setShowPartnerDay(!showPartnerDay)} className="w-full p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className={`size-10 rounded-xl flex items-center justify-center ${partnerUser === "marcin" ? "bg-navy/20" : "bg-sage/20"}`}>
-              <Users className={`size-5 ${partnerUser === "marcin" ? "text-navy" : "text-sage"}`} />
-            </div>
-            <div className="text-left">
-              <p className="text-sm font-semibold text-foreground capitalize">{partnerName}&apos;s Day</p>
-              <p className="text-xs text-muted-foreground">
-                {(() => {
-                  const mealCount = partnerMeals.length + partnerEvents.filter(e => e.type === 'meal').length
-                  const trainCount = partnerEvents.filter(e => e.type === 'training').length
-                  const suppCount = partnerEvents.filter(e => e.type === 'supplements').length
-                  const parts = []
-                  if (mealCount > 0) parts.push(`${mealCount} posiłków`)
-                  if (trainCount > 0) parts.push(`${trainCount} treningów`)
-                  if (suppCount > 0) parts.push(`${suppCount} suplementów`)
-                  return parts.length > 0 ? parts.join(' · ') : 'Brak zaplanowanych pozycji'
-                })()}
-              </p>
-            </div>
-          </div>
-          <ChevronDown className={`size-5 text-muted-foreground transition-transform ${showPartnerDay ? "rotate-180" : ""}`} />
-        </button>
-
-        {showPartnerDay && (
-          <div className="px-4 pb-4 flex flex-col gap-2">
-            {partnerDayPlan.slice(0, 5).map((item) => (
-              <div key={item.id} className={`flex items-center gap-3 p-2 rounded-lg ${item.logged ? "bg-primary/5" : "bg-secondary/50"}`}>
-                <span className="text-[10px] font-medium text-muted-foreground w-10">{item.time}</span>
-                <span className="text-xs text-foreground flex-1 truncate">{item.name}</span>
-                {item.logged && <Check className="size-3.5 text-primary" />}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* ========================================================= */}
-      {/* OŚ CZASU - PLAN NA DZIŚ */}
-      {/* ========================================================= */}
-      <div className="mt-2">
+      {/* TODAY — with partner toggle */}
+      <div className="mt-1">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-semibold text-foreground">Dziś</h2>
-          <span className="text-xs text-muted-foreground font-mono">
-            {now.toLocaleDateString("pl-PL", { weekday: "long", day: "numeric", month: "long" })}
-          </span>
+          {/* Partner toggle */}
+          <div className="flex gap-1 p-0.5 bg-secondary rounded-xl">
+            <button
+              onClick={() => setViewingPartner(false)}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all capitalize ${!viewingPartner ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}
+            >
+              {myName}
+            </button>
+            <button
+              onClick={() => setViewingPartner(true)}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all capitalize ${viewingPartner ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}
+            >
+              {partnerName}
+            </button>
+          </div>
         </div>
+
+        {viewingPartner && (
+          <p className="text-xs text-muted-foreground mb-3 text-center">Podgląd — nie możesz zaznaczać posiłków partnera</p>
+        )}
+
         <Timeline
           dateStr={todayDateStr}
-          activeUser={activeUser}
-          loggedOverrides={loggedOverrides}
-          onToggleOverride={handleToggleOverride}
-          onMacrosChange={(macros) => setCurrentMacros({ ...macros, fiber: 0 })}
+          activeUser={displayUser}
+          loggedOverrides={viewingPartner ? {} : loggedOverrides}
+          onToggleOverride={viewingPartner ? undefined : handleToggleOverride}
+          onMacrosChange={viewingPartner ? undefined : (macros) => setCurrentMacros({ ...macros, fiber: 0 })}
+          readOnly={viewingPartner}
         />
       </div>
+
+      {/* AI MEAL SUGGESTION */}
+      <AIMealSuggestion remaining={remainingMacros} targets={targets} />
 
     </div>
   )

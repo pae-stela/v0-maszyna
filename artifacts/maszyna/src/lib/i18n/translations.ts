@@ -91,7 +91,7 @@ export const translations = {
     recipes: "Recipes",
     dishes: "Dishes",
     ingredients: "Ingredients",
-    libraryLabel: "Library",
+    libraryLabel: "Ingredients",
     libraries: "Libraries",
     photos: "Photos",
     coverPhoto: "Cover",
@@ -174,6 +174,26 @@ export const translations = {
     darkMode: "Dark Mode",
     notifications: "Notifications",
     calendar: "Calendar",
+
+    // AI meal suggestion
+    aiMealSuggestion: "AI Meal Idea",
+    getMealIdea: "Suggest a meal",
+    loadingSuggestion: "Thinking...",
+    basedOnPlanned: "Based on all meals planned today",
+    noKeyConfigured: "Add OPENAI_API_KEY to enable AI suggestions",
+    tryAgain: "Try again",
+
+    // Ingredient categories
+    allIngredients: "All",
+    dairyAndEggs: "Dairy & Eggs",
+    grainsAndLegumes: "Grains & Legumes",
+    condiments: "Condiments",
+    meatAndFish: "Meat & Fish",
+    vegetablesAndFruit: "Vegetables & Fruit",
+    fatsAndNuts: "Fats & Nuts",
+    drinksCategory: "Drinks",
+    otherCategory: "Other",
+    componentCategory: "Component",
   },
   
   pl: {
@@ -266,7 +286,7 @@ export const translations = {
     recipes: "Przepisy",
     dishes: "Dania",
     ingredients: "Składniki",
-    libraryLabel: "Biblioteka",
+    libraryLabel: "Składniki",
     libraries: "Biblioteki",
     photos: "Zdjęcia",
     coverPhoto: "Okładka",
@@ -349,6 +369,26 @@ export const translations = {
     darkMode: "Tryb ciemny",
     notifications: "Powiadomienia",
     calendar: "Kalendarz",
+
+    // AI meal suggestion
+    aiMealSuggestion: "Propozycja AI",
+    getMealIdea: "Zaproponuj posiłek",
+    loadingSuggestion: "Myślę...",
+    basedOnPlanned: "Na podstawie wszystkich zaplanowanych posiłków",
+    noKeyConfigured: "Dodaj OPENAI_API_KEY aby włączyć sugestie AI",
+    tryAgain: "Spróbuj ponownie",
+
+    // Ingredient categories
+    allIngredients: "Wszystkie",
+    dairyAndEggs: "Nabiał i jaja",
+    grainsAndLegumes: "Ziarna i strączki",
+    condiments: "Przyprawy",
+    meatAndFish: "Mięso i ryby",
+    vegetablesAndFruit: "Warzywa i owoce",
+    fatsAndNuts: "Tłuszcze i orzechy",
+    drinksCategory: "Napoje",
+    otherCategory: "Inne",
+    componentCategory: "Komponent",
   },
 } as const
 

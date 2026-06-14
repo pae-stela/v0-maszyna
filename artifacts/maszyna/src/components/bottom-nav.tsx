@@ -1,4 +1,4 @@
-import { Calendar, Soup, BicepsFlexed, Gauge, Cat } from "lucide-react"
+import { ClipboardCheck, Soup, BicepsFlexed, Gauge, Cat } from "lucide-react"
 
 export type Tab = "kitchen" | "planner" | "dashboard" | "workout" | "profile"
 
@@ -11,7 +11,7 @@ const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "kitchen",   label: "Fuel",      icon: Soup          },
   { id: "workout",   label: "Gain",      icon: BicepsFlexed  },
   { id: "dashboard", label: "Dashboard", icon: Gauge         },
-  { id: "planner",   label: "Plan",      icon: Calendar      },
+  { id: "planner",   label: "Plan",      icon: ClipboardCheck },
   { id: "profile",   label: "Track",     icon: Cat           },
 ]
 

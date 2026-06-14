@@ -11,6 +11,7 @@ interface TimelineProps {
   loggedOverrides?: Record<string, boolean>
   onToggleOverride?: (id: string, newLogged: boolean) => void
   onMacrosChange?: (macros: MacroSummary) => void
+  readOnly?: boolean
 }
 
 interface TimelineItem {
@@ -58,7 +59,7 @@ function parseDisplayDetails(raw: string | null | undefined): string | undefined
   }
 }
 
-export function Timeline({ dateStr, activeUser, loggedOverrides: externalOverrides, onToggleOverride, onMacrosChange }: TimelineProps) {
+export function Timeline({ dateStr, activeUser, loggedOverrides: externalOverrides, onToggleOverride, onMacrosChange, readOnly }: TimelineProps) {
   const { meals, toggleMealLogged } = useMealLogs(dateStr)
   const { events, toggleEventLogged } = usePlannerEvents()
   const { user, profile, partner } = useAuth()
@@ -194,11 +195,12 @@ export function Timeline({ dateStr, activeUser, loggedOverrides: externalOverrid
         return (
           <div key={item.id} className="relative group">
             <button
-              onClick={() => handleToggle(item)}
-              className="absolute -left-[35px] top-0.5 bg-background rounded-full p-0.5 text-muted-foreground hover:text-primary transition-colors z-10"
+              onClick={() => !readOnly && handleToggle(item)}
+              disabled={readOnly}
+              className={`absolute -left-[35px] top-0.5 bg-background rounded-full p-0.5 transition-colors z-10 ${readOnly ? "cursor-default text-muted-foreground/40" : "text-muted-foreground hover:text-primary"}`}
             >
               {item.logged ? (
-                <CheckCircle2 className="size-5 text-sage fill-sage/10" />
+                <CheckCircle2 className={`size-5 ${readOnly ? "text-sage/50 fill-sage/5" : "text-sage fill-sage/10"}`} />
               ) : (
                 <Circle className="size-5 opacity-40" />
               )}
