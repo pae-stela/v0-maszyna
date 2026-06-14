@@ -180,6 +180,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
   const [editingIngredientId, setEditingIngredientId] = useState<string | null>(null)
   const [editingGrams, setEditingGrams] = useState("")
 
+  const { t, language } = useLanguage()
   const { profile, partner } = useAuth()
   const { ingredients: dbIngredients, loading: dbLoading, addIngredient } = useIngredients()
   const { addDish, updateDish } = useDishes()
@@ -468,8 +469,8 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
         <div className="bg-primary/10 px-5 py-3 border-b border-border flex items-center gap-3">
           <div className="size-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">1</div>
           <div>
-            <h3 className="text-sm font-semibold text-foreground">Build</h3>
-            <p className="text-xs text-muted-foreground">Add ingredients to calculate macros</p>
+            <h3 className="text-sm font-semibold text-foreground">{t('build')}</h3>
+            <p className="text-xs text-muted-foreground">{t('buildDesc')}</p>
           </div>
         </div>
         <div className="p-5 flex flex-col gap-3">
@@ -477,7 +478,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
             <div className="flex items-center gap-2">
               <input
                 type="text"
-                placeholder="Search ingredient..."
+                placeholder={t('searchIngredient')}
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value)
@@ -516,7 +517,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
                       : "bg-secondary text-muted-foreground"
                   }`}
                 >
-                  Grams
+                  {t('grams')}
                 </button>
                 <button
                   onClick={() => setUseUnits(true)}
@@ -526,7 +527,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
                       : "bg-secondary text-muted-foreground"
                   }`}
                 >
-                  Units ({selectedIngredientData?.average_weight}g each)
+                  {t('unitsLabel')} ({selectedIngredientData?.average_weight}g)
                 </button>
               </div>
             )}
@@ -556,8 +557,8 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
             <div className="size-12 rounded-full bg-secondary mx-auto mb-3 flex items-center justify-center">
               <Plus className="size-5 text-muted-foreground" />
             </div>
-            <p className="text-sm text-muted-foreground">Your recipe is empty</p>
-            <p className="text-xs text-muted-foreground mt-1">Search and add ingredients above</p>
+            <p className="text-sm text-muted-foreground">{t('recipeEmpty')}</p>
+            <p className="text-xs text-muted-foreground mt-1">{t('recipeEmptyDesc')}</p>
           </div>
         ) : (
           /* Ingredient Cards */
@@ -850,10 +851,10 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
         
         <div className="p-5">
           <div className="mb-5">
-            <label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">Recipe Name</label>
+            <label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">{t('recipeName')}</label>
             <input
               type="text"
-              placeholder="Give your creation a name..."
+              placeholder={language === 'pl' ? "Podaj nazwę..." : "Give your creation a name..."}
               value={saveName}
               onChange={(e) => setSaveName(e.target.value)}
               className="w-full bg-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -863,7 +864,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
           {/* Category & Subcategory */}
           <div className="mb-4 grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 block">Category</label>
+              <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 block">{t('category')}</label>
               <select
                 value={saveMainCategory}
                 onChange={(e) => {
@@ -873,20 +874,20 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
                 }}
                 className="w-full bg-secondary rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               >
-                <option value="Large">Large</option>
-                <option value="Light">Light</option>
-                <option value="Snacks">Snacks</option>
-                <option value="Drinks">Drinks</option>
+                <option value="Large">{t('large')}</option>
+                <option value="Light">{t('light')}</option>
+                <option value="Snacks">{t('snacks')}</option>
+                <option value="Drinks">{t('drinksCategory')}</option>
               </select>
             </div>
             <div>
-              <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 block">Subcategory</label>
+              <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 block">{t('subcategory')}</label>
               <select
                 value={saveSubCategory}
                 onChange={(e) => setSaveSubCategory(e.target.value)}
                 className="w-full bg-secondary rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               >
-                <option value="">Select...</option>
+                <option value="">{t('selectSubcategory')}</option>
                 {(dishCategories[saveMainCategory] || []).map((cat) => (
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
@@ -897,7 +898,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
 
           {/* Photo — profile pic + gallery */}
           <div className="mb-4">
-            <label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">Photos</label>
+            <label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">{t('photos')}</label>
             <div className="flex gap-2 flex-wrap">
               {/* Profile picture slot */}
               <label className="cursor-pointer group relative">
@@ -922,7 +923,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
                   ) : (
                     <div className="flex flex-col items-center gap-1">
                       <Camera className="size-4 text-muted-foreground" />
-                      <span className="text-[9px] text-muted-foreground leading-tight text-center">Cover</span>
+                      <span className="text-[9px] text-muted-foreground leading-tight text-center">{t('cover')}</span>
                     </div>
                   )}
                 </div>
@@ -950,16 +951,16 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
                 />
                 <div className="size-16 rounded-xl border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center gap-1 transition-colors">
                   <ImagePlus className="size-4 text-muted-foreground" />
-                  <span className="text-[9px] text-muted-foreground">Add</span>
+                  <span className="text-[9px] text-muted-foreground">{t('add')}</span>
                 </div>
               </label>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-1.5">First photo becomes the cover shown in Dishes</p>
+            <p className="text-[10px] text-muted-foreground mt-1.5">{t('photoHint')}</p>
           </div>
 
           {/* Recipe URL */}
           <div className="mb-4">
-            <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 block">Original Recipe Link</label>
+            <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 block">{t('recipeLink')}</label>
             <div className="relative">
               <Link className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
               <input
@@ -975,7 +976,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
           {/* Recipe Steps (for dishes) */}
           <div className="mb-4">
             <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 block">
-              Recipe Steps (optional, one per line)
+              {t('recipeStepsLabel')}
             </label>
             <textarea
               placeholder="Step 1: Preheat oven...&#10;Step 2: Mix ingredients..."
@@ -994,8 +995,8 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
                   <ChefHat className="size-4 text-muted-foreground" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-foreground">Save as Component</p>
-                  <p className="text-[10px] text-muted-foreground">Reusable building block for dishes</p>
+                  <p className="text-sm font-medium text-foreground">{t('saveAsComponent')}</p>
+                  <p className="text-[10px] text-muted-foreground">{t('componentDesc')}</p>
                 </div>
               </div>
               <button
@@ -1003,7 +1004,10 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
                 disabled={selectedIngredients.length === 0 || !saveName.trim()}
                 className="w-full py-2.5 rounded-lg bg-secondary text-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-40 disabled:active:scale-100 mt-2"
               >
-                Save {selectedIngredients.length} selected ingredient{selectedIngredients.length !== 1 ? "s" : ""}
+                {language === 'pl'
+                  ? `Zapisz ${selectedIngredients.length} składnik${selectedIngredients.length === 1 ? '' : 'ów'}`
+                  : `Save ${selectedIngredients.length} selected ingredient${selectedIngredients.length !== 1 ? "s" : ""}`
+                }
               </button>
               {selectedIngredients.length > 0 && (
                 <p className="text-[10px] text-muted-foreground text-center mt-2">
@@ -1020,10 +1024,10 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-foreground">
-                    {editMode ? `Edytujesz: ${editMode.name}` : "Save as Dish"}
+                    {editMode ? `Edytujesz: ${editMode.name}` : t('saveDish')}
                   </p>
                   <p className="text-[10px] text-muted-foreground">
-                    {editMode ? "Wybierz jak zapisać zmiany" : "Complete meal ready to log"}
+                    {editMode ? "Wybierz jak zapisać zmiany" : t('saveDishDesc')}
                   </p>
                 </div>
               </div>
@@ -1038,7 +1042,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
                 disabled={ingredients.length === 0 || !saveName.trim()}
                 className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-40 disabled:active:scale-100 mt-2"
               >
-                {editMode ? "Zapisz zmiany…" : "Save entire recipe"}
+                {editMode ? "Zapisz zmiany…" : t('saveEntireRecipe')}
               </button>
               {ingredients.length > 0 && (
                 <p className="text-[10px] text-muted-foreground text-center mt-2">
