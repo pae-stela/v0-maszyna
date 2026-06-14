@@ -3,8 +3,16 @@
 import { useState, useEffect } from "react"
 import { useUser } from "@/lib/user-context"
 import { useAuth } from "@/lib/auth-context"
-import { Settings, X, Users, User, Calculator, Sparkles, Footprints, Globe, LogOut } from "lucide-react"
+import { Settings, X, Users, User, Calculator, Sparkles, Footprints, Globe, LogOut, Sun, Moon, Monitor } from "lucide-react"
 import { useLanguage } from "@/lib/i18n/context"
+import { usePartnerColors, PARTNER_COLORS } from "@/lib/partner-colors-context"
+
+function hexToRgba(hex: string, alpha: number) {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
 
 export function WhiteCat() {
   return (
@@ -47,17 +55,25 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const { activeUser, getWeeklyAvgSteps } = useUser()
   const { signOut, profile, partner, settings, updateSettings } = useAuth()
   const { language, setLanguage, t } = useLanguage()
+  const { myColor, partnerColor, setMyColor, setPartnerColor } = usePartnerColors()
   const [settingsTab, setSettingsTab] = useState<"couple" | "profile">("profile")
   const [marcinPct, setMarcinPct] = useState(67)
   const [restTimerDuration, setRestTimerDuration] = useState(90)
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    try { return localStorage.getItem('darkMode') === 'true' } catch { return false }
+  type ThemeMode = 'dark' | 'light' | 'system'
+  const [themeMode, setThemeModeState] = useState<ThemeMode>(() => {
+    try { return (localStorage.getItem('themeMode') as ThemeMode) || 'system' } catch { return 'system' }
   })
-  const toggleDarkMode = () => {
-    const newVal = !isDarkMode
-    setIsDarkMode(newVal)
-    document.documentElement.classList.toggle('dark', newVal)
-    try { localStorage.setItem('darkMode', String(newVal)) } catch { }
+  const applyTheme = (mode: ThemeMode) => {
+    if (mode === 'dark') {
+      document.documentElement.classList.add('dark')
+    } else if (mode === 'light') {
+      document.documentElement.classList.remove('dark')
+    } else {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+      document.documentElement.classList.toggle('dark', prefersDark)
+    }
+    setThemeModeState(mode)
+    try { localStorage.setItem('themeMode', mode) } catch { }
   }
   const [showMacroCalculator, setShowMacroCalculator] = useState(false)
   const [isSavingGoals, setIsSavingGoals] = useState(false)
@@ -225,52 +241,78 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
                     {/* % Slider */}
                     <div className="flex gap-3 mb-4">
-                      <div className="flex-1 bg-navy/10 rounded-xl p-3 border border-navy/20">
+                      <div className="flex-1 rounded-xl p-3 border" style={{ backgroundColor: hexToRgba(partnerColor, 0.1), borderColor: hexToRgba(partnerColor, 0.2) }}>
                         <div className="flex items-center gap-2 mb-2">
-                          <div className="size-6 rounded-full bg-navy flex items-center justify-center">
-                            <span className="text-[10px] font-bold text-background">M</span>
+                          <div className="size-6 rounded-full flex items-center justify-center" style={{ backgroundColor: partnerColor }}>
+                            <span className="text-[10px] font-bold text-white">{(partner?.name || "P")[0]}</span>
                           </div>
                           <span className="text-xs font-medium text-foreground">{partner?.name || "Partner"}</span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <button
-                            onClick={() => setMarcinPct(p => Math.max(10, p - 5))}
-                            className="size-7 rounded-lg bg-background text-muted-foreground hover:text-foreground text-sm flex items-center justify-center"
-                          >-</button>
-                          <span className="text-lg font-bold text-navy">{marcinPct}%</span>
-                          <button
-                            onClick={() => setMarcinPct(p => Math.min(90, p + 5))}
-                            className="size-7 rounded-lg bg-background text-muted-foreground hover:text-foreground text-sm flex items-center justify-center"
-                          >+</button>
+                          <button onClick={() => setMarcinPct(p => Math.max(10, p - 5))} className="size-7 rounded-lg bg-background text-muted-foreground hover:text-foreground text-sm flex items-center justify-center">-</button>
+                          <span className="text-lg font-bold" style={{ color: partnerColor }}>{marcinPct}%</span>
+                          <button onClick={() => setMarcinPct(p => Math.min(90, p + 5))} className="size-7 rounded-lg bg-background text-muted-foreground hover:text-foreground text-sm flex items-center justify-center">+</button>
                         </div>
                       </div>
-                      <div className="flex-1 bg-sage/10 rounded-xl p-3 border border-sage/20">
+                      <div className="flex-1 rounded-xl p-3 border" style={{ backgroundColor: hexToRgba(myColor, 0.1), borderColor: hexToRgba(myColor, 0.2) }}>
                         <div className="flex items-center gap-2 mb-2">
-                          <div className="size-6 rounded-full bg-sage flex items-center justify-center">
-                            <span className="text-[10px] font-bold text-background">P</span>
+                          <div className="size-6 rounded-full flex items-center justify-center" style={{ backgroundColor: myColor }}>
+                            <span className="text-[10px] font-bold text-white">{(profile?.name || "M")[0]}</span>
                           </div>
                           <span className="text-xs font-medium text-foreground">{profile?.name || "You"}</span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <button
-                            onClick={() => setMarcinPct(p => Math.min(90, p + 5))}
-                            className="size-7 rounded-lg bg-background text-muted-foreground hover:text-foreground text-sm flex items-center justify-center"
-                          >-</button>
-                          <span className="text-lg font-bold text-sage">{100 - marcinPct}%</span>
-                          <button
-                            onClick={() => setMarcinPct(p => Math.max(10, p - 5))}
-                            className="size-7 rounded-lg bg-background text-muted-foreground hover:text-foreground text-sm flex items-center justify-center"
-                          >+</button>
+                          <button onClick={() => setMarcinPct(p => Math.min(90, p + 5))} className="size-7 rounded-lg bg-background text-muted-foreground hover:text-foreground text-sm flex items-center justify-center">-</button>
+                          <span className="text-lg font-bold" style={{ color: myColor }}>{100 - marcinPct}%</span>
+                          <button onClick={() => setMarcinPct(p => Math.max(10, p - 5))} className="size-7 rounded-lg bg-background text-muted-foreground hover:text-foreground text-sm flex items-center justify-center">+</button>
                         </div>
                       </div>
                     </div>
                     <div className="h-3 rounded-full overflow-hidden flex bg-secondary">
-                      <div className="bg-navy h-full transition-all duration-300" style={{ width: `${marcinPct}%` }} />
-                      <div className="bg-sage h-full transition-all duration-300" style={{ width: `${100 - marcinPct}%` }} />
+                      <div className="h-full transition-all duration-300" style={{ width: `${marcinPct}%`, backgroundColor: partnerColor }} />
+                      <div className="h-full transition-all duration-300" style={{ width: `${100 - marcinPct}%`, backgroundColor: myColor }} />
                     </div>
                     <p className="text-[10px] text-muted-foreground text-center mt-2">
                       {partner?.name || "Partner"} {marcinPct}% · {profile?.name || "You"} {100 - marcinPct}%
                     </p>
+                  </div>
+
+                  {/* Partner Colours */}
+                  <div className="bg-secondary/50 rounded-xl p-4">
+                    <h4 className="text-sm font-semibold text-foreground mb-1">{t('colorSettings')}</h4>
+                    <p className="text-xs text-muted-foreground mb-4">{t('colorSettingsDesc')}</p>
+                    <div className="flex flex-col gap-4">
+                      {/* My colour */}
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground mb-2">{t('myColor')} ({profile?.name?.split(' ')[0] || "You"})</p>
+                        <div className="flex gap-2">
+                          {PARTNER_COLORS.map(c => (
+                            <button
+                              key={c.hex}
+                              onClick={() => setMyColor(c.hex)}
+                              className="size-8 rounded-full border-2 transition-all"
+                              style={{ backgroundColor: c.hex, borderColor: myColor === c.hex ? c.hex : 'transparent', outline: myColor === c.hex ? `2px solid ${c.hex}` : 'none', outlineOffset: '2px' }}
+                              title={c.name}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      {/* Partner's colour */}
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground mb-2">{t('partnerColorLabel')} ({partner?.name?.split(' ')[0] || "Partner"})</p>
+                        <div className="flex gap-2">
+                          {PARTNER_COLORS.map(c => (
+                            <button
+                              key={c.hex}
+                              onClick={() => setPartnerColor(c.hex)}
+                              className="size-8 rounded-full border-2 transition-all"
+                              style={{ backgroundColor: c.hex, borderColor: partnerColor === c.hex ? c.hex : 'transparent', outline: partnerColor === c.hex ? `2px solid ${c.hex}` : 'none', outlineOffset: '2px' }}
+                              title={c.name}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Shared Goals */}
@@ -409,22 +451,28 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   {/* Preferences */}
                   <div className="bg-secondary/50 rounded-xl p-4">
                     <h4 className="text-sm font-semibold text-foreground mb-3">Preferences</h4>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-foreground">{t('darkMode')}</span>
-                        <button
-                          onClick={toggleDarkMode}
-                          className={`w-11 h-6 rounded-full relative transition-colors duration-300 ${isDarkMode ? 'bg-primary' : 'bg-muted-foreground/30'}`}
-                        >
-                          <div className={`absolute top-0.5 size-5 bg-background rounded-full shadow-sm transition-all duration-300 ${isDarkMode ? 'right-0.5' : 'left-0.5'}`} />
-                        </button>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-foreground">Metric Units</span>
-                        <div className="w-11 h-6 bg-primary rounded-full relative cursor-pointer">
-                          <div className="absolute right-0.5 top-0.5 size-5 bg-background rounded-full shadow-sm" />
-                        </div>
-                      </div>
+                    <div className="flex gap-2 p-1 bg-background rounded-xl">
+                      <button
+                        onClick={() => applyTheme('light')}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all ${themeMode === 'light' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'}`}
+                      >
+                        <Sun className="size-3.5" />
+                        {t('lightMode')}
+                      </button>
+                      <button
+                        onClick={() => applyTheme('dark')}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all ${themeMode === 'dark' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'}`}
+                      >
+                        <Moon className="size-3.5" />
+                        {t('darkMode')}
+                      </button>
+                      <button
+                        onClick={() => applyTheme('system')}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all ${themeMode === 'system' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'}`}
+                      >
+                        <Monitor className="size-3.5" />
+                        {t('systemMode')}
+                      </button>
                     </div>
                   </div>
 

@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Link, useLocation } from 'wouter'
 import { useState } from 'react'
-import { User, Users } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/context'
 import { MaszynaIcon } from '@/components/logo'
 
@@ -12,7 +11,6 @@ export default function SignUpPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [repeatPassword, setRepeatPassword] = useState('')
-  const [accountType, setAccountType] = useState<'single' | 'couple'>('single')
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [, navigate] = useLocation()
@@ -41,10 +39,7 @@ export default function SignUpPage() {
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            name,
-            account_type: accountType,
-          },
+          data: { name },
         },
       })
       if (signUpError) throw signUpError
@@ -98,43 +93,10 @@ export default function SignUpPage() {
           <h1 className="text-2xl font-bold text-foreground">{t('createAccount')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {language === 'en'
-              ? 'Start your fitness journey together'
+              ? 'Start your fitness journey'
               : 'Rozpocznij swoją drogę do formy'
             }
           </p>
-        </div>
-
-        <div className="flex gap-3 mb-6">
-          <button
-            type="button"
-            onClick={() => setAccountType('single')}
-            className={`flex-1 p-4 rounded-xl border-2 transition-all ${
-              accountType === 'single'
-                ? 'border-primary bg-primary/10'
-                : 'border-border bg-card hover:border-muted-foreground'
-            }`}
-          >
-            <User className={`size-6 mx-auto mb-2 ${accountType === 'single' ? 'text-primary' : 'text-muted-foreground'}`} />
-            <p className={`text-sm font-medium ${accountType === 'single' ? 'text-foreground' : 'text-muted-foreground'}`}>
-              {t('solo')}
-            </p>
-            <p className="text-[10px] text-muted-foreground mt-1">{t('soloDesc')}</p>
-          </button>
-          <button
-            type="button"
-            onClick={() => setAccountType('couple')}
-            className={`flex-1 p-4 rounded-xl border-2 transition-all ${
-              accountType === 'couple'
-                ? 'border-primary bg-primary/10'
-                : 'border-border bg-card hover:border-muted-foreground'
-            }`}
-          >
-            <Users className={`size-6 mx-auto mb-2 ${accountType === 'couple' ? 'text-primary' : 'text-muted-foreground'}`} />
-            <p className={`text-sm font-medium ${accountType === 'couple' ? 'text-foreground' : 'text-muted-foreground'}`}>
-              {t('couple')}
-            </p>
-            <p className="text-[10px] text-muted-foreground mt-1">{t('coupleDesc')}</p>
-          </button>
         </div>
 
         <form onSubmit={handleSignUp} className="flex flex-col gap-4">
@@ -159,7 +121,7 @@ export default function SignUpPage() {
             </label>
             <Input
               id="email"
-              type="type"
+              type="email"
               placeholder={language === 'en' ? 'you@example.com' : 'ty@example.com'}
               required
               value={email}

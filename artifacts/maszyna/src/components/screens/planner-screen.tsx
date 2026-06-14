@@ -1,5 +1,6 @@
 import { useLanguage } from "@/lib/i18n/context"
 import { useState, useMemo } from "react"
+import { usePartnerColors } from "@/lib/partner-colors-context"
 import { ShoppingListScreen } from "@/components/screens/shopping-list-screen"
 import { useAuth } from "@/lib/auth-context"
 import { useDishes, useWorkoutPlans, usePlannerEvents, useMealLogs } from "@/lib/realtime-hooks"
@@ -307,6 +308,7 @@ function MacroSummary({
 function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: EditMode) => void }) {
   const { user, profile, settings, partner } = useAuth()
   const { t } = useLanguage()
+  const { myColor, partnerColor } = usePartnerColors()
   const { dishes: allDishes } = useDishes()
   const { plans: allPlans } = useWorkoutPlans()
 
@@ -637,7 +639,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
             className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
               !showBothCalendars && activeUser === "patrycja" ? "text-white" : "text-muted-foreground hover:text-foreground"
             }`}
-            style={!showBothCalendars && activeUser === "patrycja" ? { backgroundColor: DASHBOARD_COLORS.fiber } : undefined}
+            style={!showBothCalendars && activeUser === "patrycja" ? { backgroundColor: myColor } : undefined}
           >
             {profile?.name?.split(' ')[0] || "Patrycja"}
           </button>
@@ -646,7 +648,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
             className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
               !showBothCalendars && activeUser === "marcin" ? "text-white" : "text-muted-foreground hover:text-foreground"
             }`}
-            style={!showBothCalendars && activeUser === "marcin" ? { backgroundColor: DASHBOARD_COLORS.calories } : undefined}
+            style={!showBothCalendars && activeUser === "marcin" ? { backgroundColor: partnerColor } : undefined}
           >
             {partner?.name?.split(' ')[0] || "Marcin"}
           </button>
@@ -1207,8 +1209,9 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                   type="button"
                   onClick={() => setMealOwner("patrycja")}
                   className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
-                    mealOwner === "patrycja" ? "bg-sage text-background shadow-sm" : "text-muted-foreground"
+                    mealOwner === "patrycja" ? "text-white shadow-sm" : "text-muted-foreground"
                   }`}
+                  style={mealOwner === "patrycja" ? { backgroundColor: myColor } : undefined}
                 >
                   {profile?.name || "Patrycja"}
                 </button>
@@ -1216,8 +1219,9 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                   type="button"
                   onClick={() => setMealOwner("marcin")}
                   className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
-                    mealOwner === "marcin" ? "bg-navy text-background shadow-sm" : "text-muted-foreground"
+                    mealOwner === "marcin" ? "text-white shadow-sm" : "text-muted-foreground"
                   }`}
+                  style={mealOwner === "marcin" ? { backgroundColor: partnerColor } : undefined}
                 >
                   {partner?.name || "Marcin"}
                 </button>

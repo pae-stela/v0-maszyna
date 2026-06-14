@@ -1,5 +1,4 @@
 
-
 import { useState } from "react"
 import { BottomNav, type Tab } from "@/components/bottom-nav"
 import { DashboardScreen } from "@/components/screens/dashboard-screen"
@@ -8,11 +7,13 @@ import { WorkoutScreen } from "@/components/screens/workout-screen"
 import { PlannerScreen } from "@/components/screens/planner-screen"
 import { ProfileScreen } from "@/components/screens/profile-screen"
 import { useLanguage } from "@/lib/i18n/context"
+import { useAuth } from "@/lib/auth-context"
 
 export function AppShell() {
   const [activeTab, setActiveTab] = useState<Tab>("dashboard")
   const [kitchenEditDish, setKitchenEditDish] = useState<EditMode | null>(null)
   const { t, language } = useLanguage()
+  const { profile } = useAuth()
 
   const handleNavigateToKitchen = (dish: EditMode) => {
     setKitchenEditDish(dish)
@@ -20,7 +21,6 @@ export function AppShell() {
   }
 
   const handleTabChange = (tab: Tab) => {
-    // Clear dish edit mode when navigating to kitchen manually (not via "edit in kitchen")
     if (tab === "kitchen" && activeTab !== "planner") {
       setKitchenEditDish(null)
     }
@@ -30,12 +30,22 @@ export function AppShell() {
     setActiveTab(tab)
   }
 
+  const handleEditSaveComplete = () => {
+    setKitchenEditDish(null)
+    setActiveTab("planner")
+  }
+
   const renderScreen = () => {
     switch (activeTab) {
       case "dashboard":
         return <DashboardScreen />
       case "kitchen":
-        return <KitchenScreen initialEditMode={kitchenEditDish} />
+        return (
+          <KitchenScreen
+            initialEditMode={kitchenEditDish}
+            onEditSaveComplete={kitchenEditDish ? handleEditSaveComplete : undefined}
+          />
+        )
       case "workout":
         return <WorkoutScreen />
       case "planner":
@@ -48,19 +58,18 @@ export function AppShell() {
   }
 
   const getScreenTitle = () => {
+    if (activeTab === "dashboard") {
+      const hour = new Date().getHours()
+      const greeting = hour < 12 ? t('goodMorning') : t('goodEvening')
+      const firstName = profile?.name?.split(' ')[0] || ''
+      return firstName ? `${greeting}, ${firstName}` : greeting
+    }
     switch (activeTab) {
-      case "dashboard":
-        return "Dashboard"
-      case "kitchen":
-        return "Fuel"
-      case "workout":
-        return "Gain"
-      case "planner":
-        return "Plan"
-      case "profile":
-        return "Track"
-      default:
-        return ""
+      case "kitchen": return t('fuel')
+      case "workout": return t('gain')
+      case "planner": return t('plan')
+      case "profile": return t('track')
+      default: return ""
     }
   }
 

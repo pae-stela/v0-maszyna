@@ -850,6 +850,7 @@ export function useIngredients() {
 // Dish type from Supabase (recipes table)
 export interface DishItem {
   id: string
+  user_id?: string
   name: string
   description?: string | null
   elements: { type: "ingredient" | "component"; id: string; name: string; grams: number }[]
@@ -876,6 +877,7 @@ export interface DishItem {
 function mapDishFromDb(dbDish: any): DishItem {
   return {
     id: dbDish.id,
+    user_id: dbDish.user_id ?? undefined,
     name: dbDish.name ?? '',
     description: dbDish.description ?? null,
     elements: Array.isArray(dbDish.elements) ? dbDish.elements : [],

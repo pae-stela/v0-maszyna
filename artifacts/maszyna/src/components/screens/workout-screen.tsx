@@ -2,7 +2,9 @@
 import { useLanguage } from "@/lib/i18n/context";
 import { useState, useEffect } from "react"
 import { useUser } from "@/lib/user-context"
+import { useAuth } from "@/lib/auth-context"
 import { useWorkoutPlans } from "@/lib/realtime-hooks"
+import { usePartnerColors } from "@/lib/partner-colors-context"
 import { Play, Plus, ChevronRight, Timer, Flame, Dumbbell, ClipboardList, Search, X, Check, Link2, Trash2, Pause, Square, Wind, Footprints } from "lucide-react"
 
 type SubTab = "journal" | "plans" | "exercises"
@@ -731,6 +733,8 @@ function PlansView() {
   const [saving, setSaving] = useState(false)
 
   const { plans, loading, addPlan, deletePlan } = useWorkoutPlans()
+  const { profile, partner } = useAuth()
+  const { myColor, partnerColor } = usePartnerColors()
 
   const muscleGroups = [...new Set(exerciseLibrary.map(e => e.muscleGroup))]
 
@@ -904,7 +908,19 @@ function PlansView() {
               {plan.type === 'cardio' ? <Footprints className="size-6 text-terracotta" /> : plan.type === 'flexibility' ? <Wind className="size-6 text-sand" /> : <ClipboardList className="size-6 text-primary" />}
             </div>
             <div className="flex-1 min-w-0">
-              <h4 className="font-medium text-foreground">{plan.name}</h4>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h4 className="font-medium text-foreground">{plan.name}</h4>
+                {plan.user_id && (
+                  <span
+                    className="px-1.5 py-0.5 rounded text-[9px] font-medium text-white"
+                    style={{ backgroundColor: plan.user_id === profile?.id ? myColor : partnerColor }}
+                  >
+                    {plan.user_id === profile?.id
+                      ? (profile?.name?.split(' ')[0] || 'Ja')
+                      : (partner?.name?.split(' ')[0] || 'Partner')}
+                  </span>
+                )}
+              </div>
               <p className="text-sm text-muted-foreground">
                 {isTimeBased
                   ? `${exerciseCount} activities${totalDuration > 0 ? ` · ${totalDuration} min` : ''}`

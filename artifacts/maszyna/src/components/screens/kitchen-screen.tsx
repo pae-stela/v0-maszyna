@@ -4,7 +4,15 @@ import { useState, useMemo, useEffect } from "react"
 import { useUser } from "@/lib/user-context"
 import { useAuth } from "@/lib/auth-context"
 import { useIngredients, useDishes, type DbIngredient } from "@/lib/realtime-hooks"
+import { usePartnerColors } from "@/lib/partner-colors-context"
 import { Calculator, Search, Plus, Trash2, Apple, ChefHat, UtensilsCrossed, FileText, ChevronDown, X, Pencil, Check, Link, ImagePlus, Camera, ExternalLink } from "lucide-react"
+
+function hexToRgba(hex: string, alpha: number) {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
 
 type SubTab = "calculator" | "ingredients" | "dishes"
 
@@ -83,7 +91,7 @@ export interface EditMode {
   subCategory?: string
 }
 
-export function KitchenScreen({ initialEditMode }: { initialEditMode?: EditMode | null }) {
+export function KitchenScreen({ initialEditMode, onEditSaveComplete }: { initialEditMode?: EditMode | null; onEditSaveComplete?: () => void }) {
   const [subTab, setSubTab] = useState<SubTab>("calculator")
   const [editMode, setEditMode] = useState<EditMode | null>(initialEditMode || null)
   const { activeUser } = useUser()
@@ -139,6 +147,7 @@ export function KitchenScreen({ initialEditMode }: { initialEditMode?: EditMode 
           activeUser={activeUser}
           editMode={editMode}
           onClearEdit={() => setEditMode(null)}
+          onEditSaveComplete={onEditSaveComplete}
         />
       )}
       {subTab === "dishes" && (
@@ -151,7 +160,7 @@ export function KitchenScreen({ initialEditMode }: { initialEditMode?: EditMode 
   )
 }
 
-function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: string; editMode: EditMode | null; onClearEdit: () => void }) {
+function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete }: { activeUser: string; editMode: EditMode | null; onClearEdit: () => void; onEditSaveComplete?: () => void }) {
   const [ingredients, setIngredients] = useState<CalculatorIngredient[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedIngredient, setSelectedIngredient] = useState<string | null>(null)
@@ -174,6 +183,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
   const { profile, partner } = useAuth()
   const { ingredients: dbIngredients, loading: dbLoading, addIngredient } = useIngredients()
   const { addDish, updateDish } = useDishes()
+  const { myColor, partnerColor } = usePartnerColors()
 
   // Initialize calculator from editMode
   useEffect(() => {
@@ -682,66 +692,46 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
         <div className="bg-secondary/50 px-5 py-3 border-b border-border flex items-center gap-3">
           <div className="size-7 rounded-full bg-foreground text-background flex items-center justify-center text-sm font-bold">2</div>
           <div>
-            <h3 className="text-sm font-semibold text-foreground">Split</h3>
-            <p className="text-xs text-muted-foreground">Divide between {partner?.name || "Partner"} and {profile?.name || "You"}</p>
+            <h3 className="text-sm font-semibold text-foreground">Podziel</h3>
+            <p className="text-xs text-muted-foreground">Podziel między {partner?.name || "Partnera"} i {profile?.name || "Ciebie"}</p>
           </div>
         </div>
 
         <div className="p-5">
           {/* Serving Controls */}
           <div className="grid grid-cols-2 gap-4 mb-5">
-            {/* Marcin Servings */}
-            <div className="bg-navy/10 rounded-xl p-3 border border-navy/20">
+            {/* Partner Servings */}
+            <div className="rounded-xl p-3 border" style={{ backgroundColor: hexToRgba(partnerColor, 0.1), borderColor: hexToRgba(partnerColor, 0.2) }}>
               <div className="flex items-center gap-2 mb-2">
-                <div className="size-6 rounded-full bg-navy flex items-center justify-center">
-                  <span className="text-[10px] font-bold text-background">M</span>
+                <div className="size-6 rounded-full flex items-center justify-center" style={{ backgroundColor: partnerColor }}>
+                  <span className="text-[10px] font-bold text-white">{(partner?.name || "P")[0]}</span>
                 </div>
-                <span className="text-xs font-medium text-foreground">{partner?.name || "Marcin"}</span>
+                <span className="text-xs font-medium text-foreground">{partner?.name || "Partner"}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] text-muted-foreground">Servings</span>
+                <span className="text-[10px] text-muted-foreground">Porcje</span>
                 <div className="flex items-center bg-background rounded-lg">
-                  <button
-                    onClick={() => setMarcinServings(Math.max(0, marcinServings - 1))}
-                    className="px-2 py-1 text-muted-foreground hover:text-foreground transition-colors text-sm"
-                  >
-                    -
-                  </button>
+                  <button onClick={() => setMarcinServings(Math.max(0, marcinServings - 1))} className="px-2 py-1 text-muted-foreground hover:text-foreground transition-colors text-sm">-</button>
                   <span className="w-6 text-center text-sm font-semibold text-foreground">{marcinServings}</span>
-                  <button
-                    onClick={() => setMarcinServings(marcinServings + 1)}
-                    className="px-2 py-1 text-muted-foreground hover:text-foreground transition-colors text-sm"
-                  >
-                    +
-                  </button>
+                  <button onClick={() => setMarcinServings(marcinServings + 1)} className="px-2 py-1 text-muted-foreground hover:text-foreground transition-colors text-sm">+</button>
                 </div>
               </div>
             </div>
 
-            {/* Patrycja Servings */}
-            <div className="bg-sage/10 rounded-xl p-3 border border-sage/20">
+            {/* My Servings */}
+            <div className="rounded-xl p-3 border" style={{ backgroundColor: hexToRgba(myColor, 0.1), borderColor: hexToRgba(myColor, 0.2) }}>
               <div className="flex items-center gap-2 mb-2">
-                <div className="size-6 rounded-full bg-sage flex items-center justify-center">
-                  <span className="text-[10px] font-bold text-background">P</span>
+                <div className="size-6 rounded-full flex items-center justify-center" style={{ backgroundColor: myColor }}>
+                  <span className="text-[10px] font-bold text-white">{(profile?.name || "M")[0]}</span>
                 </div>
-                <span className="text-xs font-medium text-foreground">{profile?.name || "Patrycja"}</span>
+                <span className="text-xs font-medium text-foreground">{profile?.name || "Ja"}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] text-muted-foreground">Servings</span>
+                <span className="text-[10px] text-muted-foreground">Porcje</span>
                 <div className="flex items-center bg-background rounded-lg">
-                  <button
-                    onClick={() => setPatrycjaServings(Math.max(0, patrycjaServings - 1))}
-                    className="px-2 py-1 text-muted-foreground hover:text-foreground transition-colors text-sm"
-                  >
-                    -
-                  </button>
+                  <button onClick={() => setPatrycjaServings(Math.max(0, patrycjaServings - 1))} className="px-2 py-1 text-muted-foreground hover:text-foreground transition-colors text-sm">-</button>
                   <span className="w-6 text-center text-sm font-semibold text-foreground">{patrycjaServings}</span>
-                  <button
-                    onClick={() => setPatrycjaServings(patrycjaServings + 1)}
-                    className="px-2 py-1 text-muted-foreground hover:text-foreground transition-colors text-sm"
-                  >
-                    +
-                  </button>
+                  <button onClick={() => setPatrycjaServings(patrycjaServings + 1)} className="px-2 py-1 text-muted-foreground hover:text-foreground transition-colors text-sm">+</button>
                 </div>
               </div>
             </div>
@@ -751,21 +741,15 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
           {totalParts > 0 && (
             <div className="mb-5">
               <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
-                <span>Distribution</span>
+                <span>Podział</span>
                 <span>{Math.round((marcinServings * 2 / totalParts) * 100)}% / {Math.round((patrycjaServings * 1 / totalParts) * 100)}%</span>
               </div>
               <div className="h-2.5 rounded-full overflow-hidden flex bg-secondary">
                 {marcinServings > 0 && (
-                  <div 
-                    className="bg-navy h-full transition-all duration-300" 
-                    style={{ width: `${(marcinServings * 2 / totalParts) * 100}%` }} 
-                  />
+                  <div className="h-full transition-all duration-300" style={{ width: `${(marcinServings * 2 / totalParts) * 100}%`, backgroundColor: partnerColor }} />
                 )}
                 {patrycjaServings > 0 && (
-                  <div 
-                    className="bg-sage h-full transition-all duration-300" 
-                    style={{ width: `${(patrycjaServings * 1 / totalParts) * 100}%` }} 
-                  />
+                  <div className="h-full transition-all duration-300" style={{ width: `${(patrycjaServings * 1 / totalParts) * 100}%`, backgroundColor: myColor }} />
                 )}
               </div>
             </div>
@@ -773,74 +757,74 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
 
           {/* Portion Details */}
           <div className="grid grid-cols-2 gap-3">
-            {/* {profile?.name || "Marcin"}'s Portion */}
-            <div className="bg-navy/5 rounded-xl p-3 border border-navy/10">
+            {/* Partner's Portion */}
+            <div className="rounded-xl p-3 border" style={{ backgroundColor: hexToRgba(partnerColor, 0.05), borderColor: hexToRgba(partnerColor, 0.1) }}>
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
-                {marcinServings > 1 ? `Per serving (${marcinServings}x)` : "Total"}
+                {marcinServings > 1 ? `Na porcję (${marcinServings}x)` : "Łącznie"}
               </p>
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">Calories</span>
+                  <span className="text-xs text-muted-foreground">Kalorie</span>
                   <span className="text-sm font-bold text-foreground">{Math.round(marcinServings > 1 ? marcinPerServing.calories : marcinPortion.calories)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">Protein</span>
+                  <span className="text-xs text-muted-foreground">Białko</span>
                   <span className="text-xs font-semibold text-primary">{Math.round((marcinServings > 1 ? marcinPerServing.protein : marcinPortion.protein) * 10) / 10}g</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">Carbs</span>
+                  <span className="text-xs text-muted-foreground">Węgle</span>
                   <span className="text-xs font-semibold text-wheat">{Math.round((marcinServings > 1 ? marcinPerServing.carbs : marcinPortion.carbs) * 10) / 10}g</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">Fats</span>
+                  <span className="text-xs text-muted-foreground">Tłuszcze</span>
                   <span className="text-xs font-semibold text-terracotta/70">{Math.round((marcinServings > 1 ? marcinPerServing.fats : marcinPortion.fats) * 10) / 10}g</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">Fiber</span>
-                  <span className="text-xs font-semibold text-sage/70">{Math.round((marcinServings > 1 ? marcinPerServing.fiber : marcinPortion.fiber) * 10) / 10}g</span>
+                  <span className="text-xs text-muted-foreground">Błonnik</span>
+                  <span className="text-xs font-semibold text-muted-foreground">{Math.round((marcinServings > 1 ? marcinPerServing.fiber : marcinPortion.fiber) * 10) / 10}g</span>
                 </div>
               </div>
               {marcinServings > 1 && (
-                <div className="mt-2 pt-2 border-t border-navy/10">
+                <div className="mt-2 pt-2 border-t border-border/50">
                   <div className="flex justify-between items-center">
-                    <span className="text-[10px] text-muted-foreground">All {marcinServings} servings</span>
+                    <span className="text-[10px] text-muted-foreground">Wszystkie {marcinServings}</span>
                     <span className="text-xs font-bold text-foreground">{Math.round(marcinPortion.calories)} kcal</span>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* {partner?.name || "Patrycja"}'s Portion */}
-            <div className="bg-sage/5 rounded-xl p-3 border border-sage/10">
+            {/* My Portion */}
+            <div className="rounded-xl p-3 border" style={{ backgroundColor: hexToRgba(myColor, 0.05), borderColor: hexToRgba(myColor, 0.1) }}>
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
-                {patrycjaServings > 1 ? `Per serving (${patrycjaServings}x)` : "Total"}
+                {patrycjaServings > 1 ? `Na porcję (${patrycjaServings}x)` : "Łącznie"}
               </p>
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">Calories</span>
+                  <span className="text-xs text-muted-foreground">Kalorie</span>
                   <span className="text-sm font-bold text-foreground">{Math.round(patrycjaServings > 1 ? patrycjaPerServing.calories : patrycjaPortion.calories)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">Protein</span>
+                  <span className="text-xs text-muted-foreground">Białko</span>
                   <span className="text-xs font-semibold text-primary">{Math.round((patrycjaServings > 1 ? patrycjaPerServing.protein : patrycjaPortion.protein) * 10) / 10}g</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">Carbs</span>
+                  <span className="text-xs text-muted-foreground">Węgle</span>
                   <span className="text-xs font-semibold text-wheat">{Math.round((patrycjaServings > 1 ? patrycjaPerServing.carbs : patrycjaPortion.carbs) * 10) / 10}g</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">Fats</span>
+                  <span className="text-xs text-muted-foreground">Tłuszcze</span>
                   <span className="text-xs font-semibold text-terracotta/70">{Math.round((patrycjaServings > 1 ? patrycjaPerServing.fats : patrycjaPortion.fats) * 10) / 10}g</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">Fiber</span>
-                  <span className="text-xs font-semibold text-sage/70">{Math.round((patrycjaServings > 1 ? patrycjaPerServing.fiber : patrycjaPortion.fiber) * 10) / 10}g</span>
+                  <span className="text-xs text-muted-foreground">Błonnik</span>
+                  <span className="text-xs font-semibold text-muted-foreground">{Math.round((patrycjaServings > 1 ? patrycjaPerServing.fiber : patrycjaPortion.fiber) * 10) / 10}g</span>
                 </div>
               </div>
               {patrycjaServings > 1 && (
-                <div className="mt-2 pt-2 border-t border-sage/10">
+                <div className="mt-2 pt-2 border-t border-border/50">
                   <div className="flex justify-between items-center">
-                    <span className="text-[10px] text-muted-foreground">All {patrycjaServings} servings</span>
+                    <span className="text-[10px] text-muted-foreground">Wszystkie {patrycjaServings}</span>
                     <span className="text-xs font-bold text-foreground">{Math.round(patrycjaPortion.calories)} kcal</span>
                   </div>
                 </div>
@@ -849,18 +833,18 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
           </div>
 
           <p className="text-[10px] text-muted-foreground text-center mt-4">
-            Ratio: {partner?.name || "Marcin"} gets 2 parts, {profile?.name || "Patrycja"} gets 1 part per serving
+            Proporcja: {partner?.name || "Partner"} dostaje 2 części, {profile?.name || "Ty"} dostaje 1 część na porcję
           </p>
         </div>
       </div>
 
       {/* Step 3: Save Options */}
       <div className="bg-card rounded-2xl border border-border overflow-hidden">
-        <div className="bg-sage/10 px-5 py-3 border-b border-border flex items-center gap-3">
-          <div className="size-7 rounded-full bg-sage text-background flex items-center justify-center text-sm font-bold">3</div>
+        <div className="px-5 py-3 border-b border-border flex items-center gap-3" style={{ backgroundColor: hexToRgba(myColor, 0.1) }}>
+          <div className="size-7 rounded-full text-white flex items-center justify-center text-sm font-bold" style={{ backgroundColor: myColor }}>3</div>
           <div>
-            <h3 className="text-sm font-semibold text-foreground">Save</h3>
-            <p className="text-xs text-muted-foreground">Store as a dish or reusable component</p>
+            <h3 className="text-sm font-semibold text-foreground">Zapisz</h3>
+            <p className="text-xs text-muted-foreground">Zapisz jako danie lub komponent</p>
           </div>
         </div>
         
@@ -1080,6 +1064,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit }: { activeUser: str
                 onClick={async () => {
                   setShowSaveModeModal(false)
                   await handleSaveDish(editMode.id)
+                  onEditSaveComplete?.()
                 }}
                 className="flex items-start gap-3 px-4 py-4 text-left hover:bg-secondary transition-colors"
               >
@@ -1618,6 +1603,8 @@ function IngredientsView({ onEditComponent }: { onEditComponent: (mode: EditMode
 
 function DishesView({ onEditDish }: { onEditDish: (mode: EditMode) => void }) {
   const { dishes, loading, deleteDish } = useDishes()
+  const { profile, partner } = useAuth()
+  const { myColor, partnerColor } = usePartnerColors()
   const [searchTerm, setSearchTerm] = useState("")
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [mainCategoryFilter, setMainCategoryFilter] = useState<string>("All")
@@ -1725,23 +1712,19 @@ function DishesView({ onEditDish }: { onEditDish: (mode: EditMode) => void }) {
                   <div>
                     <h4 className="font-medium text-foreground">{dish.name}</h4>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {dish.elements.length} elements · {dish.totalCalories} kcal
+                      {dish.elements.length} elementów · {dish.totalCalories} kcal
                     </p>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-xs text-muted-foreground/70">{dish.mainCategory} · {dish.subCategory}</span>
-                      {(dish.marcinServings || dish.patrycjaServings) && (
-                        <div className="flex items-center gap-1">
-                          {dish.marcinServings && (
-                            <span className="px-1.5 py-0.5 rounded bg-navy/20 text-navy text-[9px] font-medium">
-                              M:{dish.marcinServings}
-                            </span>
-                          )}
-                          {dish.patrycjaServings && (
-                            <span className="px-1.5 py-0.5 rounded bg-sage/20 text-sage text-[9px] font-medium">
-                              P:{dish.patrycjaServings}
-                            </span>
-                          )}
-                        </div>
+                      {dish.user_id && (
+                        <span
+                          className="px-1.5 py-0.5 rounded text-[9px] font-medium text-white"
+                          style={{ backgroundColor: dish.user_id === profile?.id ? myColor : partnerColor }}
+                        >
+                          {dish.user_id === profile?.id
+                            ? (profile?.name?.split(' ')[0] || 'Ty')
+                            : (partner?.name?.split(' ')[0] || 'Partner')}
+                        </span>
                       )}
                     </div>
                   </div>

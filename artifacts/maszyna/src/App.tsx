@@ -1,8 +1,8 @@
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useEffect } from "react";
 import { LanguageProvider } from "@/lib/i18n/context";
 import { AuthProvider } from "@/lib/auth-context";
+import { PartnerColorsProvider } from "@/lib/partner-colors-context";
 import LandingPage from "@/pages/landing";
 import LoginPage from "@/pages/auth/login";
 import SignUpPage from "@/pages/auth/sign-up";
@@ -44,9 +44,11 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <LanguageProvider>
         <AuthProvider>
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <Router />
-          </WouterRouter>
+          <PartnerColorsProvider>
+            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+              <Router />
+            </WouterRouter>
+          </PartnerColorsProvider>
         </AuthProvider>
       </LanguageProvider>
     </QueryClientProvider>
