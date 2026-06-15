@@ -235,8 +235,8 @@ export function DashboardScreen() {
           <div className="h-full bg-sage/70 rounded-full transition-all duration-500" style={{ width: `${Math.min((todaySteps / stepGoal) * 100, 100)}%` }} />
         </div>
         {showStepInput && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-card rounded-2xl w-full max-w-xs p-5">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowStepInput(false)}>
+            <div className="bg-card rounded-2xl w-full max-w-xs p-5 animate-in fade-in-0 zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
               <h3 className="font-semibold text-foreground mb-1 text-center">Aktualizuj kroki</h3>
               <input
                 type="number"

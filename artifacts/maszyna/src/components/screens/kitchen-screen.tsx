@@ -179,6 +179,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
   const [showSaveModeModal, setShowSaveModeModal] = useState(false)
   const [editingIngredientId, setEditingIngredientId] = useState<string | null>(null)
   const [editingGrams, setEditingGrams] = useState("")
+  const [componentImageUrl, setComponentImageUrl] = useState<string | null>(null)
 
   const { t, language } = useLanguage()
   const { profile, partner } = useAuth()
@@ -370,7 +371,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
 
   const handleSaveComponent = async () => {
     if (selectedIngredients.length > 0 && saveName.trim()) {
-      const component = await addIngredient({
+      const payload: Parameters<typeof addIngredient>[0] = {
         name: saveName.trim(),
         category: "Component",
         protein: selectedTotals.protein,
@@ -384,12 +385,14 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
         yield_grams: selectedIngredients.reduce((acc, i) => acc + i.grams, 0),
         marcin_servings: marcinServings,
         patrycja_servings: patrycjaServings,
-      })
+      }
+      const component = await addIngredient(payload)
 
       if (component.error) {
         alert("Failed to save component. Check the console for details.")
       } else {
         setSaveName("")
+        setComponentImageUrl(null)
         setIngredients(ingredients.map((i) => ({ ...i, selected: false })))
         alert(`Component "${saveName}" saved successfully!`)
       }
@@ -527,7 +530,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
                       : "bg-secondary text-muted-foreground"
                   }`}
                 >
-                  {t('unitsLabel')} ({selectedIngredientData?.average_weight}g)
+                  {t('units')} ({selectedIngredientData?.average_weight}g)
                 </button>
               </div>
             )}
@@ -557,7 +560,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
             <div className="size-12 rounded-full bg-secondary mx-auto mb-3 flex items-center justify-center">
               <Plus className="size-5 text-muted-foreground" />
             </div>
-            <p className="text-sm text-muted-foreground">{t('recipeEmpty')}</p>
+            <p className="text-sm text-muted-foreground">{t('emptyRecipe')}</p>
             <p className="text-xs text-muted-foreground mt-1">{t('recipeEmptyDesc')}</p>
           </div>
         ) : (
@@ -923,7 +926,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
                   ) : (
                     <div className="flex flex-col items-center gap-1">
                       <Camera className="size-4 text-muted-foreground" />
-                      <span className="text-[9px] text-muted-foreground leading-tight text-center">{t('cover')}</span>
+                      <span className="text-[9px] text-muted-foreground leading-tight text-center">{t('coverPhoto')}</span>
                     </div>
                   )}
                 </div>
@@ -960,7 +963,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
 
           {/* Recipe URL */}
           <div className="mb-4">
-            <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 block">{t('recipeLink')}</label>
+            <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 block">{t('originalRecipeLink')}</label>
             <div className="relative">
               <Link className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
               <input
@@ -998,6 +1001,28 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
                   <p className="text-sm font-medium text-foreground">{t('saveAsComponent')}</p>
                   <p className="text-[10px] text-muted-foreground">{t('componentDesc')}</p>
                 </div>
+                {/* Optional component cover image */}
+                <label className="cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={e => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      const reader = new FileReader()
+                      reader.onload = (ev) => setComponentImageUrl(ev.target?.result as string)
+                      reader.readAsDataURL(file)
+                    }}
+                  />
+                  <div className={`size-9 rounded-lg overflow-hidden border-2 transition-colors ${componentImageUrl ? "border-primary/50" : "border-dashed border-border hover:border-muted-foreground"} flex items-center justify-center shrink-0`}>
+                    {componentImageUrl ? (
+                      <img src={componentImageUrl} className="w-full h-full object-cover" />
+                    ) : (
+                      <Camera className="size-3.5 text-muted-foreground" />
+                    )}
+                  </div>
+                </label>
               </div>
               <button
                 onClick={handleSaveComponent}
@@ -1056,8 +1081,14 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
 
       {/* Save Mode Modal — shown when editing a dish from planner */}
       {showSaveModeModal && editMode && (
-        <div className="fixed inset-0 bg-black/50 z-[80] flex items-end justify-center p-4 pb-24">
-          <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden shadow-xl border border-border">
+        <div
+          className="fixed inset-0 bg-black/50 z-[80] flex items-end justify-center p-4 pb-24"
+          onClick={() => setShowSaveModeModal(false)}
+        >
+          <div
+            className="bg-card rounded-2xl w-full max-w-md overflow-hidden shadow-xl border border-border animate-in slide-in-from-bottom-4 duration-250"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="p-4 border-b border-border">
               <p className="text-base font-semibold text-foreground">Jak zapisać zmiany?</p>
               <p className="text-xs text-muted-foreground mt-0.5">Edytujesz: <span className="font-medium">{editMode.name}</span></p>

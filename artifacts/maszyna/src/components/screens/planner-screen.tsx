@@ -1033,8 +1033,8 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
 
       {/* Swap Dish Modal */}
       {showSwapDishModal && selectedEventForMenu && (
-        <div className="fixed inset-0 bg-black/50 z-[60] flex items-end justify-center p-4 pb-24">
-          <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden max-h-[80vh] flex flex-col">
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-end justify-center p-4 pb-24" onClick={() => setShowSwapDishModal(false)}>
+          <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden max-h-[80vh] flex flex-col animate-in slide-in-from-bottom-4 duration-250" onClick={(e) => e.stopPropagation()}>
             <div className="p-4 border-b border-border flex items-center justify-between">
               <h3 className="text-lg font-semibold">Zamień danie</h3>
               <button onClick={() => setShowSwapDishModal(false)} className="p-1 rounded-lg hover:bg-secondary">
@@ -1163,8 +1163,14 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
 
       {/* Add Event Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 p-4 pb-24">
-          <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden max-h-[80vh] flex flex-col">
+        <div
+          className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 p-4 pb-24"
+          onClick={() => setShowAddModal(false)}
+        >
+          <div
+            className="bg-card rounded-2xl w-full max-w-md overflow-hidden max-h-[80vh] flex flex-col animate-in slide-in-from-bottom-4 duration-250"
+            onClick={(e) => e.stopPropagation()}
+          >
 
             {/* Modal Header */}
             <div className="p-4 border-b border-border flex items-center justify-between">
@@ -1202,150 +1208,77 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
             {/* Modal Body Container */}
             <div className="p-4 flex flex-col gap-4 overflow-y-auto">
 
-              {/* Type Switcher */}
-              <div className="flex gap-1.5 p-1 bg-secondary rounded-xl text-xs">
-                {(["meal", "training", "supplements"] as const).map((t) => (
+              {/* Type + Owner — single compact row */}
+              <div className="flex items-center gap-2">
+                {/* Type tabs with icons */}
+                <div className="flex gap-0.5 p-1 bg-secondary rounded-xl text-xs flex-1">
                   <button
-                    key={t}
                     type="button"
-                    onClick={() => setAddType(t)}
-                    className={`flex-1 py-1.5 rounded-lg font-medium transition-all capitalize ${
-                      addType === t ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+                    onClick={() => setAddType("meal")}
+                    className={`flex-1 py-1.5 rounded-lg font-medium transition-all flex items-center justify-center gap-1 ${
+                      addType === "meal" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
                     }`}
                   >
-                    {t}
+                    <UtensilsCrossed className="size-3" />
+                    <span className="hidden sm:inline">Posiłek</span>
                   </button>
-                ))}
+                  <button
+                    type="button"
+                    onClick={() => setAddType("training")}
+                    className={`flex-1 py-1.5 rounded-lg font-medium transition-all flex items-center justify-center gap-1 ${
+                      addType === "training" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+                    }`}
+                  >
+                    <Dumbbell className="size-3" />
+                    <span className="hidden sm:inline">Trening</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAddType("supplements")}
+                    className={`flex-1 py-1.5 rounded-lg font-medium transition-all flex items-center justify-center gap-1 ${
+                      addType === "supplements" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+                    }`}
+                  >
+                    <Pill className="size-3" />
+                    <span className="hidden sm:inline">Suplement</span>
+                  </button>
+                </div>
+
+                {/* Owner — compact avatar buttons */}
+                <div className="flex gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setMealOwner("patrycja")}
+                    title={profile?.name || "Patrycja"}
+                    className={`size-8 rounded-lg text-xs font-bold transition-all ${
+                      mealOwner === "patrycja" ? "text-white shadow-sm" : "bg-secondary text-muted-foreground"
+                    }`}
+                    style={mealOwner === "patrycja" ? { backgroundColor: myColor } : undefined}
+                  >
+                    {(profile?.name || "P")[0].toUpperCase()}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMealOwner("marcin")}
+                    title={partner?.name || "Marcin"}
+                    className={`size-8 rounded-lg text-xs font-bold transition-all ${
+                      mealOwner === "marcin" ? "text-white shadow-sm" : "bg-secondary text-muted-foreground"
+                    }`}
+                    style={mealOwner === "marcin" ? { backgroundColor: partnerColor } : undefined}
+                  >
+                    {(partner?.name || "M")[0].toUpperCase()}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMealOwner("both")}
+                    className={`px-2 h-8 rounded-lg text-[10px] font-medium transition-all ${
+                      mealOwner === "both" ? "bg-primary text-primary-foreground shadow-sm" : "bg-secondary text-muted-foreground"
+                    }`}
+                  >
+                    Oboje
+                  </button>
+                </div>
               </div>
-
-              {/* For meals: Preset / Custom Toggle */}
-              {addType === "meal" && (
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setInputMode("preset")
-                      setNewEvent({ ...newEvent, title: "", details: "" })
-                    }}
-                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-                      inputMode === "preset"
-                        ? "bg-secondary text-foreground border border-primary/50"
-                        : "bg-secondary/50 text-muted-foreground border border-transparent"
-                    }`}
-                  >
-                    Select Dish
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setInputMode("custom")
-                      setSelectedDishId(null)
-                      setSelectedMainCategory(null)
-                      setSelectedSubCategory(null)
-                    }}
-                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-                      inputMode === "custom"
-                        ? "bg-secondary text-foreground border border-primary/50"
-                        : "bg-secondary/50 text-muted-foreground border border-transparent"
-                    }`}
-                  >
-                    Custom
-                  </button>
-                </div>
-              )}
-
-              {/* For training: Workout Type Filter */}
-              {addType === "training" && (
-                <div className="flex gap-2 p-1 bg-secondary rounded-xl">
-                  {(["weights", "cardio", "flexibility"] as const).map((type) => (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => setWorkoutTypeFilter(type)}
-                      className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all capitalize ${
-                        workoutTypeFilter === type ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
-                      }`}
-                    >
-                      {type}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Owner Selection for all types */}
-              <div className="flex gap-2 p-1 bg-secondary rounded-xl">
-                <button
-                  type="button"
-                  onClick={() => setMealOwner("patrycja")}
-                  className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
-                    mealOwner === "patrycja" ? "text-white shadow-sm" : "text-muted-foreground"
-                  }`}
-                  style={mealOwner === "patrycja" ? { backgroundColor: myColor } : undefined}
-                >
-                  {profile?.name || "Patrycja"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMealOwner("marcin")}
-                  className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
-                    mealOwner === "marcin" ? "text-white shadow-sm" : "text-muted-foreground"
-                  }`}
-                  style={mealOwner === "marcin" ? { backgroundColor: partnerColor } : undefined}
-                >
-                  {partner?.name || "Marcin"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMealOwner("both")}
-                  className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
-                    mealOwner === "both" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground"
-                  }`}
-                >
-                  Both
-                </button>
-              </div>
-
-              {/* Sub-filters: Dish category for meals */}
-              {addType === "meal" && inputMode === "preset" && (
-                <div className="flex gap-1 p-1 bg-secondary/50 rounded-lg">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedMainCategory(selectedMainCategory === "Large" ? null : "Large")}
-                    className={`flex-1 py-1.5 rounded-md text-[10px] font-medium transition-all ${
-                      selectedMainCategory === "Large" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
-                    }`}
-                  >
-                    Large
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedMainCategory(selectedMainCategory === "Light" ? null : "Light")}
-                    className={`flex-1 py-1.5 rounded-md text-[10px] font-medium transition-all ${
-                      selectedMainCategory === "Light" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
-                    }`}
-                  >
-                    Light
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedMainCategory(selectedMainCategory === "Snacks" ? null : "Snacks")}
-                    className={`flex-1 py-1.5 rounded-md text-[10px] font-medium transition-all ${
-                      selectedMainCategory === "Snacks" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
-                    }`}
-                  >
-                    Snacks
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedMainCategory(selectedMainCategory === "Drinks" ? null : "Drinks")}
-                    className={`flex-1 py-1.5 rounded-md text-[10px] font-medium transition-all ${
-                      selectedMainCategory === "Drinks" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
-                    }`}
-                  >
-                    Drinks
-                  </button>
-                </div>
-              )}
 
               {/* Common Fields: Time selection */}
               <div className="flex flex-col gap-1.5">
@@ -1359,9 +1292,26 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
               </div>
 
               {/* Dish Picker - Show all dishes immediately with optional filter */}
-              {addType === "meal" && inputMode === "preset" && (
+              {addType === "meal" && inputMode !== "custom" && (
                 <div className="flex flex-col gap-3">
-                  <div className="flex flex-col gap-1.5 max-h-[220px] overflow-y-auto pr-1">
+                  {/* Category chips inline */}
+                  <div className="flex gap-1 flex-wrap">
+                    {(["Large","Light","Snacks","Drinks"] as const).map(cat => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setSelectedMainCategory(selectedMainCategory === cat ? null : cat)}
+                        className={`px-2.5 py-1 rounded-full text-[10px] font-medium transition-all border ${
+                          selectedMainCategory === cat
+                            ? "bg-sage/20 border-sage/40 text-sage/80"
+                            : "border-border text-muted-foreground hover:border-muted"
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex flex-col gap-1.5 max-h-[200px] overflow-y-auto pr-1">
                     {allDishes
                       .filter(d => selectedMainCategory ? d.mainCategory === selectedMainCategory : true)
                       .map((dish) => (
@@ -1388,6 +1338,14 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                       <p className="text-xs text-muted-foreground text-center py-4">Brak dań w tej kategorii</p>
                     )}
                   </div>
+                  {/* Toggle to custom */}
+                  <button
+                    type="button"
+                    onClick={() => { setInputMode("custom"); setSelectedDishId(null) }}
+                    className="text-xs text-muted-foreground hover:text-primary transition-colors text-center py-0.5"
+                  >
+                    + Wpisz własny posiłek
+                  </button>
                 </div>
               )}
 
@@ -1420,7 +1378,23 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
               {/* Training Workout Picker */}
               {addType === "training" && (
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs font-medium text-muted-foreground">Wybierz plan treningowy</label>
+                  {/* Workout type inline filter */}
+                  <div className="flex gap-1">
+                    {(["weights", "cardio", "flexibility"] as const).map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => setWorkoutTypeFilter(type)}
+                        className={`flex-1 py-1.5 rounded-lg text-[10px] font-medium transition-all capitalize border ${
+                          workoutTypeFilter === type
+                            ? "bg-primary/10 border-primary/40 text-primary"
+                            : "border-border text-muted-foreground hover:border-muted"
+                        }`}
+                      >
+                        {type}
+                      </button>
+                    ))}
+                  </div>
                   <div className="flex flex-col gap-1.5 max-h-[200px] overflow-y-auto pr-1">
                     {filteredPlans.map((plan) => (
                       <button

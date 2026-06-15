@@ -534,8 +534,14 @@ export function ShoppingListScreen() {
 
       {/* Import Modal — multi-day + portions */}
       {showImport && (
-        <div className="fixed inset-0 bg-black/60 flex items-end justify-center z-50 p-4 pb-24">
-          <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[82vh]">
+        <div
+          className="fixed inset-0 bg-black/60 flex items-end justify-center z-50 p-4 pb-24"
+          onClick={() => setShowImport(false)}
+        >
+          <div
+            className="bg-card rounded-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[82vh] animate-in slide-in-from-bottom-4 duration-250"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Header */}
             <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">

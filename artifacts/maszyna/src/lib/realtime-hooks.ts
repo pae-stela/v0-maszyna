@@ -1197,8 +1197,23 @@ export function useShoppingList() {
       _localSave([...items, row])
       return
     }
-    const { error } = await supabase.from('shopping_list').insert({ ...item, user_id: user.id })
-    if (error) console.error('[useShoppingList] insert error:', error.message)
+    const optimisticId = `opt-${Date.now()}`
+    const optimistic: ShoppingListRow = {
+      ...item, id: optimisticId, user_id: user.id,
+      created_at: new Date().toISOString(), updated_at: new Date().toISOString()
+    }
+    setItems(prev => [...prev, optimistic])
+    const { data, error } = await supabase
+      .from('shopping_list')
+      .insert({ ...item, user_id: user.id })
+      .select()
+      .single()
+    if (error) {
+      console.error('[useShoppingList] insert error:', error.message)
+      setItems(prev => prev.filter(i => i.id !== optimisticId))
+    } else if (data) {
+      setItems(prev => prev.map(i => i.id === optimisticId ? (data as ShoppingListRow) : i))
+    }
   }
 
   const updateItem = async (id: string, changes: Partial<Pick<ShoppingListRow, 'name' | 'quantity' | 'category' | 'checked'>>) => {
