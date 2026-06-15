@@ -35,7 +35,7 @@ minimumReleaseAgeExclude:
   - stripe-replit-sync
 
 packages:
-  - artifacts/*
+  - artifacts/maszyna
   - artifacts/maszyna/*
   - lib/*
   - lib/integrations/*
