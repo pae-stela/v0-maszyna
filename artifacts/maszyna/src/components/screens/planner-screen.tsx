@@ -66,7 +66,7 @@ export function PlannerScreen({ onNavigateToKitchen }: { onNavigateToKitchen?: (
           }`}
         >
           <ShoppingCart className="size-4" />
-          {t("Shopping")}
+          {t("shopping")}
         </button>
       </div>
 
@@ -217,7 +217,7 @@ function MacroSummary({
       } catch { /* ignore */ }
       if (parsedOwner) return parsedOwner === owner
       return owner === "marcin"
-        ? (profile?.name?.toLowerCase().includes("marcin") ? true : false)
+        ? (selfProfile?.name?.toLowerCase().includes("marcin") ? true : false)
         : (partner?.name?.toLowerCase().includes("patrycja") ? true : false)
     })
 
@@ -1049,32 +1049,31 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                     onClick={() => {
                       const event = plannerEvents.find((e) => e.id === selectedEventForMenu)
                       if (!event) return
-                      const owner = (event.details?.owner as "marcin" | "patrycja" | "both") || "patrycja"
+                      const eventDetails = event.details as any
+                      const owner = (eventDetails?.owner as "marcin" | "patrycja" | "both") || "patrycja"
                       const dOwner = owner === "both" ? "patrycja" : owner
                       const ratio = owner === "both" ? 1 : 1
-                      const marcinPer = dish.perMarcin || dish.perServing
-                      const patrycjaPer = dish.perPatrycja || dish.perServing
-                      const dServing = dOwner === "marcin" ? marcinPer : patrycjaPer
-                      const calories = dServing?.calories ?? 0
-                      const protein = dServing?.protein ?? 0
-                      const carbs = dServing?.carbs ?? 0
-                      const fats = dServing?.fats ?? 0
+                      const servings = dOwner === "marcin" ? (dish.marcinServings || dish.servings || 1) : (dish.patrycjaServings || dish.servings || 1)
+                      const caloriesValue = (dish.totalCalories / (dish.servings || 1)) * servings
+                      const proteinValue = (dish.totalProtein / (dish.servings || 1)) * servings
+                      const carbsValue = (dish.totalCarbs / (dish.servings || 1)) * servings
+                      const fatsValue = (dish.totalFats / (dish.servings || 1)) * servings
                       const newDetails = {
                         owner,
-                        calories: Math.round(calories),
-                        protein: Math.round(protein),
-                        carbs: Math.round(carbs),
-                        fats: Math.round(fats),
+                        calories: Math.round(caloriesValue),
+                        protein: Math.round(proteinValue),
+                        carbs: Math.round(carbsValue),
+                        fats: Math.round(fatsValue),
                         dishId: dish.id,
                         servingRatio: ratio,
-                        marcin: marcinPer || null,
-                        patrycja: patrycjaPer || null,
+                        marcin: null,
+                        patrycja: null,
                         sharedWithPartner: owner === "both",
                         auto: true,
                       }
                       updateEvent(selectedEventForMenu, {
                         name: dish.name,
-                        details: newDetails,
+                        details: JSON.stringify(newDetails),
                       }).then(() => {
                         setShowSwapDishModal(false)
                         setSelectedEventForMenu(null)
@@ -1085,13 +1084,13 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">{dish.name}</span>
                       <span className="text-xs text-muted-foreground">
-                        {dish.perServing?.calories ?? dish.perMarcin?.calories ?? 0} kcal
+                        {Math.round(dish.totalCalories / (dish.servings || 1))} kcal
                       </span>
                     </div>
                     <div className="text-[10px] text-muted-foreground mt-1">
-                      P:{dish.perServing?.protein ?? dish.perMarcin?.protein ?? 0}g ·
-                      C:{dish.perServing?.carbs ?? dish.perMarcin?.carbs ?? 0}g ·
-                      F:{dish.perServing?.fats ?? dish.perMarcin?.fats ?? 0}g
+                      P:{Math.round(dish.totalProtein / (dish.servings || 1))}g ·
+                      C:{Math.round(dish.totalCarbs / (dish.servings || 1))}g ·
+                      F:{Math.round(dish.totalFats / (dish.servings || 1))}g
                     </div>
                   </button>
                 ))}
@@ -1135,7 +1134,9 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
               <button
                 onClick={() => {
                   setShowKitchenModeModal(false)
-                  onNavigateToKitchen({ ...pendingKitchenDish, id: undefined })
+                  if (pendingKitchenDish) {
+                    onNavigateToKitchen(pendingKitchenDish)
+                  }
                   setPendingKitchenDish(null)
                 }}
                 className="flex items-start gap-3 px-4 py-3.5 text-left hover:bg-secondary transition-colors"

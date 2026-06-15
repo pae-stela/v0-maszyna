@@ -183,7 +183,6 @@ export function ShoppingListScreen() {
     setLoadingImport(true)
     setImportMealsByDate({})
     setSelectedMeals(new Set())
-    setMealPortions({})
     setExpandedDays(new Set())
     try {
       const { data, error } = await supabase
@@ -244,7 +243,7 @@ export function ShoppingListScreen() {
       const importedFrom = { dishName: name, date: firstDate }
       if (dish && Array.isArray(dish.elements) && dish.elements.length > 0) {
         for (const el of dish.elements) {
-          const elName: string = el?.name || el?.ingredient_name || (typeof el === "string" ? el : "")
+          const elName: string = el?.name || (el as any)?.ingredient_name || (typeof el === "string" ? el : "")
           if (!elName) continue
           const baseGrams = el?.grams ? Number(el.grams) : 0
           const scaledQty = baseGrams > 0 ? `${Math.round(baseGrams * batches)}g` : batches > 1 ? `×${batches}` : ""

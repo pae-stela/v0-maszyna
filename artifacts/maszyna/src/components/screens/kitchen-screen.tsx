@@ -478,7 +478,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
             <div className="flex items-center gap-2">
               <input
                 type="text"
-                placeholder={t('searchIngredient')}
+                placeholder={t('searchIngredients')}
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value)
@@ -1841,7 +1841,7 @@ function DishesView({ onEditDish }: { onEditDish: (mode: EditMode) => void }) {
                         id: dish.id,
                         name: dish.name,
                         elements: dish.elements,
-                        recipeSteps: dish.recipeSteps,
+                        recipeSteps: dish.recipeSteps ?? undefined,
                         marcinServings: dish.marcinServings,
                         patrycjaServings: dish.patrycjaServings,
                         mainCategory: dish.mainCategory,
