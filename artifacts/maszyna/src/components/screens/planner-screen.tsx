@@ -1,5 +1,5 @@
 import { useLanguage } from "@/lib/i18n/context"
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { usePartnerColors } from "@/lib/partner-colors-context"
 import { ShoppingListScreen } from "@/components/screens/shopping-list-screen"
 import { useAuth } from "@/lib/auth-context"
