@@ -374,6 +374,15 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
   const [showRecipesOnly, setShowRecipesOnly] = useState(false)
   const [mealOwner, setMealOwner] = useState<"marcin" | "patrycja" | "both">("patrycja")
 
+  // Set meal owner to current user when component mounts or user changes
+  useEffect(() => {
+    if (user?.id === profile?.user_id || profile?.name?.toLowerCase() === "patrycja") {
+      setMealOwner("patrycja")
+    } else {
+      setMealOwner("marcin")
+    }
+  }, [user?.id, profile?.user_id])
+
   const dates = getDateRange(baseDate, viewMode)
   const today = new Date()
 
@@ -1014,7 +1023,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                         }}
                         className="flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors"
                       >
-                        <RefreshCw className="size-4 text-amber-500" />
+                        <RefreshCw className="size-4 text-muted-foreground" />
                         <span>Zamień danie</span>
                       </button>
                     )}
@@ -1044,13 +1053,13 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                             })
                             setShowKitchenModeModal(true)
                           } else {
-                            alert("Nie znaleziono dania w bazie. Otwórz kuchnię ręcznie i wyszukaj danie.")
+                            alert("Nie znaleziono dania w bazie. Otwórz kalkulator ręcznie i wyszukaj danie.")
                           }
                         }}
                         className="flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors"
                       >
-                        <Edit className="size-4 text-sky-500" />
-                        <span>Edytuj w kuchni</span>
+                        <Edit className="size-4 text-muted-foreground" />
+                        <span>Edytuj w kalkulatorze</span>
                       </button>
                     )}
                     <button

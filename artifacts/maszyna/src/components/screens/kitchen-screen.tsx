@@ -1349,7 +1349,7 @@ function IngredientsView({ onEditComponent }: { onEditComponent: (mode: EditMode
       {/* Add New Ingredient Form */}
       {showAddForm && (
         <div className="bg-card rounded-2xl p-5 border border-primary/50">
-          <h3 className="text-base font-semibold mb-4">Add New Ingredient</h3>
+          <h3 className="text-base font-semibold mb-4">Dodaj nowy składnik</h3>
           <div className="flex flex-col gap-3">
             <input
               type="text"
@@ -1428,7 +1428,7 @@ function IngredientsView({ onEditComponent }: { onEditComponent: (mode: EditMode
               className="mt-2 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-50"
             >
               <Plus className="size-4" />
-              Add Ingredient
+              Dodaj składnik
             </button>
           </div>
         </div>
@@ -1438,7 +1438,7 @@ function IngredientsView({ onEditComponent }: { onEditComponent: (mode: EditMode
       <div className="flex flex-col gap-2">
         {filteredIngredients.length === 0 ? (
           <div className="bg-card rounded-2xl p-8 border border-border text-center">
-            <p className="text-muted-foreground">No ingredients found</p>
+            <p className="text-muted-foreground">Nie znaleziono składników</p>
           </div>
         ) : (
           filteredIngredients.map((ingredient) => (
@@ -1542,7 +1542,7 @@ function IngredientsView({ onEditComponent }: { onEditComponent: (mode: EditMode
                       </select>
                       {editForm.category === "Component" && (
                         <div className="flex flex-col gap-1.5">
-                          <label className="text-xs text-muted-foreground">Instructions (one step per line)</label>
+                <label className="text-xs text-muted-foreground">Instrukcje (jeden krok na linię)</label>
                           <textarea
                             value={editForm.instructions}
                             onChange={(e) => setEditForm({ ...editForm, instructions: e.target.value })}
@@ -1574,8 +1574,8 @@ function IngredientsView({ onEditComponent }: { onEditComponent: (mode: EditMode
                         </div>
                       </div>
                       <div className="flex gap-2 mt-1">
-                        <button onClick={(e) => { e.stopPropagation(); handleSaveEdit(ingredient.id) }} className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:scale-[0.98] transition-transform">Save</button>
-                        <button onClick={(e) => { e.stopPropagation(); cancelEdit() }} className="flex-1 py-2.5 rounded-xl bg-secondary text-foreground text-sm font-medium active:scale-[0.98] transition-transform">Cancel</button>
+                        <button onClick={(e) => { e.stopPropagation(); handleSaveEdit(ingredient.id) }} className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:scale-[0.98] transition-transform">Zapisz</button>
+                        <button onClick={(e) => { e.stopPropagation(); cancelEdit() }} className="flex-1 py-2.5 rounded-xl bg-secondary text-foreground text-sm font-medium active:scale-[0.98] transition-transform">Anuluj</button>
                       </div>
                     </div>
                   ) : (

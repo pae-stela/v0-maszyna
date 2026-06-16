@@ -479,7 +479,6 @@ export const translations = {
     lightMode: "Jasny",
     systemMode: "Systemowy",
     notifications: "Powiadomienia",
-    calendar: "Kalendarz",
     partnerCode: "Kod partnera",
     connectPartner: "Połącz z partnerem",
     myColor: "Mój kolor",
