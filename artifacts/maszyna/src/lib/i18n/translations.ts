@@ -267,7 +267,8 @@ export const translations = {
     gain: "Napęd",
     kokpit: "Kokpit",
     plan: "Plan",
-    track: "Monit",
+    track: "Śledzenie",
+    calendar: "Kalendarz",
     
     // Common
     save: "Zapisz",

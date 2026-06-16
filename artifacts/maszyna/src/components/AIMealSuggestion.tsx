@@ -23,7 +23,7 @@ export function AIMealSuggestion({ remaining, targets }: Props) {
   const [suggestion, setSuggestion] = useState<MealSuggestion | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const hasEnoughRemaining = remaining.calories > 150
+  const hasEnoughRemaining = remaining.calories < 800
 
   const getSuggestion = async () => {
     setLoading(true)

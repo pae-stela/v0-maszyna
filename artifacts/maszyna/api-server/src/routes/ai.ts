@@ -23,8 +23,8 @@ router.post("/meal-suggestion", async (req, res) => {
   const isPolish = lang === "pl"
 
   const systemPrompt = isPolish
-    ? `Jesteś asystentem dietetycznym. Twoja rola to zaproponowanie JEDNEGO prostego i szybkiego posiłku (koktajl, kanapka, tost, wrapy, jajecznica, owsianka, jogurt z dodatkami itp.), który idealnie uzupełni brakujące makroskładniki na dany dzień. Posiłek musi być banalnie prosty do przygotowania - maksymalnie 5 minut. Odpowiadaj zawsze w formacie JSON.`
-    : `You are a dietary assistant. Your role is to suggest ONE simple and quick meal (shake, sandwich, toast, wrap, scrambled eggs, oatmeal, yogurt with toppings, etc.) that will almost perfectly fill the remaining daily macros. The meal must be extremely simple to prepare — max 5 minutes. Always respond in JSON format.`
+    ? `Jesteś asystentem dietetycznym. Twoja rola to zaproponowanie JEDNEGO bardzo prostego i szybkiego posiłku (koktajl/shake, kanapka, tost, wrap, jajecznica, owsianka, jogurt z dodatkami itp.), który idealnie uzupełni brakujące makroskładniki na dany dzień. Posiłek musi być banalnie prosty do przygotowania - maksymalnie 5 minut, bez gotowania lub z minimalnym gotowaniem. Odpowiadaj zawsze w formacie JSON. Skupiaj się na: shake/koktajlu białkowym, kanapce/toście, wracie, jajecznici lub jogurt z owocami/muesli.`
+    : `You are a dietary assistant. Your role is to suggest ONE very simple and quick meal (protein shake, sandwich, toast, wrap, scrambled eggs, oatmeal, yogurt with toppings, etc.) that will almost perfectly fill the remaining daily macros. The meal must be extremely simple to prepare — max 5 minutes, no cooking or minimal cooking required. Always respond in JSON format. Focus on: protein shakes, sandwiches/toast, wraps, scrambled eggs, or yogurt with fruit/granola.`
 
   const userPrompt = isPolish
     ? `Brakujące makroskładniki na dziś:

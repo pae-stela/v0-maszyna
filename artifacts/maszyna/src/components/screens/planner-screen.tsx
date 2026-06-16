@@ -55,7 +55,7 @@ export function PlannerScreen({ onNavigateToKitchen }: { onNavigateToKitchen?: (
           }`}
         >
           <Calendar className="size-4" />
-          Calendar
+          {t("calendar")}
         </button>
         <button
           onClick={() => setSubTab("shopping")}
@@ -102,8 +102,8 @@ function getDateRange(baseDate: Date, mode: CalendarViewMode): Date[] {
   return dates
 }
 
-function formatDate(date: Date): string {
-  return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+function formatDate(date: Date, language: string = 'pl'): string {
+  return date.toLocaleDateString(language === 'pl' ? 'pl-PL' : 'en-US', { weekday: 'short', month: 'short', day: 'numeric' })
 }
 
 function isSameDay(d1: Date, d2: Date): boolean {
@@ -337,7 +337,7 @@ function MacroSummary({
 
 function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: EditMode) => void }) {
   const { user, profile, settings, partner } = useAuth()
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const { myColor, partnerColor } = usePartnerColors()
   const { dishes: allDishes } = useDishes()
   const { plans: allPlans } = useWorkoutPlans()
@@ -741,8 +741,8 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
         <div className="flex items-center gap-2">
           <h3 className="font-semibold text-foreground">
             {viewMode === "today"
-              ? formatDate(baseDate)
-              : `${formatDate(dates[0])} - ${formatDate(dates[dates.length - 1])}`
+              ? formatDate(baseDate, language)
+              : `${formatDate(dates[0], language)} - ${formatDate(dates[dates.length - 1], language)}`
           }
           </h3>
           {!isSameDay(baseDate, today) && (
@@ -750,7 +750,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
               onClick={goToToday}
               className="text-xs text-primary hover:underline"
             >
-              Today
+              {t("today")}
             </button>
           )}
         </div>
@@ -1192,7 +1192,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                   <h3 className="font-semibold text-foreground font-sans text-sm">
                     {addType === "meal" ? "Dodaj posiłek" : addType === "training" ? "Dodaj trening" : "Dodaj suplement"}
                   </h3>
-                  <p className="text-xs text-muted-foreground font-mono">{formatDate(selectedDate)}</p>
+                  <p className="text-xs text-muted-foreground font-mono">{formatDate(selectedDate, language)}</p>
                 </div>
               </div>
 
