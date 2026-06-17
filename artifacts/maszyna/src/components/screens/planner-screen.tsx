@@ -966,7 +966,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                         }}
                         className="flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors"
                       >
-                        <RefreshCw className="size-4 text-amber-500" />
+                        <RefreshCw className="size-4 text-[var(--color-terracotta)]" />
                         <span>Zamień danie</span>
                       </button>
                     )}
@@ -1001,7 +1001,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                         }}
                         className="flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors"
                       >
-                        <Edit className="size-4 text-sky-500" />
+                        <Edit className="size-4 text-[var(--color-navy)]" />
                         <span>Edytuj w kuchni</span>
                       </button>
                     )}
@@ -1014,9 +1014,9 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                             alert("Nie udało się usunąć wydarzenia. Spróbuj ponownie.")
                           })
                       }}
-                      className="flex items-center gap-3 px-4 py-3 text-sm text-destructive hover:bg-secondary transition-colors"
+                      className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:bg-secondary transition-colors"
                     >
-                      <Trash2 className="size-4 text-destructive" />
+                      <Trash2 className="size-4 text-[var(--color-sand-dark)]" />
                       <span>Usuń</span>
                     </button>
                     <button
