@@ -235,9 +235,11 @@ function MacroSummary({
                 const patrycjaS = liveDish.patrycjaServings || 1
                 const totalParts = (marcinS * 2) + (patrycjaS * 1)
                 if (totalParts > 0) {
-                  const mult = owner === "marcin"
-                    ? (marcinS * 2) / totalParts
-                    : (patrycjaS * 1) / totalParts
+                  // Per-serving mult: use fixed weights (Marcin=2, Patrycja=1) divided by totalParts
+              // This gives the per-single-serving amount, matching what is stored in meal_logs
+              const mult = owner === "marcin"
+                    ? 2 / totalParts
+                    : 1 / totalParts
                   cals = Math.round((liveDish.totalCalories || 0) * mult)
                   prot = Math.round((liveDish.totalProtein || 0) * mult * 10) / 10
                   carb = Math.round((liveDish.totalCarbs || 0) * mult * 10) / 10
@@ -611,9 +613,10 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
             const patrycjaS = liveDish.patrycjaServings || 1
             const totalParts = (marcinS * 2) + (patrycjaS * 1)
             if (totalParts > 0) {
+              // Per-serving mult: use fixed weights (Marcin=2, Patrycja=1) not multiplied by servings
               const mult = eventOwner === "marcin"
-                ? (marcinS * 2) / totalParts
-                : (patrycjaS * 1) / totalParts
+                ? 2 / totalParts
+                : 1 / totalParts
               calories = Math.round((liveDish.totalCalories || 0) * mult)
               protein = Math.round((liveDish.totalProtein || 0) * mult * 10) / 10
               carbs = Math.round((liveDish.totalCarbs || 0) * mult * 10) / 10
