@@ -4,7 +4,7 @@ import { usePartnerColors } from "@/lib/partner-colors-context"
 import { ShoppingListScreen } from "@/components/screens/shopping-list-screen"
 import { useAuth } from "@/lib/auth-context"
 import { useDishes, useWorkoutPlans, usePlannerEvents, useMealLogs } from "@/lib/realtime-hooks"
-import { Calendar, ShoppingCart, ChevronLeft, ChevronRight, Plus, Check, X, Dumbbell, UtensilsCrossed, ExternalLink, AlertTriangle, RefreshCw, ChevronDown, FileText, Pill, Edit, Trash2 } from "lucide-react"
+import { Calendar, ShoppingCart, ChevronLeft, ChevronRight, Plus, Check, X, Dumbbell, Utensils, ExternalLink, AlertTriangle, RefreshCw, ChevronDown, FileText, Pill, Edit, Trash2 } from "lucide-react"
 import type { EditMode } from "@/components/screens/kitchen-screen"
 
 // Re-export dishCategories for shopping view
@@ -674,7 +674,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
   const getEventIcon = (type: EventType) => {
     switch (type) {
       case "training": return <Dumbbell className="size-4" />
-      case "meal": return <UtensilsCrossed className="size-4" />
+      case "meal": return <Utensils className="size-4" />
       case "supplements": return <Pill className="size-4" />
       case "google": return <Calendar className="size-4" />
     }
@@ -870,7 +870,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                           className="py-1.5 px-2.5 rounded-full border border-input bg-background hover:bg-accent hover:text-accent-foreground text-muted-foreground transition-all shadow-sm flex items-center justify-center gap-0.5"
                         >
                           <span className="text-xs font-light text-muted-foreground/80">+</span>
-                          <UtensilsCrossed className="size-3.5" />
+                          <Utensils className="size-3.5" />
                         </button>
                         <button
                           onClick={() => {
@@ -967,7 +967,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                         className="flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors"
                       >
                         <RefreshCw className="size-4 text-[var(--color-terracotta)]" />
-                        <span>Zamień danie</span>
+                        <span>Zamień posiłek</span>
                       </button>
                     )}
                     {isMeal && onNavigateToKitchen && (
@@ -996,7 +996,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                             })
                             setShowKitchenModeModal(true)
                           } else {
-                            alert("Nie znaleziono dania w bazie. Otwórz kuchnię ręcznie i wyszukaj danie.")
+                            alert("Nie znaleziono posiłku w bazie. Otwórz kuchnię ręcznie i wyszukaj posiłek.")
                           }
                         }}
                         className="flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors"
@@ -1039,7 +1039,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
         <div className="fixed inset-0 bg-black/50 z-[60] flex items-end justify-center p-4 pb-24" onClick={() => setShowSwapDishModal(false)}>
           <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden max-h-[80vh] flex flex-col animate-in slide-in-from-bottom-4 duration-250" onClick={(e) => e.stopPropagation()}>
             <div className="p-4 border-b border-border flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Zamień danie</h3>
+              <h3 className="text-lg font-semibold">Zamień posiłek</h3>
               <button onClick={() => setShowSwapDishModal(false)} className="p-1 rounded-lg hover:bg-secondary">
                 <X className="size-4 text-muted-foreground" />
               </button>
@@ -1180,7 +1180,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
               <div className="flex items-center gap-2">
                 {addType === "meal" ? (
                   <div className="size-8 rounded-lg bg-sage/20 flex items-center justify-center">
-                    <UtensilsCrossed className="size-4 text-sage" />
+                        <Utensils className="size-4 text-sage" />
                   </div>
                 ) : addType === "training" ? (
                   <div className="size-8 rounded-lg bg-primary/20 flex items-center justify-center">
@@ -1222,7 +1222,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                       addType === "meal" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
                     }`}
                   >
-                    <UtensilsCrossed className="size-3" />
+                      <Utensils className="size-3" />
                     <span className="hidden sm:inline">Posiłek</span>
                   </button>
                   <button

@@ -5,7 +5,7 @@ import { useUser } from "@/lib/user-context"
 import { useAuth } from "@/lib/auth-context"
 import { useIngredients, useDishes, type DbIngredient } from "@/lib/realtime-hooks"
 import { usePartnerColors } from "@/lib/partner-colors-context"
-import { Calculator, Search, Plus, Trash2, Apple, ChefHat, UtensilsCrossed, FileText, ChevronDown, X, Pencil, Check, Link, ImagePlus, Camera, ExternalLink } from "lucide-react"
+import { Calculator, Search, Plus, Trash2, Apple, ChefHat, Utensils, FileText, ChevronDown, X, Pencil, Check, Link, ImagePlus, Camera, ExternalLink } from "lucide-react"
 
 function hexToRgba(hex: string, alpha: number) {
   const r = parseInt(hex.slice(1, 3), 16)
@@ -1045,7 +1045,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
             <div className="bg-primary/10 rounded-xl p-4 border border-primary/20">
               <div className="flex items-center gap-3 mb-2">
                 <div className="size-9 rounded-lg bg-primary/20 flex items-center justify-center">
-                  <UtensilsCrossed className="size-4 text-primary" />
+                  <Utensils className="size-4 text-primary" />
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-foreground">
@@ -1104,11 +1104,11 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
                 className="flex items-start gap-3 px-4 py-4 text-left hover:bg-secondary transition-colors"
               >
                 <div className="size-9 rounded-xl bg-primary/15 flex items-center justify-center mt-0.5 shrink-0">
-                  <UtensilsCrossed className="size-4 text-primary" />
+                  <Utensils className="size-4 text-primary" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-foreground">Nadpisz oryginał</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Zastąpi istniejące danie „{editMode.name}" w bazie</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Zastąpi istniejący posiłek „{editMode.name}" w bazie</p>
                 </div>
               </button>
               {/* Save as new */}
@@ -1123,7 +1123,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
                   <Plus className="size-4 text-moss" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-foreground">Zapisz jako nowe danie</p>
+                  <p className="text-sm font-semibold text-foreground">Zapisz jako nowy posiłek</p>
                   <p className="text-xs text-muted-foreground mt-0.5">Oryginał pozostaje bez zmian — powstaje nowa kopia</p>
                 </div>
               </button>
@@ -1720,7 +1720,7 @@ function DishesView({ onEditDish }: { onEditDish: (mode: EditMode) => void }) {
       <div className="flex flex-col gap-3">
         {filteredDishes.length === 0 ? (
           <div className="bg-card rounded-2xl p-8 border border-border text-center">
-            <UtensilsCrossed className="size-10 text-muted-foreground mx-auto mb-3" />
+            <Utensils className="size-10 text-muted-foreground mx-auto mb-3" />
             <p className="text-muted-foreground">No dishes saved yet</p>
             <p className="text-xs text-muted-foreground/70 mt-1">
               Use the Calculator to create and save dishes
@@ -1741,7 +1741,7 @@ function DishesView({ onEditDish }: { onEditDish: (mode: EditMode) => void }) {
                     {dish.profileImageUrl ? (
                       <img src={dish.profileImageUrl} alt={dish.name} className="w-full h-full object-cover" />
                     ) : (
-                      <UtensilsCrossed className="size-6 text-muted-foreground" />
+                      <Utensils className="size-6 text-muted-foreground" />
                     )}
                   </div>
                   <div>
