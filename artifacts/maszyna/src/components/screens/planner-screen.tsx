@@ -4,7 +4,7 @@ import { usePartnerColors } from "@/lib/partner-colors-context"
 import { ShoppingListScreen } from "@/components/screens/shopping-list-screen"
 import { useAuth } from "@/lib/auth-context"
 import { useDishes, useWorkoutPlans, usePlannerEvents, useMealLogs } from "@/lib/realtime-hooks"
-import { Calendar, ShoppingCart, ChevronLeft, ChevronRight, Plus, Check, X, Dumbbell, UtensilsCrossed, ExternalLink, AlertTriangle, RefreshCw, ChevronDown, FileText, Pill, Edit, Trash2 } from "lucide-react"
+import { Calendar, ShoppingCart, ChevronLeft, ChevronRight, Plus, Check, X, Dumbbell, Utensils, ExternalLink, AlertTriangle, RefreshCw, ChevronDown, FileText, Pill, Edit, Trash2 } from "lucide-react"
 import type { EditMode } from "@/components/screens/kitchen-screen"
 
 // Re-export dishCategories for shopping view
@@ -681,7 +681,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
   const getEventIcon = (type: EventType) => {
     switch (type) {
       case "training": return <Dumbbell className="size-4" />
-      case "meal": return <UtensilsCrossed className="size-4" />
+      case "meal": return <Utensils className="size-4" />
       case "supplements": return <Pill className="size-4" />
       case "google": return <Calendar className="size-4" />
     }
@@ -877,7 +877,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                           className="py-1.5 px-2.5 rounded-full border border-input bg-background hover:bg-accent hover:text-accent-foreground text-muted-foreground transition-all shadow-sm flex items-center justify-center gap-0.5"
                         >
                           <span className="text-xs font-light text-muted-foreground/80">+</span>
-                          <UtensilsCrossed className="size-3.5" />
+                          <Utensils className="size-3.5" />
                         </button>
                         <button
                           onClick={() => {
@@ -1237,7 +1237,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
               <div className="flex items-center gap-2">
                 {addType === "meal" ? (
                   <div className="size-8 rounded-lg bg-sage/20 flex items-center justify-center">
-                    <UtensilsCrossed className="size-4 text-sage" />
+                    <Utensils className="size-4 text-sage" />
                   </div>
                 ) : addType === "training" ? (
                   <div className="size-8 rounded-lg bg-primary/20 flex items-center justify-center">
@@ -1279,7 +1279,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                       addType === "meal" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
                     }`}
                   >
-                    <UtensilsCrossed className="size-3" />
+                    <Utensils className="size-3" />
                     <span className="hidden sm:inline">Posiłek</span>
                   </button>
                   <button
@@ -1356,7 +1356,12 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                 <div className="flex flex-col gap-3">
                   {/* Category chips inline */}
                   <div className="flex gap-1 flex-wrap items-center">
-                    {(["Large","Light","Snacks","Drinks"] as const).map(cat => (
+                    {([
+                      ["Large", t("large")],
+                      ["Light", t("light")],
+                      ["Snacks", t("snacks")],
+                      ["Drinks", t("drinksCategory")],
+                    ] as const).map(([cat, label]) => (
                       <button
                         key={cat}
                         type="button"
@@ -1367,7 +1372,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                             : "border-border text-muted-foreground hover:border-muted"
                         }`}
                       >
-                        {cat}
+                        {label}
                       </button>
                     ))}
                     <div className="h-4 w-px bg-border mx-1" />
@@ -1380,7 +1385,6 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                           : "border-border text-muted-foreground hover:border-muted"
                       }`}
                     >
-                      <span>📖</span>
                       Przepisy
                     </button>
                   </div>
@@ -1390,6 +1394,17 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                       .filter(d => showRecipesOnly ? (d.recipeSteps && d.recipeSteps.length > 0) || (d.steps && d.steps.length > 0) : true)
                       .map((dish) => {
                         const hasRecipe = (dish.recipeSteps && dish.recipeSteps.length > 0) || (dish.steps && dish.steps.length > 0)
+                        // Show per-user calories based on mealOwner
+                        const servings = mealOwner === "marcin"
+                          ? (dish.marcinServings || dish.patrycjaServings || 1)
+                          : (dish.patrycjaServings || dish.marcinServings || 1)
+                        const totalServings = (dish.marcinServings || 1) + (dish.patrycjaServings || 1)
+                        const ratio = (dish.marcinServings || dish.patrycjaServings)
+                          ? servings / totalServings
+                          : 1
+                        const displayCals = (dish.marcinServings || dish.patrycjaServings)
+                          ? Math.round((dish.totalCalories || 0) * ratio)
+                          : Math.round((dish.totalCalories || 0) / 2)
                         return (
                           <button
                             key={dish.id}
@@ -1404,18 +1419,18 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                             <div className="flex justify-between items-center">
                               <div className="flex items-center gap-2">
                                 <span className="font-sans text-sm text-foreground">{dish.name}</span>
-                                {hasRecipe && <span className="text-[10px] bg-primary/20 text-primary/80 px-1.5 py-0.5 rounded">📖</span>}
+                                {hasRecipe && <span className="text-[10px] bg-primary/20 text-primary/80 px-1.5 py-0.5 rounded font-mono">przepis</span>}
                               </div>
-                              <span className="font-mono text-[11px] text-muted-foreground">{dish.totalCalories || 0} kcal</span>
+                              <span className="font-mono text-[11px] text-muted-foreground">{displayCals} kcal</span>
                             </div>
                             <div className="text-[10px] text-muted-foreground mt-0.5">
-                              {dish.mainCategory} · {dish.subCategory}
+                              {t(dish.mainCategory?.toLowerCase() as any) || dish.mainCategory} · {dish.subCategory}
                             </div>
                           </button>
                         )
                       })}
                     {allDishes.filter(d => selectedMainCategory ? d.mainCategory === selectedMainCategory : true).filter(d => showRecipesOnly ? (d.recipeSteps && d.recipeSteps.length > 0) || (d.steps && d.steps.length > 0) : true).length === 0 && (
-                      <p className="text-xs text-muted-foreground text-center py-4">Brak dań w tej kategorii</p>
+                      <p className="text-xs text-muted-foreground text-center py-4">Brak posiłków w tej kategorii</p>
                     )}
                   </div>
                   {/* Toggle to custom */}
@@ -1432,6 +1447,16 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
               {/* Custom Meal Input / Supplement Input Fields */}
               {((addType === "meal" && inputMode === "custom") || addType === "supplements") && (
                 <div className="flex flex-col gap-3">
+                  {addType === "meal" && (
+                    <button
+                      type="button"
+                      onClick={() => setInputMode("preset")}
+                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      <ChevronLeft className="size-3.5" />
+                      Wróc do listy posiłków
+                    </button>
+                  )}
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-medium text-muted-foreground">Nazwa</label>
                     <input

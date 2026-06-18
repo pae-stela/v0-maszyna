@@ -891,10 +891,29 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
                 className="w-full bg-secondary rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               >
                 <option value="">{t('selectSubcategory')}</option>
-                {(dishCategories[saveMainCategory] || []).map((cat) => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-                <option value="Custom">Custom</option>
+                {(dishCategories[saveMainCategory] || []).map((cat) => {
+                  const catKeyMap: Record<string, string> = {
+                    "Pasta & Rice": t("pastaAndRice"),
+                    "Traditional": t("traditional"),
+                    "Pancakes & Tortillas": t("pancakesAndTortillas"),
+                    "Salads & Veggies": t("saladsAndVeggies"),
+                    "Fakeaways": t("fakeaways"),
+                    "Eggs": t("eggs"),
+                    "Sandwiches & Wraps": t("sandwichesAndWraps"),
+                    "Soups": t("soups"),
+                    "Sweet Bakes & Desserts": t("sweetBakesAndDesserts"),
+                    "Oats & Granola": t("oatsAndGranola"),
+                    "Savoury": t("savoury"),
+                    "Sweet": t("sweet"),
+                    "Shakes & Smoothies": t("shakesAndSmoothies"),
+                    "Cocktails & Mocktails": t("cocktailsAndMocktails"),
+                    "Hot drinks": t("hotDrinks"),
+                    "Cold drinks": t("coldDrinks"),
+                  }
+                  return (
+                    <option key={cat} value={cat}>{catKeyMap[cat] || cat}</option>
+                  )
+                })}
               </select>
             </div>
           </div>

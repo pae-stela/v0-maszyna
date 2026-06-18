@@ -370,7 +370,11 @@ export function ProfileScreen() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-foreground capitalize">{log.type}</span>
+                        <span className="text-sm font-medium text-foreground capitalize">
+                          {isPl
+                            ? ({ breakfast: "Śniadanie", lunch: "Obiad", dinner: "Kolacja", snack: "Przekąska" }[log.type] ?? log.type)
+                            : log.type}
+                        </span>
                         <span className="text-[10px] text-muted-foreground">{log.date}</span>
                       </div>
                       <div className="flex items-center gap-1.5 mt-0.5">
@@ -385,10 +389,10 @@ export function ProfileScreen() {
                   {expandedLog === log.id && (
                     <div className="px-3 pb-3 border-t border-border pt-2 animate-in fade-in-0 slide-in-from-top-1 duration-150">
                       <div className="grid grid-cols-4 gap-1.5 mb-2">
-                        <div className="bg-secondary rounded-lg p-1.5 text-center"><p className="text-[10px] font-semibold text-primary">{log.totalProtein}g</p><p className="text-[8px] text-muted-foreground">Protein</p></div>
-                        <div className="bg-secondary rounded-lg p-1.5 text-center"><p className="text-[10px] font-semibold text-wheat">{log.totalCarbs}g</p><p className="text-[8px] text-muted-foreground">Carbs</p></div>
-                        <div className="bg-secondary rounded-lg p-1.5 text-center"><p className="text-[10px] font-semibold text-terracotta/70">{log.totalFats}g</p><p className="text-[8px] text-muted-foreground">Fats</p></div>
-                        <div className="bg-secondary rounded-lg p-1.5 text-center"><p className="text-[10px] font-semibold text-sage">{log.totalFiber}g</p><p className="text-[8px] text-muted-foreground">Fiber</p></div>
+                        <div className="bg-secondary rounded-lg p-1.5 text-center"><p className="text-[10px] font-semibold text-primary">{log.totalProtein}g</p><p className="text-[8px] text-muted-foreground">{isPl ? "Białko" : "Protein"}</p></div>
+                        <div className="bg-secondary rounded-lg p-1.5 text-center"><p className="text-[10px] font-semibold text-wheat">{log.totalCarbs}g</p><p className="text-[8px] text-muted-foreground">{isPl ? "Węgle" : "Carbs"}</p></div>
+                        <div className="bg-secondary rounded-lg p-1.5 text-center"><p className="text-[10px] font-semibold text-terracotta/70">{log.totalFats}g</p><p className="text-[8px] text-muted-foreground">{isPl ? "Tłuszcze" : "Fats"}</p></div>
+                        <div className="bg-secondary rounded-lg p-1.5 text-center"><p className="text-[10px] font-semibold text-sage">{log.totalFiber}g</p><p className="text-[8px] text-muted-foreground">{isPl ? "Błonnik" : "Fiber"}</p></div>
                       </div>
                       <div className="flex flex-col gap-1">
                         {log.items.map((item) => (
