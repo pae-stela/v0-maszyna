@@ -173,6 +173,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
   const [saveRecipeSteps, setSaveRecipeSteps] = useState("")
   const [marcinServings, setMarcinServings] = useState(1)
   const [patrycjaServings, setPatrycjaServings] = useState(1)
+  const [mealFor, setMealFor] = useState<"both" | "me" | "partner">("both")
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null)
   const [galleryImages, setGalleryImages] = useState<string[]>([])
   const [recipeUrl, setRecipeUrl] = useState("")
@@ -192,8 +193,13 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
     if (!editMode) return
     setSaveName(editMode.name)
     setSaveRecipeSteps(editMode.recipeSteps?.join('\n') || "")
-    setMarcinServings(editMode.marcinServings || 1)
-    setPatrycjaServings(editMode.patrycjaServings || 1)
+    const mS = editMode.marcinServings ?? 1
+    const pS = editMode.patrycjaServings ?? 1
+    setMarcinServings(mS === 0 ? 1 : mS)
+    setPatrycjaServings(pS === 0 ? 1 : pS)
+    if (mS === 0) setMealFor("me")
+    else if (pS === 0) setMealFor("partner")
+    else setMealFor("both")
     if (editMode.mainCategory) setSaveMainCategory(editMode.mainCategory)
     if (editMode.subCategory) setSaveSubCategory(editMode.subCategory)
 
@@ -417,6 +423,8 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
       const steps = saveRecipeSteps.trim()
         ? saveRecipeSteps.split('\n').filter(s => s.trim()).map(s => s.trim())
         : undefined
+      const effectiveMarcinServings = mealFor === "me" ? 0 : marcinServings
+      const effectivePatrycjaServings = mealFor === "partner" ? 0 : patrycjaServings
       const payload = {
         name: saveName.trim(),
         elements: ingredients.map((i) => ({ type: "ingredient" as const, id: i.id, name: i.name, grams: i.grams })),
@@ -427,8 +435,8 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
         totalFiber: totals.fiber,
         mainCategory: saveMainCategory,
         subCategory: saveSubCategory || "Custom",
-        marcinServings,
-        patrycjaServings,
+        marcinServings: effectiveMarcinServings,
+        patrycjaServings: effectivePatrycjaServings,
         recipeSteps: steps,
         profileImageUrl: profileImageUrl || null,
         galleryImages: galleryImages.length > 0 ? galleryImages : null,
@@ -694,55 +702,86 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
       {/* Step 2: Smart Splitter */}
       <div className="bg-card rounded-2xl border border-border overflow-hidden">
         <div className="bg-secondary/50 px-5 py-3 border-b border-border flex items-center gap-3">
-          <div className="size-7 rounded-full bg-foreground text-background flex items-center justify-center text-sm font-bold">2</div>
-          <div>
+          <div className="size-7 rounded-full bg-foreground text-background flex items-center justify-center text-sm font-bold shrink-0">2</div>
+          <div className="flex-1 min-w-0">
             <h3 className="text-sm font-semibold text-foreground">Podziel</h3>
-            <p className="text-xs text-muted-foreground">Podziel między {partner?.name || "Partnera"} i {profile?.name || "Ciebie"}</p>
+            <p className="text-xs text-muted-foreground">
+              {mealFor === "both"
+                ? `Dla ${partner?.name || "Partnera"} i ${profile?.name || "Ciebie"}`
+                : mealFor === "partner"
+                ? `Tylko dla ${partner?.name || "Partnera"}`
+                : `Tylko dla ${profile?.name || "Ciebie"}`}
+            </p>
+          </div>
+          {/* Dla kogo toggle */}
+          <div className="flex items-center bg-background rounded-xl p-0.5 shrink-0 border border-border">
+            <button
+              onClick={() => setMealFor("partner")}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${mealFor === "partner" ? "bg-foreground text-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              {(partner?.name || "Partner").split(" ")[0]}
+            </button>
+            <button
+              onClick={() => setMealFor("both")}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${mealFor === "both" ? "bg-foreground text-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              Oboje
+            </button>
+            <button
+              onClick={() => setMealFor("me")}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${mealFor === "me" ? "bg-foreground text-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              {(profile?.name || "Ja").split(" ")[0]}
+            </button>
           </div>
         </div>
 
         <div className="p-5">
           {/* Serving Controls */}
-          <div className="grid grid-cols-2 gap-4 mb-5">
+          <div className={`grid gap-4 mb-5 ${mealFor === "both" ? "grid-cols-2" : "grid-cols-1"}`}>
             {/* Partner Servings */}
-            <div className="rounded-xl p-3 border" style={{ backgroundColor: hexToRgba(partnerColor, 0.1), borderColor: hexToRgba(partnerColor, 0.2) }}>
-              <div className="flex items-center gap-2 mb-2">
-                <div className="size-6 rounded-full flex items-center justify-center" style={{ backgroundColor: partnerColor }}>
-                  <span className="text-[10px] font-bold text-white">{(partner?.name || "P")[0]}</span>
+            {mealFor !== "me" && (
+              <div className="rounded-xl p-3 border" style={{ backgroundColor: hexToRgba(partnerColor, 0.1), borderColor: hexToRgba(partnerColor, 0.2) }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="size-6 rounded-full flex items-center justify-center" style={{ backgroundColor: partnerColor }}>
+                    <span className="text-[10px] font-bold text-white">{(partner?.name || "P")[0]}</span>
+                  </div>
+                  <span className="text-xs font-medium text-foreground">{partner?.name || "Partner"}</span>
                 </div>
-                <span className="text-xs font-medium text-foreground">{partner?.name || "Partner"}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-muted-foreground">Porcje</span>
-                <div className="flex items-center bg-background rounded-lg">
-                  <button onClick={() => setMarcinServings(Math.max(0, marcinServings - 1))} className="px-2 py-1 text-muted-foreground hover:text-foreground transition-colors text-sm">-</button>
-                  <span className="w-6 text-center text-sm font-semibold text-foreground">{marcinServings}</span>
-                  <button onClick={() => setMarcinServings(marcinServings + 1)} className="px-2 py-1 text-muted-foreground hover:text-foreground transition-colors text-sm">+</button>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-muted-foreground">Porcje</span>
+                  <div className="flex items-center bg-background rounded-lg">
+                    <button onClick={() => setMarcinServings(Math.max(1, marcinServings - 1))} className="px-2 py-1 text-muted-foreground hover:text-foreground transition-colors text-sm">-</button>
+                    <span className="w-6 text-center text-sm font-semibold text-foreground">{marcinServings}</span>
+                    <button onClick={() => setMarcinServings(marcinServings + 1)} className="px-2 py-1 text-muted-foreground hover:text-foreground transition-colors text-sm">+</button>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* My Servings */}
-            <div className="rounded-xl p-3 border" style={{ backgroundColor: hexToRgba(myColor, 0.1), borderColor: hexToRgba(myColor, 0.2) }}>
-              <div className="flex items-center gap-2 mb-2">
-                <div className="size-6 rounded-full flex items-center justify-center" style={{ backgroundColor: myColor }}>
-                  <span className="text-[10px] font-bold text-white">{(profile?.name || "M")[0]}</span>
+            {mealFor !== "partner" && (
+              <div className="rounded-xl p-3 border" style={{ backgroundColor: hexToRgba(myColor, 0.1), borderColor: hexToRgba(myColor, 0.2) }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="size-6 rounded-full flex items-center justify-center" style={{ backgroundColor: myColor }}>
+                    <span className="text-[10px] font-bold text-white">{(profile?.name || "M")[0]}</span>
+                  </div>
+                  <span className="text-xs font-medium text-foreground">{profile?.name || "Ja"}</span>
                 </div>
-                <span className="text-xs font-medium text-foreground">{profile?.name || "Ja"}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-muted-foreground">Porcje</span>
-                <div className="flex items-center bg-background rounded-lg">
-                  <button onClick={() => setPatrycjaServings(Math.max(0, patrycjaServings - 1))} className="px-2 py-1 text-muted-foreground hover:text-foreground transition-colors text-sm">-</button>
-                  <span className="w-6 text-center text-sm font-semibold text-foreground">{patrycjaServings}</span>
-                  <button onClick={() => setPatrycjaServings(patrycjaServings + 1)} className="px-2 py-1 text-muted-foreground hover:text-foreground transition-colors text-sm">+</button>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-muted-foreground">Porcje</span>
+                  <div className="flex items-center bg-background rounded-lg">
+                    <button onClick={() => setPatrycjaServings(Math.max(1, patrycjaServings - 1))} className="px-2 py-1 text-muted-foreground hover:text-foreground transition-colors text-sm">-</button>
+                    <span className="w-6 text-center text-sm font-semibold text-foreground">{patrycjaServings}</span>
+                    <button onClick={() => setPatrycjaServings(patrycjaServings + 1)} className="px-2 py-1 text-muted-foreground hover:text-foreground transition-colors text-sm">+</button>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
-          {/* Visual Split Bar */}
-          {totalParts > 0 && (
+          {/* Visual Split Bar — only shown when splitting between both */}
+          {totalParts > 0 && mealFor === "both" && (
             <div className="mb-5">
               <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
                 <span>Podział</span>
@@ -760,8 +799,9 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
           )}
 
           {/* Portion Details */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className={`grid gap-3 ${mealFor === "both" ? "grid-cols-2" : "grid-cols-1"}`}>
             {/* Partner's Portion */}
+            {mealFor !== "me" && (
             <div className="rounded-xl p-3 border" style={{ backgroundColor: hexToRgba(partnerColor, 0.05), borderColor: hexToRgba(partnerColor, 0.1) }}>
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
                 {marcinServings > 1 ? `Na porcję (${marcinServings}x)` : "Łącznie"}
@@ -797,8 +837,10 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
                 </div>
               )}
             </div>
+            )}
 
             {/* My Portion */}
+            {mealFor !== "partner" && (
             <div className="rounded-xl p-3 border" style={{ backgroundColor: hexToRgba(myColor, 0.05), borderColor: hexToRgba(myColor, 0.1) }}>
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
                 {patrycjaServings > 1 ? `Na porcję (${patrycjaServings}x)` : "Łącznie"}
@@ -834,11 +876,14 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
                 </div>
               )}
             </div>
+            )}
           </div>
 
-          <p className="text-[10px] text-muted-foreground text-center mt-4">
-            Proporcja: {partner?.name || "Partner"} dostaje 2 części, {profile?.name || "Ty"} dostaje 1 część na porcję
-          </p>
+          {mealFor === "both" && (
+            <p className="text-[10px] text-muted-foreground text-center mt-4">
+              Proporcja: {partner?.name || "Partner"} dostaje 2 części, {profile?.name || "Ty"} dostaje 1 część na porcję
+            </p>
+          )}
         </div>
       </div>
 

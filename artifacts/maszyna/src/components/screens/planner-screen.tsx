@@ -231,15 +231,16 @@ function MacroSummary({
             if (dishId) {
               const liveDish = allDishes.find(dish => dish.id === dishId)
               if (liveDish) {
-                const marcinS = liveDish.marcinServings || 1
-                const patrycjaS = liveDish.patrycjaServings || 1
-                const totalParts = (marcinS * 2) + (patrycjaS * 1)
+                const marcinS = liveDish.marcinServings ?? 1
+                const patrycjaS = liveDish.patrycjaServings ?? 1
+                // Solo-owner dishes: if one side is 0, that person gets nothing
+                const marcinParts = marcinS === 0 ? 0 : 2
+                const patrycjaParts = patrycjaS === 0 ? 0 : 1
+                const totalParts = marcinParts + patrycjaParts
                 if (totalParts > 0) {
-                  // Per-serving mult: use fixed weights (Marcin=2, Patrycja=1) divided by totalParts
-              // This gives the per-single-serving amount, matching what is stored in meal_logs
-              const mult = owner === "marcin"
-                    ? 2 / totalParts
-                    : 1 / totalParts
+                  const mult = owner === "marcin"
+                    ? marcinParts / totalParts
+                    : patrycjaParts / totalParts
                   cals = Math.round((liveDish.totalCalories || 0) * mult)
                   prot = Math.round((liveDish.totalProtein || 0) * mult * 10) / 10
                   carb = Math.round((liveDish.totalCarbs || 0) * mult * 10) / 10
@@ -446,13 +447,15 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
     let patrycjaMacros = { calories, protein, carbs, fats, fiber }
     if (addType === "meal" && inputMode === "preset" && selectedDishId) {
       const dish = allDishes.find(d => d.id === selectedDishId)
-      if (dish && (dish.marcinServings || dish.patrycjaServings)) {
-        const marcinS = dish.marcinServings || 1
-        const patrycjaS = dish.patrycjaServings || 1
-        const totalParts = (marcinS * 2) + (patrycjaS * 1)
+      if (dish) {
+        const marcinS = dish.marcinServings ?? 1
+        const patrycjaS = dish.patrycjaServings ?? 1
+        const marcinParts = marcinS === 0 ? 0 : 2
+        const patrycjaParts = patrycjaS === 0 ? 0 : 1
+        const totalParts = marcinParts + patrycjaParts
         if (totalParts > 0) {
-          const marcinMult = 2 / totalParts
-          const patrycjaMult = 1 / totalParts
+          const marcinMult = marcinParts / totalParts
+          const patrycjaMult = patrycjaParts / totalParts
           marcinMacros = {
             calories: Math.round(calories * marcinMult),
             protein: Math.round(protein * marcinMult * 10) / 10,
@@ -471,7 +474,17 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
       }
     }
 
-    const targetOwners = mealOwner === "both" ? ["patrycja", "marcin"] : [mealOwner]
+    let targetOwners = mealOwner === "both" ? ["patrycja", "marcin"] : [mealOwner]
+    // If the dish is solo-owner, restrict to only the owner it was made for
+    if (addType === "meal" && inputMode === "preset" && selectedDishId) {
+      const soloCheckDish = allDishes.find(d => d.id === selectedDishId)
+      if (soloCheckDish) {
+        const dMS = soloCheckDish.marcinServings ?? 1
+        const dPS = soloCheckDish.patrycjaServings ?? 1
+        if (dMS === 0) targetOwners = targetOwners.filter(o => o !== "marcin")
+        if (dPS === 0) targetOwners = targetOwners.filter(o => o !== "patrycja")
+      }
+    }
 
     try {
       const getRecurringDates = (startDate: Date, daysOfWeek: number[], count: number): string[] => {
@@ -609,14 +622,16 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
           const liveDish = allDishes.find(d => d.id === dishId)
           if (liveDish) {
             title = liveDish.name
-            const marcinS = liveDish.marcinServings || 1
-            const patrycjaS = liveDish.patrycjaServings || 1
-            const totalParts = (marcinS * 2) + (patrycjaS * 1)
+            const marcinS = liveDish.marcinServings ?? 1
+            const patrycjaS = liveDish.patrycjaServings ?? 1
+            // Solo-owner dishes: if one side is 0, that person gets nothing
+            const marcinParts = marcinS === 0 ? 0 : 2
+            const patrycjaParts = patrycjaS === 0 ? 0 : 1
+            const totalParts = marcinParts + patrycjaParts
             if (totalParts > 0) {
-              // Per-serving mult: use fixed weights (Marcin=2, Patrycja=1) not multiplied by servings
               const mult = eventOwner === "marcin"
-                ? 2 / totalParts
-                : 1 / totalParts
+                ? marcinParts / totalParts
+                : patrycjaParts / totalParts
               calories = Math.round((liveDish.totalCalories || 0) * mult)
               protein = Math.round((liveDish.totalProtein || 0) * mult * 10) / 10
               carbs = Math.round((liveDish.totalCarbs || 0) * mult * 10) / 10
