@@ -990,6 +990,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                               patrycjaServings: (dish as any).patrycjaServings,
                               mainCategory: (dish as any).mainCategory,
                               subCategory: (dish as any).subCategory,
+                              owner: (dish as any).owner,
                             })
                             setShowKitchenModeModal(true)
                           } else {
@@ -1050,14 +1051,26 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                       const event = plannerEvents.find((e) => e.id === selectedEventForMenu)
                       if (!event) return
                       const eventDetails = event.details as any
-                      const owner = (eventDetails?.owner as "marcin" | "patrycja" | "both") || "patrycja"
+                      // Dish owner overrides event owner if dish is saved for one partner only
+                      const dishOwner = dish.owner || "both"
+                      const owner = dishOwner !== "both" ? dishOwner : (eventDetails?.owner as "marcin" | "patrycja" | "both") || "patrycja"
                       const dOwner = owner === "both" ? "patrycja" : owner
-                      const ratio = owner === "both" ? 1 : 1
-                      const servings = dOwner === "marcin" ? (dish.marcinServings || dish.servings || 1) : (dish.patrycjaServings || dish.servings || 1)
-                      const caloriesValue = (dish.totalCalories / (dish.servings || 1)) * servings
-                      const proteinValue = (dish.totalProtein / (dish.servings || 1)) * servings
-                      const carbsValue = (dish.totalCarbs / (dish.servings || 1)) * servings
-                      const fatsValue = (dish.totalFats / (dish.servings || 1)) * servings
+                      // For single-owner dishes: total / servings (per person)
+                      // For shared dishes: use the 2:1 ratio (existing behavior)
+                      const servings = dOwner === "marcin" ? (dish.marcinServings || 1) : (dish.patrycjaServings || 1)
+                      const caloriesValue = dishOwner !== "both"
+                        ? dish.totalCalories / servings
+                        : (dish.totalCalories / (dish.servings || 1)) * servings
+                      const proteinValue = dishOwner !== "both"
+                        ? dish.totalProtein / servings
+                        : (dish.totalProtein / (dish.servings || 1)) * servings
+                      const carbsValue = dishOwner !== "both"
+                        ? dish.totalCarbs / servings
+                        : (dish.totalCarbs / (dish.servings || 1)) * servings
+                      const fatsValue = dishOwner !== "both"
+                        ? dish.totalFats / servings
+                        : (dish.totalFats / (dish.servings || 1)) * servings
+                      const ratio = dishOwner !== "both" ? 1 : 1
                       const newDetails = {
                         owner,
                         calories: Math.round(caloriesValue),
