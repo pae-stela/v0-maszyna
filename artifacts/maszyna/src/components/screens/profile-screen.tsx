@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 import { useUser } from "@/lib/user-context"
 import { useAuth } from "@/lib/auth-context"
 import { 
-  TrendingUp, TrendingDown, Minus, Ruler, Scale, UtensilsCrossed, Dumbbell, 
+  TrendingUp, TrendingDown, Minus, Ruler, Scale, Utensils, Dumbbell, 
   ChevronRight, Clock, Flame, Plus, X, Trophy, Zap,
   Calendar, Settings
 } from "lucide-react"
@@ -330,7 +330,7 @@ export function ProfileScreen() {
                 logsSubTab === "meals" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
               }`}
             >
-              <UtensilsCrossed className="size-3.5" />
+              <Utensils className="size-3.5" />
               Meals
             </button>
             <button
@@ -348,7 +348,7 @@ export function ProfileScreen() {
             <div className="flex flex-col gap-2">
               {userMealLogs.length === 0 ? (
                 <div className="bg-card rounded-2xl p-6 border border-dashed border-border text-center">
-                  <UtensilsCrossed className="size-8 text-muted-foreground mx-auto mb-2" />
+                  <Utensils className="size-8 text-muted-foreground mx-auto mb-2" />
                   <p className="text-sm text-muted-foreground">No meals logged yet</p>
                 </div>
               ) : userMealLogs.map((log) => (
@@ -363,7 +363,7 @@ export function ProfileScreen() {
                       log.type === "dinner" ? "bg-sand/20 text-sand" :
                       "bg-sage/20 text-sage"
                     }`}>
-                      <UtensilsCrossed className="size-4" />
+                      <Utensils className="size-4" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
@@ -491,7 +491,7 @@ export function ProfileScreen() {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-card rounded-xl p-3 border border-border text-center">
-              <UtensilsCrossed className="size-5 text-wheat mx-auto mb-1" />
+              <Utensils className="size-5 text-wheat mx-auto mb-1" />
               <p className="text-2xl font-bold text-foreground">{userMealLogs.length}</p>
               <p className="text-[10px] text-muted-foreground">Meals Logged</p>
             </div>

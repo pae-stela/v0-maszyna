@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from "react"
 import { useMealLogs, usePlannerEvents } from "@/lib/realtime-hooks"
 import { useAuth } from "@/lib/auth-context"
-import { Dumbbell, UtensilsCrossed, CheckCircle2, Circle, Pill } from "lucide-react"
+import { Dumbbell, Utensils, CheckCircle2, Circle, Pill } from "lucide-react"
 
 interface MacroSummary { calories: number; protein: number; carbs: number; fats: number }
 
@@ -190,7 +190,7 @@ export function Timeline({ dateStr, activeUser, loggedOverrides: externalOverrid
           ? "bg-sand/10 text-sand"
           : "bg-primary/10 text-primary"
 
-        const Icon = isMeal ? UtensilsCrossed : isSupp ? Pill : Dumbbell
+        const Icon = isMeal ? Utensils : isSupp ? Pill : Dumbbell
 
         return (
           <div key={item.id} className="relative group">
