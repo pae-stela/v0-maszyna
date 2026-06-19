@@ -15,6 +15,23 @@ const dishCategories: Record<string, string[]> = {
   "Drinks": ["Shakes & Smoothies", "Cocktails & Mocktails", "Hot drinks", "Cold drinks"],
 }
 
+// Returns the fraction of a dish's total macros that belongs to a single partner.
+// Shared by the recipe list display and the meal save logic so they always match.
+function getOwnerMacroMultiplier(
+  dish: { marcinServings?: number; patrycjaServings?: number },
+  owner: "marcin" | "patrycja",
+): number {
+  const marcinS = dish.marcinServings || 1
+  const patrycjaS = dish.patrycjaServings || 1
+  if (dish.marcinServings || dish.patrycjaServings) {
+    const totalParts = (marcinS * 2) + (patrycjaS * 1)
+    if (totalParts > 0) {
+      return owner === "marcin" ? (marcinS * 2) / totalParts : (patrycjaS * 1) / totalParts
+    }
+  }
+  return 0.5
+}
+
 type SubTab = "calendar" | "shopping"
 type CalendarViewMode = "today" | "3day" | "week"
 type EventType = "meal" | "training" | "supplements" | "google"
