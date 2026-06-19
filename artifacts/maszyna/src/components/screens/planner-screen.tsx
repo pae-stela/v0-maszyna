@@ -199,7 +199,7 @@ function MacroSummary({
   selfProfile: { name: string } | null
   partner: { name: string; id: string } | null
   plannerEvents: { id: string; date: string; time: string; type: string; name: string; details: string | null; user_id: string; logged: boolean; shared_with_partner: boolean; created_at: string; updated_at?: string }[]
-  allDishes: Array<{ id: string; name: string; totalCalories?: number; totalProtein?: number; totalCarbs?: number; totalFats?: number; totalFiber?: number; marcinServings?: number; patrycjaServings?: number }>
+  allDishes: Array<{ id: string; name: string; totalCalories?: number; totalProtein?: number; totalCarbs?: number; totalFats?: number; totalFiber?: number; marcinServings?: number; patrycjaServings?: number; owner?: "both" | "marcin" | "patrycja" }>
 }) {
   const dateStr = toLocalDateStr(date)
 
@@ -231,20 +231,32 @@ function MacroSummary({
             if (dishId) {
               const liveDish = allDishes.find(dish => dish.id === dishId)
               if (liveDish) {
+                const dishOwner = liveDish.owner || "both"
                 const marcinS = liveDish.marcinServings || 1
                 const patrycjaS = liveDish.patrycjaServings || 1
-                const totalParts = (marcinS * 2) + (patrycjaS * 1)
-                if (totalParts > 0) {
-                  const mult = owner === "marcin"
-                    ? (marcinS * 2) / totalParts
-                    : (patrycjaS * 1) / totalParts
-                  cals = Math.round((liveDish.totalCalories || 0) * mult)
-                  prot = Math.round((liveDish.totalProtein || 0) * mult * 10) / 10
-                  carb = Math.round((liveDish.totalCarbs || 0) * mult * 10) / 10
-                  fat = Math.round((liveDish.totalFats || 0) * mult * 10) / 10
-                  fib = Math.round((liveDish.totalFiber || 0) * mult * 10) / 10
+                if (dishOwner !== "both") {
+                  // Single-owner dish: only that partner gets macros
+                  const servings = dishOwner === "marcin" ? marcinS : patrycjaS
+                  const isTarget = owner === dishOwner
+                  cals = isTarget ? Math.round((liveDish.totalCalories || 0) / servings) : 0
+                  prot = isTarget ? Math.round((liveDish.totalProtein || 0) / servings * 10) / 10 : 0
+                  carb = isTarget ? Math.round((liveDish.totalCarbs || 0) / servings * 10) / 10 : 0
+                  fat = isTarget ? Math.round((liveDish.totalFats || 0) / servings * 10) / 10 : 0
+                  fib = isTarget ? Math.round((liveDish.totalFiber || 0) / servings * 10) / 10 : 0
                 } else {
-                  cals = liveDish.totalCalories || 0
+                  const totalParts = (marcinS * 2) + (patrycjaS * 1)
+                  if (totalParts > 0) {
+                    const mult = owner === "marcin"
+                      ? (marcinS * 2) / totalParts
+                      : (patrycjaS * 1) / totalParts
+                    cals = Math.round((liveDish.totalCalories || 0) * mult)
+                    prot = Math.round((liveDish.totalProtein || 0) * mult * 10) / 10
+                    carb = Math.round((liveDish.totalCarbs || 0) * mult * 10) / 10
+                    fat = Math.round((liveDish.totalFats || 0) * mult * 10) / 10
+                    fib = Math.round((liveDish.totalFiber || 0) * mult * 10) / 10
+                  } else {
+                    cals = liveDish.totalCalories || 0
+                  }
                 }
               } else {
                 cals = d.calories || 0
@@ -444,26 +456,47 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
     let patrycjaMacros = { calories, protein, carbs, fats, fiber }
     if (addType === "meal" && inputMode === "preset" && selectedDishId) {
       const dish = allDishes.find(d => d.id === selectedDishId)
-      if (dish && (dish.marcinServings || dish.patrycjaServings)) {
+      if (dish) {
+        const dishOwner = dish.owner || "both"
         const marcinS = dish.marcinServings || 1
         const patrycjaS = dish.patrycjaServings || 1
-        const totalParts = (marcinS * 2) + (patrycjaS * 1)
-        if (totalParts > 0) {
-          const marcinMult = 2 / totalParts
-          const patrycjaMult = 1 / totalParts
+        if (dishOwner !== "both") {
+          // Single-owner dish: total / that partner's servings
+          const servings = dishOwner === "marcin" ? marcinS : patrycjaS
           marcinMacros = {
-            calories: Math.round(calories * marcinMult),
-            protein: Math.round(protein * marcinMult * 10) / 10,
-            carbs: Math.round(carbs * marcinMult * 10) / 10,
-            fats: Math.round(fats * marcinMult * 10) / 10,
-            fiber: Math.round(fiber * marcinMult * 10) / 10,
+            calories: dishOwner === "marcin" ? Math.round(calories / servings) : 0,
+            protein: dishOwner === "marcin" ? Math.round(protein / servings * 10) / 10 : 0,
+            carbs: dishOwner === "marcin" ? Math.round(carbs / servings * 10) / 10 : 0,
+            fats: dishOwner === "marcin" ? Math.round(fats / servings * 10) / 10 : 0,
+            fiber: dishOwner === "marcin" ? Math.round(fiber / servings * 10) / 10 : 0,
           }
           patrycjaMacros = {
-            calories: Math.round(calories * patrycjaMult),
-            protein: Math.round(protein * patrycjaMult * 10) / 10,
-            carbs: Math.round(carbs * patrycjaMult * 10) / 10,
-            fats: Math.round(fats * patrycjaMult * 10) / 10,
-            fiber: Math.round(fiber * patrycjaMult * 10) / 10,
+            calories: dishOwner === "patrycja" ? Math.round(calories / servings) : 0,
+            protein: dishOwner === "patrycja" ? Math.round(protein / servings * 10) / 10 : 0,
+            carbs: dishOwner === "patrycja" ? Math.round(carbs / servings * 10) / 10 : 0,
+            fats: dishOwner === "patrycja" ? Math.round(fats / servings * 10) / 10 : 0,
+            fiber: dishOwner === "patrycja" ? Math.round(fiber / servings * 10) / 10 : 0,
+          }
+        } else if (marcinS || patrycjaS) {
+          // Shared dish: 2:1 ratio split
+          const totalParts = (marcinS * 2) + (patrycjaS * 1)
+          if (totalParts > 0) {
+            const marcinMult = 2 / totalParts
+            const patrycjaMult = 1 / totalParts
+            marcinMacros = {
+              calories: Math.round(calories * marcinMult),
+              protein: Math.round(protein * marcinMult * 10) / 10,
+              carbs: Math.round(carbs * marcinMult * 10) / 10,
+              fats: Math.round(fats * marcinMult * 10) / 10,
+              fiber: Math.round(fiber * marcinMult * 10) / 10,
+            }
+            patrycjaMacros = {
+              calories: Math.round(calories * patrycjaMult),
+              protein: Math.round(protein * patrycjaMult * 10) / 10,
+              carbs: Math.round(carbs * patrycjaMult * 10) / 10,
+              fats: Math.round(fats * patrycjaMult * 10) / 10,
+              fiber: Math.round(fiber * patrycjaMult * 10) / 10,
+            }
           }
         }
       }
@@ -607,24 +640,36 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
           const liveDish = allDishes.find(d => d.id === dishId)
           if (liveDish) {
             title = liveDish.name
+            const dishOwner = liveDish.owner || "both"
             const marcinS = liveDish.marcinServings || 1
             const patrycjaS = liveDish.patrycjaServings || 1
-            const totalParts = (marcinS * 2) + (patrycjaS * 1)
-            if (totalParts > 0) {
-              const mult = eventOwner === "marcin"
-                ? (marcinS * 2) / totalParts
-                : (patrycjaS * 1) / totalParts
-              calories = Math.round((liveDish.totalCalories || 0) * mult)
-              protein = Math.round((liveDish.totalProtein || 0) * mult * 10) / 10
-              carbs = Math.round((liveDish.totalCarbs || 0) * mult * 10) / 10
-              fats = Math.round((liveDish.totalFats || 0) * mult * 10) / 10
-              fiber = Math.round((liveDish.totalFiber || 0) * mult * 10) / 10
+            if (dishOwner !== "both") {
+              // Single-owner dish: total / that partner's servings
+              const servings = dishOwner === "marcin" ? marcinS : patrycjaS
+              const isTarget = eventOwner === dishOwner
+              calories = isTarget ? Math.round((liveDish.totalCalories || 0) / servings) : 0
+              protein = isTarget ? Math.round((liveDish.totalProtein || 0) / servings * 10) / 10 : 0
+              carbs = isTarget ? Math.round((liveDish.totalCarbs || 0) / servings * 10) / 10 : 0
+              fats = isTarget ? Math.round((liveDish.totalFats || 0) / servings * 10) / 10 : 0
+              fiber = isTarget ? Math.round((liveDish.totalFiber || 0) / servings * 10) / 10 : 0
             } else {
-              calories = liveDish.totalCalories || 0
-              protein = liveDish.totalProtein || 0
-              carbs = liveDish.totalCarbs || 0
-              fats = liveDish.totalFats || 0
-              fiber = liveDish.totalFiber || 0
+              const totalParts = (marcinS * 2) + (patrycjaS * 1)
+              if (totalParts > 0) {
+                const mult = eventOwner === "marcin"
+                  ? (marcinS * 2) / totalParts
+                  : (patrycjaS * 1) / totalParts
+                calories = Math.round((liveDish.totalCalories || 0) * mult)
+                protein = Math.round((liveDish.totalProtein || 0) * mult * 10) / 10
+                carbs = Math.round((liveDish.totalCarbs || 0) * mult * 10) / 10
+                fats = Math.round((liveDish.totalFats || 0) * mult * 10) / 10
+                fiber = Math.round((liveDish.totalFiber || 0) * mult * 10) / 10
+              } else {
+                calories = liveDish.totalCalories || 0
+                protein = liveDish.totalProtein || 0
+                carbs = liveDish.totalCarbs || 0
+                fats = liveDish.totalFats || 0
+                fiber = liveDish.totalFiber || 0
+              }
             }
           }
         }
@@ -1331,7 +1376,15 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                         <button
                           key={dish.id}
                           type="button"
-                          onClick={() => setSelectedDishId(dish.id)}
+                          onClick={() => {
+                            setSelectedDishId(dish.id)
+                            // Auto-update mealOwner to match dish owner
+                            if (dish.owner && dish.owner !== "both") {
+                              setMealOwner(dish.owner)
+                            } else {
+                              setMealOwner("both")
+                            }
+                          }}
                           className={`p-2.5 rounded-xl text-left border text-xs font-medium transition-all ${
                             selectedDishId === dish.id
                               ? "bg-sage/20 border-sage text-foreground"
