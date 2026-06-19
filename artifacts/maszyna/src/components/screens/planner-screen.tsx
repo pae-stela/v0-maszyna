@@ -502,7 +502,14 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
       }
     }
 
-    const targetOwners = mealOwner === "both" ? ["patrycja", "marcin"] : [mealOwner]
+    // For single-owner dishes: only add for that partner, regardless of mealOwner UI
+    const dishOwner = (addType === "meal" && inputMode === "preset" && selectedDishId)
+      ? (allDishes.find(d => d.id === selectedDishId)?.owner || "both")
+      : "both"
+    const targetOwners = dishOwner !== "both"
+      ? [dishOwner]
+      : (mealOwner === "both" ? ["patrycja", "marcin"] : [mealOwner])
+    console.log("[addEvent] dishOwner:", dishOwner, "mealOwner:", mealOwner, "targetOwners:", targetOwners)
 
     try {
       const getRecurringDates = (startDate: Date, daysOfWeek: number[], count: number): string[] => {
@@ -546,6 +553,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
           })
 
           if (addType === "meal") {
+            console.log("[addMeal] owner:", owner, "macros:", ownerMacros, "dishOwner:", dishOwner)
             const mealResult = await addMeal({
               date: targetDateStr,
               time: newEvent.time,
@@ -561,6 +569,8 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
             if (mealResult?.error) {
               console.error("[planner] addMeal error:", mealResult.error)
               hasError = true
+            } else {
+              console.log("[addMeal] success:", mealResult.data)
             }
           }
 
