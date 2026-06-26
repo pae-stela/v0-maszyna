@@ -898,7 +898,7 @@ function mapDishFromDb(dbDish: any): DishItem {
     totalFats: dbDish.total_fats ?? 0,
     totalFiber: dbDish.total_fiber ?? 0,
     mainCategory: (dbDish.main_category || "Large") as "Large" | "Light" | "Snacks" | "Drinks",
-    subCategory: dbDish.sub_category || "Custom",
+    subCategory: dbDish.sub_category || "",
     marcinServings: dbDish.marcin_servings ?? undefined,
     patrycjaServings: dbDish.patrycja_servings ?? undefined,
     servings: dbDish.servings ?? undefined,

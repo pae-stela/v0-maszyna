@@ -1147,7 +1147,7 @@ function PlansView() {
                   className="w-full mt-3 py-2.5 rounded-xl border border-dashed border-border text-muted-foreground text-sm font-medium flex items-center justify-center gap-2"
                 >
                   <Plus className="size-4" />
-                  Add Exercise from Library
+                  Dodaj ćwiczenie z biblioteki
                 </button>
               </div>
             </div>
@@ -1158,7 +1158,7 @@ function PlansView() {
                 disabled={saving || !planName.trim() || planExercises.length === 0}
                 className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform"
               >
-                {saving ? 'Saving...' : 'Save Plan'}
+                {saving ? 'Zapisywanie...' : 'Zapisz plan'}
               </button>
             </div>
           </div>
@@ -1170,7 +1170,7 @@ function PlansView() {
         <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 p-4 pb-24">
           <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden max-h-[70vh] flex flex-col">
             <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
-              <h3 className="font-semibold text-foreground">Add Exercise</h3>
+              <h3 className="font-semibold text-foreground">Dodaj ćwiczenie</h3>
               <button onClick={() => setShowExercisePicker(false)} className="p-1 rounded-lg hover:bg-secondary">
                 <X className="size-5 text-muted-foreground" />
               </button>
@@ -1181,7 +1181,7 @@ function PlansView() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                 <input
                   type="text"
-                  placeholder="Search exercises..."
+                  placeholder="Szukaj ćwiczeń..."
                   value={exerciseSearch}
                   onChange={(e) => setExerciseSearch(e.target.value)}
                   className="w-full bg-secondary rounded-xl pl-10 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -1380,7 +1380,7 @@ function ExercisesView() {
         className="w-full py-4 rounded-2xl border-2 border-dashed border-border text-muted-foreground font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
       >
         <Plus className="size-5" />
-        Add New Exercise
+        Dodaj nowe ćwiczenie
       </button>
 
       {/* Add Exercise Modal */}
@@ -1388,7 +1388,7 @@ function ExercisesView() {
         <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 p-4 pb-24">
           <div className="bg-card rounded-2xl w-full max-w-md overflow-hidden max-h-[70vh] flex flex-col">
             <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
-              <h3 className="font-semibold text-foreground">Add New Exercise</h3>
+              <h3 className="font-semibold text-foreground">Dodaj nowe ćwiczenie</h3>
               <button onClick={() => setShowAddModal(false)} className="p-1 rounded-lg hover:bg-secondary">
                 <X className="size-5 text-muted-foreground" />
               </button>
@@ -1497,7 +1497,7 @@ function ExercisesView() {
                 disabled={!newExercise.name || !newExercise.muscleGroup || !newExercise.equipment}
                 className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform"
               >
-                Add Exercise
+                Dodaj ćwiczenie
               </button>
             </div>
           </div>

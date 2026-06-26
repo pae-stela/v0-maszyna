@@ -1,10 +1,10 @@
 import { useLanguage } from "@/lib/i18n/context"
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { usePartnerColors } from "@/lib/partner-colors-context"
 import { ShoppingListScreen } from "@/components/screens/shopping-list-screen"
 import { useAuth } from "@/lib/auth-context"
 import { useDishes, useWorkoutPlans, usePlannerEvents, useMealLogs } from "@/lib/realtime-hooks"
-import { Calendar, ShoppingCart, ChevronLeft, ChevronRight, Plus, Check, X, Dumbbell, UtensilsCrossed, ExternalLink, AlertTriangle, RefreshCw, ChevronDown, FileText, Pill, Edit, Trash2 } from "lucide-react"
+import { Calendar, ShoppingCart, ChevronLeft, ChevronRight, Plus, Check, X, Dumbbell, Utensils, ExternalLink, AlertTriangle, RefreshCw, ChevronDown, FileText, Pill, Edit, Trash2 } from "lucide-react"
 import type { EditMode } from "@/components/screens/kitchen-screen"
 
 // Re-export dishCategories for shopping view
@@ -13,6 +13,23 @@ const dishCategories: Record<string, string[]> = {
   "Light": ["Eggs", "Sandwiches & Wraps", "Soups", "Sweet Bakes & Desserts", "Oats & Granola"],
   "Snacks": ["Savoury", "Sweet"],
   "Drinks": ["Shakes & Smoothies", "Cocktails & Mocktails", "Hot drinks", "Cold drinks"],
+}
+
+// Returns the fraction of a dish's total macros that belongs to a single partner.
+// Shared by the recipe list display and the meal save logic so they always match.
+function getOwnerMacroMultiplier(
+  dish: { marcinServings?: number; patrycjaServings?: number },
+  owner: "marcin" | "patrycja",
+): number {
+  const marcinS = dish.marcinServings || 1
+  const patrycjaS = dish.patrycjaServings || 1
+  if (dish.marcinServings || dish.patrycjaServings) {
+    const totalParts = (marcinS * 2) + (patrycjaS * 1)
+    if (totalParts > 0) {
+      return owner === "marcin" ? (marcinS * 2) / totalParts : (patrycjaS * 1) / totalParts
+    }
+  }
+  return 0.5
 }
 
 type SubTab = "calendar" | "shopping"
@@ -55,7 +72,7 @@ export function PlannerScreen({ onNavigateToKitchen }: { onNavigateToKitchen?: (
           }`}
         >
           <Calendar className="size-4" />
-          Calendar
+          {t("calendar")}
         </button>
         <button
           onClick={() => setSubTab("shopping")}
@@ -102,8 +119,8 @@ function getDateRange(baseDate: Date, mode: CalendarViewMode): Date[] {
   return dates
 }
 
-function formatDate(date: Date): string {
-  return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+function formatDate(date: Date, language: string = 'pl'): string {
+  return date.toLocaleDateString(language === 'pl' ? 'pl-PL' : 'en-US', { weekday: 'short', month: 'short', day: 'numeric' })
 }
 
 function isSameDay(d1: Date, d2: Date): boolean {
@@ -349,7 +366,7 @@ function MacroSummary({
 
 function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: EditMode) => void }) {
   const { user, profile, settings, partner } = useAuth()
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const { myColor, partnerColor } = usePartnerColors()
   const { dishes: allDishes } = useDishes()
   const { plans: allPlans } = useWorkoutPlans()
@@ -383,7 +400,17 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
 
   const [selectedMainCategory, setSelectedMainCategory] = useState<string | null>(null)
   const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null)
+  const [showRecipesOnly, setShowRecipesOnly] = useState(false)
   const [mealOwner, setMealOwner] = useState<"marcin" | "patrycja" | "both">("patrycja")
+
+  // Set meal owner to current user when component mounts or user changes
+  useEffect(() => {
+    if (user?.id === profile?.user_id || profile?.name?.toLowerCase() === "patrycja") {
+      setMealOwner("patrycja")
+    } else {
+      setMealOwner("marcin")
+    }
+  }, [user?.id, profile?.user_id])
 
   const dates = getDateRange(baseDate, viewMode)
   const today = new Date()
@@ -726,7 +753,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
   const getEventIcon = (type: EventType) => {
     switch (type) {
       case "training": return <Dumbbell className="size-4" />
-      case "meal": return <UtensilsCrossed className="size-4" />
+      case "meal": return <Utensils className="size-4" />
       case "supplements": return <Pill className="size-4" />
       case "google": return <Calendar className="size-4" />
     }
@@ -796,8 +823,8 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
         <div className="flex items-center gap-2">
           <h3 className="font-semibold text-foreground">
             {viewMode === "today"
-              ? formatDate(baseDate)
-              : `${formatDate(dates[0])} - ${formatDate(dates[dates.length - 1])}`
+              ? formatDate(baseDate, language)
+              : `${formatDate(dates[0], language)} - ${formatDate(dates[dates.length - 1], language)}`
           }
           </h3>
           {!isSameDay(baseDate, today) && (
@@ -805,7 +832,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
               onClick={goToToday}
               className="text-xs text-primary hover:underline"
             >
-              Today
+              {t("today")}
             </button>
           )}
         </div>
@@ -922,7 +949,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                           className="py-1.5 px-2.5 rounded-full border border-input bg-background hover:bg-accent hover:text-accent-foreground text-muted-foreground transition-all shadow-sm flex items-center justify-center gap-0.5"
                         >
                           <span className="text-xs font-light text-muted-foreground/80">+</span>
-                          <UtensilsCrossed className="size-3.5" />
+                          <Utensils className="size-3.5" />
                         </button>
                         <button
                           onClick={() => {
@@ -948,9 +975,59 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                           <span className="text-xs font-light text-muted-foreground/80">+</span>
                           <Pill className="size-3.5" />
                         </button>
-                      </div>
+            </div>
 
+            {/* Preview of selected meal with recipe steps */}
+            {addType === "meal" && inputMode === "preset" && selectedDishId && (() => {
+              const dish = allDishes.find(d => d.id === selectedDishId)
+              if (!dish) return null
+              const hasRecipe = (dish.recipeSteps && dish.recipeSteps.length > 0) || (dish.steps && dish.steps.length > 0)
+              const recipeSteps = dish.recipeSteps || dish.steps || []
+              
+              return (
+                <div className="p-3 bg-secondary/50 border border-border rounded-xl space-y-3">
+                  <div>
+                    <p className="text-xs font-medium text-foreground mb-1.5">{dish.name}</p>
+                    <div className="text-[10px] text-muted-foreground space-y-1">
+                      <div className="flex justify-between">
+                        <span>Kalorie:</span>
+                        <span className="font-mono font-medium">{Math.round(dish.totalCalories || 0)} kcal</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Białko:</span>
+                        <span className="font-mono font-medium">{Math.round(dish.totalProtein || 0)}g</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Węglowodany:</span>
+                        <span className="font-mono font-medium">{Math.round(dish.totalCarbs || 0)}g</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Tłuszcze:</span>
+                        <span className="font-mono font-medium">{Math.round(dish.totalFats || 0)}g</span>
+                      </div>
                     </div>
+                  </div>
+                  
+                  {hasRecipe && (
+                    <div className="border-t border-border pt-2.5">
+                      <p className="text-xs font-medium text-foreground mb-1.5 flex items-center gap-1">
+                        <span>📖</span> Przepis
+                      </p>
+                      <ul className="text-[10px] text-muted-foreground space-y-1">
+                        {recipeSteps.map((step, idx) => (
+                          <li key={idx} className="flex gap-2">
+                            <span className="text-primary/60 font-mono min-w-5">{idx + 1}.</span>
+                            <span>{step}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+
+            </div>
                   )
                 })}
               </div>
@@ -1018,7 +1095,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                         }}
                         className="flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors"
                       >
-                        <RefreshCw className="size-4 text-amber-500" />
+                        <RefreshCw className="size-4 text-muted-foreground" />
                         <span>Zamień danie</span>
                       </button>
                     )}
@@ -1049,13 +1126,13 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                             })
                             setShowKitchenModeModal(true)
                           } else {
-                            alert("Nie znaleziono dania w bazie. Otwórz kuchnię ręcznie i wyszukaj danie.")
+                            alert("Nie znaleziono dania w bazie. Otwórz kalkulator ręcznie i wyszukaj danie.")
                           }
                         }}
                         className="flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors"
                       >
-                        <Edit className="size-4 text-sky-500" />
-                        <span>Edytuj w kuchni</span>
+                        <Edit className="size-4 text-muted-foreground" />
+                        <span>Edytuj w kalkulatorze</span>
                       </button>
                     )}
                     <button
@@ -1064,7 +1141,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                         deleteEvent(selectedEventForMenu)
                           .then(() => setShowEventMenu(false))
                           .catch(() => {
-                            alert("Nie udało się usunąć wydarzenia. Spróbuj ponownie.")
+                            alert("Nie uda��o się usunąć wydarzenia. Spróbuj ponownie.")
                           })
                       }}
                       className="flex items-center gap-3 px-4 py-3 text-sm text-destructive hover:bg-secondary transition-colors"
@@ -1245,7 +1322,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
               <div className="flex items-center gap-2">
                 {addType === "meal" ? (
                   <div className="size-8 rounded-lg bg-sage/20 flex items-center justify-center">
-                    <UtensilsCrossed className="size-4 text-sage" />
+                    <Utensils className="size-4 text-sage" />
                   </div>
                 ) : addType === "training" ? (
                   <div className="size-8 rounded-lg bg-primary/20 flex items-center justify-center">
@@ -1260,7 +1337,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                   <h3 className="font-semibold text-foreground font-sans text-sm">
                     {addType === "meal" ? "Dodaj posiłek" : addType === "training" ? "Dodaj trening" : "Dodaj suplement"}
                   </h3>
-                  <p className="text-xs text-muted-foreground font-mono">{formatDate(selectedDate)}</p>
+                  <p className="text-xs text-muted-foreground font-mono">{formatDate(selectedDate, language)}</p>
                 </div>
               </div>
 
@@ -1287,7 +1364,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                       addType === "meal" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
                     }`}
                   >
-                    <UtensilsCrossed className="size-3" />
+                    <Utensils className="size-3" />
                     <span className="hidden sm:inline">Posiłek</span>
                   </button>
                   <button
@@ -1363,8 +1440,13 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
               {addType === "meal" && inputMode !== "custom" && (
                 <div className="flex flex-col gap-3">
                   {/* Category chips inline */}
-                  <div className="flex gap-1 flex-wrap">
-                    {(["Large","Light","Snacks","Drinks"] as const).map(cat => (
+                  <div className="flex gap-1 flex-wrap items-center">
+                    {([
+                      ["Large", t("large")],
+                      ["Light", t("light")],
+                      ["Snacks", t("snacks")],
+                      ["Drinks", t("drinksCategory")],
+                    ] as const).map(([cat, label]) => (
                       <button
                         key={cat}
                         type="button"
@@ -1375,43 +1457,63 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                             : "border-border text-muted-foreground hover:border-muted"
                         }`}
                       >
-                        {cat}
+                        {label}
                       </button>
                     ))}
+                    <div className="h-4 w-px bg-border mx-1" />
+                    <button
+                      type="button"
+                      onClick={() => setShowRecipesOnly(!showRecipesOnly)}
+                      className={`px-2.5 py-1 rounded-full text-[10px] font-medium transition-all border flex items-center gap-1 ${
+                        showRecipesOnly
+                          ? "bg-primary/20 border-primary/40 text-primary/80"
+                          : "border-border text-muted-foreground hover:border-muted"
+                      }`}
+                    >
+                      Przepisy
+                    </button>
                   </div>
                   <div className="flex flex-col gap-1.5 max-h-[200px] overflow-y-auto pr-1">
                     {allDishes
                       .filter(d => selectedMainCategory ? d.mainCategory === selectedMainCategory : true)
-                      .map((dish) => (
-                        <button
-                          key={dish.id}
-                          type="button"
-                          onClick={() => {
-                            setSelectedDishId(dish.id)
-                            // Auto-update mealOwner to match dish owner
-                            if (dish.owner && dish.owner !== "both") {
-                              setMealOwner(dish.owner)
-                            } else {
-                              setMealOwner("both")
-                            }
-                          }}
-                          className={`p-2.5 rounded-xl text-left border text-xs font-medium transition-all ${
-                            selectedDishId === dish.id
-                              ? "bg-sage/20 border-sage text-foreground"
-                              : "bg-secondary border-transparent hover:border-border text-muted-foreground"
-                          }`}
-                        >
-                          <div className="flex justify-between items-center">
-                            <span className="font-sans text-sm text-foreground">{dish.name}</span>
-                            <span className="font-mono text-[11px] text-muted-foreground">{dish.totalCalories || 0} kcal</span>
-                          </div>
-                          <div className="text-[10px] text-muted-foreground mt-0.5">
-                            {dish.mainCategory} · {dish.subCategory}
-                          </div>
-                        </button>
-                      ))}
-                    {allDishes.filter(d => selectedMainCategory ? d.mainCategory === selectedMainCategory : true).length === 0 && (
-                      <p className="text-xs text-muted-foreground text-center py-4">Brak dań w tej kategorii</p>
+                      .filter(d => showRecipesOnly ? (d.recipeSteps && d.recipeSteps.length > 0) || (d.steps && d.steps.length > 0) : true)
+                      .map((dish) => {
+                        const hasRecipe = (dish.recipeSteps && dish.recipeSteps.length > 0) || (dish.steps && dish.steps.length > 0)
+                        const ownerForDisplay = mealOwner === "both" ? "patrycja" : mealOwner
+                        const multiplier = getOwnerMacroMultiplier(dish, ownerForDisplay)
+                        const displayCals = Math.round((dish.totalCalories || 0) * multiplier)
+                        return (
+                          <button
+                            key={dish.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedDishId(dish.id)
+                              // Auto-update mealOwner to match dish owner (from main)
+                              if ((dish as any).owner && (dish as any).owner !== "both") {
+                                setMealOwner((dish as any).owner)
+                              }
+                            }}
+                            className={`p-2.5 rounded-xl text-left border text-xs font-medium transition-all ${
+                              selectedDishId === dish.id
+                                ? "bg-sage/20 border-sage text-foreground"
+                                : "bg-secondary border-transparent hover:border-border text-muted-foreground"
+                            }`}
+                          >
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center gap-2">
+                                <span className="font-sans text-sm text-foreground">{dish.name}</span>
+                                {hasRecipe && <span className="text-[10px] bg-primary/20 text-primary/80 px-1.5 py-0.5 rounded font-mono">przepis</span>}
+                              </div>
+                              <span className="font-mono text-[11px] text-muted-foreground">{displayCals} kcal</span>
+                            </div>
+                            <div className="text-[10px] text-muted-foreground mt-0.5">
+                              {t(dish.mainCategory?.toLowerCase() as any) || dish.mainCategory} · {dish.subCategory}
+                            </div>
+                          </button>
+                        )
+                      })}
+                    {allDishes.filter(d => selectedMainCategory ? d.mainCategory === selectedMainCategory : true).filter(d => showRecipesOnly ? (d.recipeSteps && d.recipeSteps.length > 0) || (d.steps && d.steps.length > 0) : true).length === 0 && (
+                      <p className="text-xs text-muted-foreground text-center py-4">Brak posiłków w tej kategorii</p>
                     )}
                   </div>
                   {/* Toggle to custom */}
@@ -1428,6 +1530,16 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
               {/* Custom Meal Input / Supplement Input Fields */}
               {((addType === "meal" && inputMode === "custom") || addType === "supplements") && (
                 <div className="flex flex-col gap-3">
+                  {addType === "meal" && (
+                    <button
+                      type="button"
+                      onClick={() => setInputMode("preset")}
+                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      <ChevronLeft className="size-3.5" />
+                      Wróć do listy posiłków
+                    </button>
+                  )}
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-medium text-muted-foreground">Nazwa</label>
                     <input
@@ -1553,7 +1665,11 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
             <div className="p-4 border-t border-border bg-secondary/30 flex gap-2">
               <button
                 type="button"
-                onClick={() => setShowAddModal(false)}
+                onClick={() => {
+                  setShowAddModal(false)
+                  setSelectedMainCategory(null)
+                  setShowRecipesOnly(false)
+                }}
                 className="flex-1 py-2.5 rounded-xl border border-border bg-background text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors"
               >
                 Anuluj

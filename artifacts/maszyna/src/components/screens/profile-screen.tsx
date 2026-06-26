@@ -2,8 +2,9 @@
 import { useState, useEffect } from "react"
 import { useUser } from "@/lib/user-context"
 import { useAuth } from "@/lib/auth-context"
+import { useLanguage } from "@/lib/i18n/context"
 import { 
-  TrendingUp, TrendingDown, Minus, Ruler, Scale, UtensilsCrossed, Dumbbell, 
+  TrendingUp, TrendingDown, Minus, Ruler, Scale, Utensils, Dumbbell, 
   ChevronRight, Clock, Flame, Plus, X, Trophy, Zap,
   Calendar, Settings
 } from "lucide-react"
@@ -21,11 +22,11 @@ function loadWeightHistory(user: string): number[] {
 interface Measurement { id: string; label: string; values: number[]; unit: string }
 
 const DEFAULT_MEASUREMENTS: Measurement[] = [
-  { id: "waist", label: "Waist", values: [], unit: "cm" },
-  { id: "hips", label: "Hips", values: [], unit: "cm" },
-  { id: "chest", label: "Chest", values: [], unit: "cm" },
-  { id: "bicep", label: "Bicep", values: [], unit: "cm" },
-  { id: "thigh", label: "Thigh", values: [], unit: "cm" },
+  { id: "waist", label: "Talia", values: [], unit: "cm" },
+  { id: "hips", label: "Biodra", values: [], unit: "cm" },
+  { id: "chest", label: "Klatka", values: [], unit: "cm" },
+  { id: "bicep", label: "Biceps", values: [], unit: "cm" },
+  { id: "thigh", label: "Udo", values: [], unit: "cm" },
 ]
 
 function loadMeasurements(user: string): Measurement[] {
@@ -47,6 +48,8 @@ function saveMeasurements(user: string, data: Measurement[]) {
 export function ProfileScreen() {
   const { activeUser, mealLogs, workoutLogs } = useUser()
   const { profile } = useAuth()
+  const { language } = useLanguage()
+  const isPl = language === "pl"
   const [activeTab, setActiveTab] = useState<ProfileTab>("measurements")
   const [logsSubTab, setLogsSubTab] = useState<"meals" | "workouts">("meals")
   const [expandedLog, setExpandedLog] = useState<string | null>(null)
@@ -122,7 +125,7 @@ export function ProfileScreen() {
           </div>
           <div>
             <p className="text-lg font-semibold text-foreground capitalize">{profile?.name || activeUser}</p>
-            <p className="text-xs text-muted-foreground">Member since Jan 2024</p>
+            <p className="text-xs text-muted-foreground">{isPl ? "Członek od sty 2024" : "Member since Jan 2024"}</p>
           </div>
         </div>
         <button onClick={() => setShowSettings(true)} className="p-2.5 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors">
@@ -133,9 +136,9 @@ export function ProfileScreen() {
       {/* Tab Navigation */}
       <div className="flex gap-1 p-1 bg-secondary rounded-xl">
         {[
-          { id: "measurements" as const, label: "Body", icon: Scale },
-          { id: "logs" as const, label: "Logs", icon: Calendar },
-          { id: "achievements" as const, label: "Badges", icon: Trophy },
+          { id: "measurements" as const, label: isPl ? "Ciało" : "Body", icon: Scale },
+          { id: "logs" as const, label: isPl ? "Dziennik" : "Logs", icon: Calendar },
+          { id: "achievements" as const, label: isPl ? "Odznaki" : "Badges", icon: Trophy },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -161,7 +164,7 @@ export function ProfileScreen() {
                   <Scale className="size-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Current Weight</p>
+                <p className="text-xs text-muted-foreground">{isPl ? "Aktualna waga" : "Current Weight"}</p>
                   <div className="flex items-baseline gap-1">
                     <span className="text-2xl font-bold text-foreground">{currentWeight || "—"}</span>
                     <span className="text-sm text-muted-foreground">kg</span>
@@ -205,13 +208,13 @@ export function ProfileScreen() {
                 </svg>
               ) : (
                 <div className="flex items-center justify-center h-full text-xs text-muted-foreground">
-                  {currentWeight > 0 ? "Log more entries to see trend" : "No weight logged yet"}
+                  {currentWeight > 0 ? (isPl ? "Dodaj więcej wpisów, aby zobaczyć trend" : "Log more entries to see trend") : (isPl ? "Brak wagi" : "No weight logged yet")}
                 </div>
               )}
               {weightHistory.length > 1 && (
                 <div className="absolute bottom-1.5 left-3 right-3 flex justify-between text-[9px] text-muted-foreground">
-                  <span>{Math.min(displayHistory.length, 7)}d ago</span>
-                  <span>Today</span>
+                  <span>{Math.min(displayHistory.length, 7)}{isPl ? "d temu" : "d ago"}</span>
+                  <span>{isPl ? "Dziś" : "Today"}</span>
                 </div>
               )}
             </div>
@@ -242,7 +245,7 @@ export function ProfileScreen() {
                 onClick={() => setShowWeightForm(true)}
                 className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:scale-[0.98] transition-transform"
               >
-                Log Weight
+                {isPl ? "Zapisz" : "Save"}
               </button>
             )}
           </div>
@@ -250,7 +253,7 @@ export function ProfileScreen() {
           {/* Body Measurements */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-foreground">Measurements</h3>
+              <h3 className="font-semibold text-foreground">{isPl ? "Pomiary" : "Measurements"}</h3>
               <button
                 onClick={() => {
                   const inputs: Record<string, string> = {}
@@ -261,7 +264,7 @@ export function ProfileScreen() {
                 className="text-xs text-primary font-medium flex items-center gap-1 hover:opacity-80 transition-opacity"
               >
                 <Plus className="size-3.5" />
-                Update
+                {isPl ? "Aktualizuj" : "Update"}
               </button>
             </div>
             <div className="flex flex-col gap-2">
@@ -306,19 +309,19 @@ export function ProfileScreen() {
       {activeTab === "logs" && (
         <div className="flex flex-col gap-4 animate-in fade-in-0 slide-in-from-bottom-2 duration-200">
           <div className="bg-card rounded-2xl p-4 border border-border">
-            <h3 className="font-semibold text-foreground mb-3">This Week</h3>
+            <h3 className="font-semibold text-foreground mb-3">{isPl ? "Ten tydzień" : "This Week"}</h3>
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-secondary/50 rounded-xl p-3 text-center">
                 <p className="text-xl font-bold text-foreground">{avgCaloriesPerDay}</p>
-                <p className="text-[10px] text-muted-foreground">Avg Cal/Day</p>
+                <p className="text-[10px] text-muted-foreground">{isPl ? "Śr. kcal/dzień" : "Avg Cal/Day"}</p>
               </div>
               <div className="bg-secondary/50 rounded-xl p-3 text-center">
                 <p className="text-xl font-bold text-primary">{Math.round(totalProteinThisWeek / 7)}g</p>
-                <p className="text-[10px] text-muted-foreground">Avg Protein</p>
+                <p className="text-[10px] text-muted-foreground">{isPl ? "Śr. białko" : "Avg Protein"}</p>
               </div>
               <div className="bg-secondary/50 rounded-xl p-3 text-center">
                 <p className="text-xl font-bold text-terracotta/70">{userWorkoutLogs.length}</p>
-                <p className="text-[10px] text-muted-foreground">Workouts</p>
+                <p className="text-[10px] text-muted-foreground">{isPl ? "Treningi" : "Workouts"}</p>
               </div>
             </div>
           </div>
@@ -330,8 +333,8 @@ export function ProfileScreen() {
                 logsSubTab === "meals" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
               }`}
             >
-              <UtensilsCrossed className="size-3.5" />
-              Meals
+              <Utensils className="size-3.5" />
+              {isPl ? "Posiłki" : "Meals"}
             </button>
             <button
               onClick={() => setLogsSubTab("workouts")}
@@ -340,7 +343,7 @@ export function ProfileScreen() {
               }`}
             >
               <Dumbbell className="size-3.5" />
-              Workouts
+              {isPl ? "Treningi" : "Workouts"}
             </button>
           </div>
 
@@ -348,8 +351,8 @@ export function ProfileScreen() {
             <div className="flex flex-col gap-2">
               {userMealLogs.length === 0 ? (
                 <div className="bg-card rounded-2xl p-6 border border-dashed border-border text-center">
-                  <UtensilsCrossed className="size-8 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">No meals logged yet</p>
+                  <Utensils className="size-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">{isPl ? "Brak zalogowanych posiłków" : "No meals logged yet"}</p>
                 </div>
               ) : userMealLogs.map((log) => (
                 <div key={log.id} className="bg-card rounded-xl border border-border overflow-hidden">
@@ -363,11 +366,15 @@ export function ProfileScreen() {
                       log.type === "dinner" ? "bg-sand/20 text-sand" :
                       "bg-sage/20 text-sage"
                     }`}>
-                      <UtensilsCrossed className="size-4" />
+                      <Utensils className="size-4" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-foreground capitalize">{log.type}</span>
+                        <span className="text-sm font-medium text-foreground capitalize">
+                          {isPl
+                            ? ({ breakfast: "Śniadanie", lunch: "Obiad", dinner: "Kolacja", snack: "Przekąska" }[log.type] ?? log.type)
+                            : log.type}
+                        </span>
                         <span className="text-[10px] text-muted-foreground">{log.date}</span>
                       </div>
                       <div className="flex items-center gap-1.5 mt-0.5">
@@ -382,10 +389,10 @@ export function ProfileScreen() {
                   {expandedLog === log.id && (
                     <div className="px-3 pb-3 border-t border-border pt-2 animate-in fade-in-0 slide-in-from-top-1 duration-150">
                       <div className="grid grid-cols-4 gap-1.5 mb-2">
-                        <div className="bg-secondary rounded-lg p-1.5 text-center"><p className="text-[10px] font-semibold text-primary">{log.totalProtein}g</p><p className="text-[8px] text-muted-foreground">Protein</p></div>
-                        <div className="bg-secondary rounded-lg p-1.5 text-center"><p className="text-[10px] font-semibold text-wheat">{log.totalCarbs}g</p><p className="text-[8px] text-muted-foreground">Carbs</p></div>
-                        <div className="bg-secondary rounded-lg p-1.5 text-center"><p className="text-[10px] font-semibold text-terracotta/70">{log.totalFats}g</p><p className="text-[8px] text-muted-foreground">Fats</p></div>
-                        <div className="bg-secondary rounded-lg p-1.5 text-center"><p className="text-[10px] font-semibold text-sage">{log.totalFiber}g</p><p className="text-[8px] text-muted-foreground">Fiber</p></div>
+                        <div className="bg-secondary rounded-lg p-1.5 text-center"><p className="text-[10px] font-semibold text-primary">{log.totalProtein}g</p><p className="text-[8px] text-muted-foreground">{isPl ? "Białko" : "Protein"}</p></div>
+                        <div className="bg-secondary rounded-lg p-1.5 text-center"><p className="text-[10px] font-semibold text-wheat">{log.totalCarbs}g</p><p className="text-[8px] text-muted-foreground">{isPl ? "Węgle" : "Carbs"}</p></div>
+                        <div className="bg-secondary rounded-lg p-1.5 text-center"><p className="text-[10px] font-semibold text-terracotta/70">{log.totalFats}g</p><p className="text-[8px] text-muted-foreground">{isPl ? "Tłuszcze" : "Fats"}</p></div>
+                        <div className="bg-secondary rounded-lg p-1.5 text-center"><p className="text-[10px] font-semibold text-sage">{log.totalFiber}g</p><p className="text-[8px] text-muted-foreground">{isPl ? "Błonnik" : "Fiber"}</p></div>
                       </div>
                       <div className="flex flex-col gap-1">
                         {log.items.map((item) => (
