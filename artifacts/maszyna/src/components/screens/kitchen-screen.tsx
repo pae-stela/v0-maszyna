@@ -426,7 +426,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
         totalFats: totals.fats,
         totalFiber: totals.fiber,
         mainCategory: saveMainCategory,
-        subCategory: saveSubCategory || "Custom",
+        subCategory: saveSubCategory || (dishCategories[saveMainCategory]?.[0] ?? ""),
         marcinServings,
         patrycjaServings,
         recipeSteps: steps,

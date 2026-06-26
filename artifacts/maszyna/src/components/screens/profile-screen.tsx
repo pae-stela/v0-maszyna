@@ -360,12 +360,12 @@ export function ProfileScreen() {
                     onClick={() => setExpandedLog(expandedLog === log.id ? null : log.id)}
                     className="w-full p-3 flex items-center gap-3 text-left"
                   >
-                    <div className="size-9 rounded-lg flex items-center justify-center ${
+                    <div className={`size-9 rounded-lg flex items-center justify-center ${
                       log.type === "breakfast" ? "bg-wheat/20 text-wheat" :
                       log.type === "lunch" ? "bg-navy/20 text-navy" :
                       log.type === "dinner" ? "bg-sand/20 text-sand" :
                       "bg-sage/20 text-sage"
-                    }">
+                    }`}>
                       <Utensils className="size-4" />
                     </div>
                     <div className="flex-1 min-w-0">

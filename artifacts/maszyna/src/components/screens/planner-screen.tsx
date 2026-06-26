@@ -1411,17 +1411,9 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                       .filter(d => showRecipesOnly ? (d.recipeSteps && d.recipeSteps.length > 0) || (d.steps && d.steps.length > 0) : true)
                       .map((dish) => {
                         const hasRecipe = (dish.recipeSteps && dish.recipeSteps.length > 0) || (dish.steps && dish.steps.length > 0)
-                        // Show per-user calories based on mealOwner
-                        const servings = mealOwner === "marcin"
-                          ? (dish.marcinServings || dish.patrycjaServings || 1)
-                          : (dish.patrycjaServings || dish.marcinServings || 1)
-                        const totalServings = (dish.marcinServings || 1) + (dish.patrycjaServings || 1)
-                        const ratio = (dish.marcinServings || dish.patrycjaServings)
-                          ? servings / totalServings
-                          : 1
-                        const displayCals = (dish.marcinServings || dish.patrycjaServings)
-                          ? Math.round((dish.totalCalories || 0) * ratio)
-                          : Math.round((dish.totalCalories || 0) / 2)
+                        const ownerForDisplay = mealOwner === "both" ? "patrycja" : mealOwner
+                        const multiplier = getOwnerMacroMultiplier(dish, ownerForDisplay)
+                        const displayCals = Math.round((dish.totalCalories || 0) * multiplier)
                         return (
                           <button
                             key={dish.id}
@@ -1471,7 +1463,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                       className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"
                     >
                       <ChevronLeft className="size-3.5" />
-                      Wróc do listy posiłków
+                      Wróć do listy posiłków
                     </button>
                   )}
                   <div className="flex flex-col gap-1.5">
