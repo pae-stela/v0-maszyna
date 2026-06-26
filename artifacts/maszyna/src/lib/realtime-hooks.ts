@@ -872,9 +872,20 @@ export interface DishItem {
   profileImageUrl?: string | null
   galleryImages?: string[] | null
   recipeUrl?: string | null
+  owner?: "both" | "marcin" | "patrycja"
 }
 
 function mapDishFromDb(dbDish: any): DishItem {
+  // Parse owner from description JSON if present
+  let owner: "both" | "marcin" | "patrycja" | undefined = undefined
+  if (dbDish.description) {
+    try {
+      const parsed = JSON.parse(dbDish.description)
+      if (parsed.owner === "marcin" || parsed.owner === "patrycja" || parsed.owner === "both") {
+        owner = parsed.owner
+      }
+    } catch { /* ignore */ }
+  }
   return {
     id: dbDish.id,
     user_id: dbDish.user_id ?? undefined,
@@ -899,6 +910,7 @@ function mapDishFromDb(dbDish: any): DishItem {
     profileImageUrl: dbDish.profile_image_url ?? null,
     galleryImages: Array.isArray(dbDish.gallery_images) ? dbDish.gallery_images : null,
     recipeUrl: dbDish.recipe_url ?? null,
+    owner,
   }
 }
 

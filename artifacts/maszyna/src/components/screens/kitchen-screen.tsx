@@ -52,6 +52,7 @@ interface DishItem {
   patrycjaServings?: number
   recipeSteps?: string[]
   steps?: string[]
+  owner?: "both" | "marcin" | "patrycja"
 }
 
 // Category structure for dishes
@@ -89,6 +90,7 @@ export interface EditMode {
   patrycjaServings?: number
   mainCategory?: "Large" | "Light" | "Snacks" | "Drinks"
   subCategory?: string
+  owner?: "both" | "marcin" | "patrycja"
 }
 
 export function KitchenScreen({ initialEditMode, onEditSaveComplete }: { initialEditMode?: EditMode | null; onEditSaveComplete?: () => void }) {
@@ -173,6 +175,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
   const [saveRecipeSteps, setSaveRecipeSteps] = useState("")
   const [marcinServings, setMarcinServings] = useState(1)
   const [patrycjaServings, setPatrycjaServings] = useState(1)
+  const [dishOwner, setDishOwner] = useState<"both" | "marcin" | "patrycja">("both")
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null)
   const [galleryImages, setGalleryImages] = useState<string[]>([])
   const [recipeUrl, setRecipeUrl] = useState("")
@@ -194,6 +197,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
     setSaveRecipeSteps(editMode.recipeSteps?.join('\n') || "")
     setMarcinServings(editMode.marcinServings || 1)
     setPatrycjaServings(editMode.patrycjaServings || 1)
+    setDishOwner(editMode.owner || "both")
     if (editMode.mainCategory) setSaveMainCategory(editMode.mainCategory)
     if (editMode.subCategory) setSaveSubCategory(editMode.subCategory)
 
@@ -334,24 +338,45 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
   )
 
   // Smart Splitter: Independent servings for each person
-  // Marcin gets 2 parts, Patrycja gets 1 part per serving
+  // When dishOwner === "both": Marcin gets 2 parts, Patrycja gets 1 part per serving
+  // When single partner: total / servings for that partner only
   const totalParts = (marcinServings * 2) + (patrycjaServings * 1)
-  
-  const marcinPortion = totalParts > 0 ? {
-    calories: (totals.calories / totalParts) * marcinServings * 2,
-    protein: (totals.protein / totalParts) * marcinServings * 2,
-    carbs: (totals.carbs / totalParts) * marcinServings * 2,
-    fats: (totals.fats / totalParts) * marcinServings * 2,
-    fiber: (totals.fiber / totalParts) * marcinServings * 2,
-  } : { calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0 }
-  
-  const patrycjaPortion = totalParts > 0 ? {
-    calories: (totals.calories / totalParts) * patrycjaServings * 1,
-    protein: (totals.protein / totalParts) * patrycjaServings * 1,
-    carbs: (totals.carbs / totalParts) * patrycjaServings * 1,
-    fats: (totals.fats / totalParts) * patrycjaServings * 1,
-    fiber: (totals.fiber / totalParts) * patrycjaServings * 1,
-  } : { calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0 }
+
+  const marcinPortion = dishOwner === "both"
+    ? (totalParts > 0 ? {
+        calories: (totals.calories / totalParts) * marcinServings * 2,
+        protein: (totals.protein / totalParts) * marcinServings * 2,
+        carbs: (totals.carbs / totalParts) * marcinServings * 2,
+        fats: (totals.fats / totalParts) * marcinServings * 2,
+        fiber: (totals.fiber / totalParts) * marcinServings * 2,
+      } : { calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0 })
+    : dishOwner === "marcin"
+      ? (marcinServings > 0 ? {
+          calories: totals.calories / marcinServings,
+          protein: totals.protein / marcinServings,
+          carbs: totals.carbs / marcinServings,
+          fats: totals.fats / marcinServings,
+          fiber: totals.fiber / marcinServings,
+        } : { calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0 })
+      : { calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0 }
+
+  const patrycjaPortion = dishOwner === "both"
+    ? (totalParts > 0 ? {
+        calories: (totals.calories / totalParts) * patrycjaServings * 1,
+        protein: (totals.protein / totalParts) * patrycjaServings * 1,
+        carbs: (totals.carbs / totalParts) * patrycjaServings * 1,
+        fats: (totals.fats / totalParts) * patrycjaServings * 1,
+        fiber: (totals.fiber / totalParts) * patrycjaServings * 1,
+      } : { calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0 })
+    : dishOwner === "patrycja"
+      ? (patrycjaServings > 0 ? {
+          calories: totals.calories / patrycjaServings,
+          protein: totals.protein / patrycjaServings,
+          carbs: totals.carbs / patrycjaServings,
+          fats: totals.fats / patrycjaServings,
+          fiber: totals.fiber / patrycjaServings,
+        } : { calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0 })
+      : { calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0 }
 
   const marcinPerServing = marcinServings > 0 ? {
     calories: marcinPortion.calories / marcinServings,
@@ -433,12 +458,16 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
         profileImageUrl: profileImageUrl || null,
         galleryImages: galleryImages.length > 0 ? galleryImages : null,
         recipeUrl: recipeUrl.trim() || null,
+        description: dishOwner !== "both" ? JSON.stringify({ owner: dishOwner }) : null,
       }
 
       const resetForm = () => {
         setSaveName("")
         setSaveSubCategory("")
         setSaveRecipeSteps("")
+        setMarcinServings(1)
+        setPatrycjaServings(1)
+        setDishOwner("both")
         setProfileImageUrl(null)
         setGalleryImages([])
         setRecipeUrl("")
@@ -697,55 +726,100 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
           <div className="size-7 rounded-full bg-foreground text-background flex items-center justify-center text-sm font-bold">2</div>
           <div>
             <h3 className="text-sm font-semibold text-foreground">Podziel</h3>
-            <p className="text-xs text-muted-foreground">Podziel między {partner?.name || "Partnera"} i {profile?.name || "Ciebie"}</p>
+            <p className="text-xs text-muted-foreground">
+              {dishOwner === "both"
+                ? `Podziel między ${partner?.name || "Partnera"} i ${profile?.name || "Ciebie"}`
+                : dishOwner === "marcin"
+                  ? `Dla ${partner?.name || "Partnera"} tylko`
+                  : `Dla ${profile?.name || "Ciebie"} tylko`
+              }
+            </p>
           </div>
         </div>
 
         <div className="p-5">
-          {/* Serving Controls */}
-          <div className="grid grid-cols-2 gap-4 mb-5">
-            {/* Partner Servings */}
-            <div className="rounded-xl p-3 border" style={{ backgroundColor: hexToRgba(partnerColor, 0.1), borderColor: hexToRgba(partnerColor, 0.2) }}>
-              <div className="flex items-center gap-2 mb-2">
-                <div className="size-6 rounded-full flex items-center justify-center" style={{ backgroundColor: partnerColor }}>
-                  <span className="text-[10px] font-bold text-white">{(partner?.name || "P")[0]}</span>
-                </div>
-                <span className="text-xs font-medium text-foreground">{partner?.name || "Partner"}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-muted-foreground">Porcje</span>
-                <div className="flex items-center bg-background rounded-lg">
-                  <button onClick={() => setMarcinServings(Math.max(0, marcinServings - 1))} className="px-2 py-1 text-muted-foreground hover:text-foreground transition-colors text-sm">-</button>
-                  <span className="w-6 text-center text-sm font-semibold text-foreground">{marcinServings}</span>
-                  <button onClick={() => setMarcinServings(marcinServings + 1)} className="px-2 py-1 text-muted-foreground hover:text-foreground transition-colors text-sm">+</button>
-                </div>
-              </div>
-            </div>
-
-            {/* My Servings */}
-            <div className="rounded-xl p-3 border" style={{ backgroundColor: hexToRgba(myColor, 0.1), borderColor: hexToRgba(myColor, 0.2) }}>
-              <div className="flex items-center gap-2 mb-2">
-                <div className="size-6 rounded-full flex items-center justify-center" style={{ backgroundColor: myColor }}>
-                  <span className="text-[10px] font-bold text-white">{(profile?.name || "M")[0]}</span>
-                </div>
-                <span className="text-xs font-medium text-foreground">{profile?.name || "Ja"}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-muted-foreground">Porcje</span>
-                <div className="flex items-center bg-background rounded-lg">
-                  <button onClick={() => setPatrycjaServings(Math.max(0, patrycjaServings - 1))} className="px-2 py-1 text-muted-foreground hover:text-foreground transition-colors text-sm">-</button>
-                  <span className="w-6 text-center text-sm font-semibold text-foreground">{patrycjaServings}</span>
-                  <button onClick={() => setPatrycjaServings(patrycjaServings + 1)} className="px-2 py-1 text-muted-foreground hover:text-foreground transition-colors text-sm">+</button>
-                </div>
-              </div>
-            </div>
+          {/* Owner Toggle */}
+          <div className="flex items-center gap-2 mb-5 bg-secondary/50 rounded-xl p-1.5">
+            <button
+              onClick={() => setDishOwner("both")}
+              className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
+                dishOwner === "both"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {t('both')}
+            </button>
+            <button
+              onClick={() => setDishOwner("marcin")}
+              className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
+                dishOwner === "marcin"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {partner?.name || "Marcin"}
+            </button>
+            <button
+              onClick={() => setDishOwner("patrycja")}
+              className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
+                dishOwner === "patrycja"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {profile?.name || "Patrycja"}
+            </button>
           </div>
 
-          {/* Visual Split Bar */}
-          {totalParts > 0 && (
+          {/* Serving Controls */}
+          <div className={`grid gap-4 mb-5 ${dishOwner === "both" ? "grid-cols-2" : "grid-cols-1"}`}>
+            {/* Partner Servings (show when both or marcin) */}
+            {(dishOwner === "both" || dishOwner === "marcin") && (
+              <div className="rounded-xl p-3 border" style={{ backgroundColor: hexToRgba(partnerColor, 0.1), borderColor: hexToRgba(partnerColor, 0.2) }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="size-6 rounded-full flex items-center justify-center" style={{ backgroundColor: partnerColor }}>
+                    <span className="text-[10px] font-bold text-white">{(partner?.name || "P")[0]}</span>
+                  </div>
+                  <span className="text-xs font-medium text-foreground">{partner?.name || "Partner"}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-muted-foreground">{t('singleServings')}</span>
+                  <div className="flex items-center bg-background rounded-lg">
+                    <button onClick={() => setMarcinServings(Math.max(1, marcinServings - 1))} className="px-2 py-1 text-muted-foreground hover:text-foreground transition-colors text-sm">-</button>
+                    <span className="w-6 text-center text-sm font-semibold text-foreground">{marcinServings}</span>
+                    <button onClick={() => setMarcinServings(marcinServings + 1)} className="px-2 py-1 text-muted-foreground hover:text-foreground transition-colors text-sm">+</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* My Servings (show when both or patrycja) */}
+            {(dishOwner === "both" || dishOwner === "patrycja") && (
+              <div className="rounded-xl p-3 border" style={{ backgroundColor: hexToRgba(myColor, 0.1), borderColor: hexToRgba(myColor, 0.2) }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="size-6 rounded-full flex items-center justify-center" style={{ backgroundColor: myColor }}>
+                    <span className="text-[10px] font-bold text-white">{(profile?.name || "M")[0]}</span>
+                  </div>
+                  <span className="text-xs font-medium text-foreground">{profile?.name || "Ja"}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-muted-foreground">{t('singleServings')}</span>
+                  <div className="flex items-center bg-background rounded-lg">
+                    <button onClick={() => setPatrycjaServings(Math.max(1, patrycjaServings - 1))} className="px-2 py-1 text-muted-foreground hover:text-foreground transition-colors text-sm">-</button>
+                    <span className="w-6 text-center text-sm font-semibold text-foreground">{patrycjaServings}</span>
+                    <button onClick={() => setPatrycjaServings(patrycjaServings + 1)} className="px-2 py-1 text-muted-foreground hover:text-foreground transition-colors text-sm">+</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Visual Split Bar — only when both */}
+          {dishOwner === "both" && totalParts > 0 && (
             <div className="mb-5">
               <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
-                <span>Podział</span>
+                <span>{t('distribution')}</span>
                 <span>{Math.round((marcinServings * 2 / totalParts) * 100)}% / {Math.round((patrycjaServings * 1 / totalParts) * 100)}%</span>
               </div>
               <div className="h-2.5 rounded-full overflow-hidden flex bg-secondary">
@@ -760,85 +834,101 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
           )}
 
           {/* Portion Details */}
-          <div className="grid grid-cols-2 gap-3">
-            {/* Partner's Portion */}
-            <div className="rounded-xl p-3 border" style={{ backgroundColor: hexToRgba(partnerColor, 0.05), borderColor: hexToRgba(partnerColor, 0.1) }}>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
-                {marcinServings > 1 ? `Na porcję (${marcinServings}x)` : "Łącznie"}
-              </p>
-              <div className="space-y-1.5">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">Kalorie</span>
-                  <span className="text-sm font-bold text-foreground">{Math.round(marcinServings > 1 ? marcinPerServing.calories : marcinPortion.calories)}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">Białko</span>
-                  <span className="text-xs font-semibold text-primary">{Math.round((marcinServings > 1 ? marcinPerServing.protein : marcinPortion.protein) * 10) / 10}g</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">Węgle</span>
-                  <span className="text-xs font-semibold text-wheat">{Math.round((marcinServings > 1 ? marcinPerServing.carbs : marcinPortion.carbs) * 10) / 10}g</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">Tłuszcze</span>
-                  <span className="text-xs font-semibold text-terracotta/70">{Math.round((marcinServings > 1 ? marcinPerServing.fats : marcinPortion.fats) * 10) / 10}g</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">Błonnik</span>
-                  <span className="text-xs font-semibold text-muted-foreground">{Math.round((marcinServings > 1 ? marcinPerServing.fiber : marcinPortion.fiber) * 10) / 10}g</span>
-                </div>
-              </div>
-              {marcinServings > 1 && (
-                <div className="mt-2 pt-2 border-t border-border/50">
+          <div className={`grid gap-3 ${dishOwner === "both" ? "grid-cols-2" : "grid-cols-1"}`}>
+            {/* Partner's Portion (show when both or marcin) */}
+            {(dishOwner === "both" || dishOwner === "marcin") && (
+              <div className="rounded-xl p-3 border" style={{ backgroundColor: hexToRgba(partnerColor, 0.05), borderColor: hexToRgba(partnerColor, 0.1) }}>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
+                  {marcinServings > 1 ? `Na porcję (${marcinServings}x)` : "Łącznie"}
+                </p>
+                <div className="space-y-1.5">
                   <div className="flex justify-between items-center">
-                    <span className="text-[10px] text-muted-foreground">Wszystkie {marcinServings}</span>
-                    <span className="text-xs font-bold text-foreground">{Math.round(marcinPortion.calories)} kcal</span>
+                    <span className="text-xs text-muted-foreground">Kalorie</span>
+                    <span className="text-sm font-bold text-foreground">{Math.round(marcinServings > 1 ? marcinPerServing.calories : marcinPortion.calories)}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">Białko</span>
+                    <span className="text-xs font-semibold text-primary">{Math.round((marcinServings > 1 ? marcinPerServing.protein : marcinPortion.protein) * 10) / 10}g</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">Węgle</span>
+                    <span className="text-xs font-semibold text-wheat">{Math.round((marcinServings > 1 ? marcinPerServing.carbs : marcinPortion.carbs) * 10) / 10}g</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">Tłuszcze</span>
+                    <span className="text-xs font-semibold text-terracotta/70">{Math.round((marcinServings > 1 ? marcinPerServing.fats : marcinPortion.fats) * 10) / 10}g</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">Błonnik</span>
+                    <span className="text-xs font-semibold text-muted-foreground">{Math.round((marcinServings > 1 ? marcinPerServing.fiber : marcinPortion.fiber) * 10) / 10}g</span>
                   </div>
                 </div>
-              )}
-            </div>
+                {marcinServings > 1 && (
+                  <div className="mt-2 pt-2 border-t border-border/50">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] text-muted-foreground">Wszystkie {marcinServings}</span>
+                      <span className="text-xs font-bold text-foreground">{Math.round(marcinPortion.calories)} kcal</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
-            {/* My Portion */}
-            <div className="rounded-xl p-3 border" style={{ backgroundColor: hexToRgba(myColor, 0.05), borderColor: hexToRgba(myColor, 0.1) }}>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
-                {patrycjaServings > 1 ? `Na porcję (${patrycjaServings}x)` : "Łącznie"}
-              </p>
-              <div className="space-y-1.5">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">Kalorie</span>
-                  <span className="text-sm font-bold text-foreground">{Math.round(patrycjaServings > 1 ? patrycjaPerServing.calories : patrycjaPortion.calories)}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">Białko</span>
-                  <span className="text-xs font-semibold text-primary">{Math.round((patrycjaServings > 1 ? patrycjaPerServing.protein : patrycjaPortion.protein) * 10) / 10}g</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">Węgle</span>
-                  <span className="text-xs font-semibold text-wheat">{Math.round((patrycjaServings > 1 ? patrycjaPerServing.carbs : patrycjaPortion.carbs) * 10) / 10}g</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">Tłuszcze</span>
-                  <span className="text-xs font-semibold text-terracotta/70">{Math.round((patrycjaServings > 1 ? patrycjaPerServing.fats : patrycjaPortion.fats) * 10) / 10}g</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">Błonnik</span>
-                  <span className="text-xs font-semibold text-muted-foreground">{Math.round((patrycjaServings > 1 ? patrycjaPerServing.fiber : patrycjaPortion.fiber) * 10) / 10}g</span>
-                </div>
-              </div>
-              {patrycjaServings > 1 && (
-                <div className="mt-2 pt-2 border-t border-border/50">
+            {/* My Portion (show when both or patrycja) */}
+            {(dishOwner === "both" || dishOwner === "patrycja") && (
+              <div className="rounded-xl p-3 border" style={{ backgroundColor: hexToRgba(myColor, 0.05), borderColor: hexToRgba(myColor, 0.1) }}>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
+                  {patrycjaServings > 1 ? `Na porcję (${patrycjaServings}x)` : "Łącznie"}
+                </p>
+                <div className="space-y-1.5">
                   <div className="flex justify-between items-center">
-                    <span className="text-[10px] text-muted-foreground">Wszystkie {patrycjaServings}</span>
-                    <span className="text-xs font-bold text-foreground">{Math.round(patrycjaPortion.calories)} kcal</span>
+                    <span className="text-xs text-muted-foreground">Kalorie</span>
+                    <span className="text-sm font-bold text-foreground">{Math.round(patrycjaServings > 1 ? patrycjaPerServing.calories : patrycjaPortion.calories)}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">Białko</span>
+                    <span className="text-xs font-semibold text-primary">{Math.round((patrycjaServings > 1 ? patrycjaPerServing.protein : patrycjaPortion.protein) * 10) / 10}g</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">Węgle</span>
+                    <span className="text-xs font-semibold text-wheat">{Math.round((patrycjaServings > 1 ? patrycjaPerServing.carbs : patrycjaPortion.carbs) * 10) / 10}g</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">Tłuszcze</span>
+                    <span className="text-xs font-semibold text-terracotta/70">{Math.round((patrycjaServings > 1 ? patrycjaPerServing.fats : patrycjaPortion.fats) * 10) / 10}g</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">Błonnik</span>
+                    <span className="text-xs font-semibold text-muted-foreground">{Math.round((patrycjaServings > 1 ? patrycjaPerServing.fiber : patrycjaPortion.fiber) * 10) / 10}g</span>
                   </div>
                 </div>
-              )}
-            </div>
+                {patrycjaServings > 1 && (
+                  <div className="mt-2 pt-2 border-t border-border/50">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] text-muted-foreground">Wszystkie {patrycjaServings}</span>
+                      <span className="text-xs font-bold text-foreground">{Math.round(patrycjaPortion.calories)} kcal</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          <p className="text-[10px] text-muted-foreground text-center mt-4">
-            Proporcja: {partner?.name || "Partner"} dostaje 2 części, {profile?.name || "Ty"} dostaje 1 część na porcję
-          </p>
+          {dishOwner === "both" && (
+            <p className="text-[10px] text-muted-foreground text-center mt-4">
+              Proporcja: {partner?.name || "Partner"} dostaje 2 części, {profile?.name || "Ty"} dostaje 1 część na porcję
+            </p>
+          )}
+          {dishOwner === "marcin" && (
+            <p className="text-[10px] text-muted-foreground text-center mt-4">
+              Całkowita liczba kalorii dzielona na {marcinServings} {marcinServings === 1 ? "porcję" : "porcje"} tylko dla {partner?.name || "Partnera"}
+            </p>
+          )}
+          {dishOwner === "patrycja" && (
+            <p className="text-[10px] text-muted-foreground text-center mt-4">
+              Całkowita liczba kalorii dzielona na {patrycjaServings} {patrycjaServings === 1 ? "porcję" : "porcje"} tylko dla {profile?.name || "Ciebie"}
+            </p>
+          )}
         </div>
       </div>
 
@@ -1780,6 +1870,14 @@ function DishesView({ onEditDish }: { onEditDish: (mode: EditMode) => void }) {
                             : (partner?.name?.split(' ')[0] || 'Partner')}
                         </span>
                       )}
+                      {dish.owner && dish.owner !== "both" && (
+                        <span
+                          className="px-1.5 py-0.5 rounded text-[9px] font-medium text-white"
+                          style={{ backgroundColor: dish.owner === "marcin" ? partnerColor : myColor }}
+                        >
+                          {dish.owner === "marcin" ? (partner?.name || "M") : (profile?.name || "P")}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1896,6 +1994,7 @@ function DishesView({ onEditDish }: { onEditDish: (mode: EditMode) => void }) {
                         patrycjaServings: dish.patrycjaServings,
                         mainCategory: dish.mainCategory,
                         subCategory: dish.subCategory,
+                        owner: dish.owner,
                       })}
                       className="flex-1 py-2.5 rounded-xl bg-secondary text-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
                     >
