@@ -6,7 +6,7 @@ import { useLanguage } from "@/lib/i18n/context"
 import { 
   TrendingUp, TrendingDown, Minus, Ruler, Scale, Utensils, Dumbbell, 
   ChevronRight, Clock, Flame, Plus, X, Trophy, Zap,
-  Calendar, Settings
+  Calendar, Settings, Copy, Check, Link, LinkOff, UserPlus
 } from "lucide-react"
 import { SettingsModal, WhiteCat, BlackCat } from "@/components/top-bar"
 
@@ -47,13 +47,19 @@ function saveMeasurements(user: string, data: Measurement[]) {
 
 export function ProfileScreen() {
   const { activeUser, mealLogs, workoutLogs } = useUser()
-  const { profile } = useAuth()
+  const { profile, partner, linkPartner, unlinkPartner } = useAuth()
   const { language } = useLanguage()
   const isPl = language === "pl"
   const [activeTab, setActiveTab] = useState<ProfileTab>("measurements")
   const [logsSubTab, setLogsSubTab] = useState<"meals" | "workouts">("meals")
   const [expandedLog, setExpandedLog] = useState<string | null>(null)
   const [showSettings, setShowSettings] = useState(false)
+
+  const [partnerCodeInput, setPartnerCodeInput] = useState("")
+  const [partnerLinkLoading, setPartnerLinkLoading] = useState(false)
+  const [partnerLinkError, setPartnerLinkError] = useState<string | null>(null)
+  const [partnerLinkSuccess, setPartnerLinkSuccess] = useState(false)
+  const [copiedCode, setCopiedCode] = useState(false)
 
   const [weightHistory, setWeightHistory] = useState<number[]>([])
   const [showWeightForm, setShowWeightForm] = useState(false)
@@ -131,6 +137,97 @@ export function ProfileScreen() {
         <button onClick={() => setShowSettings(true)} className="p-2.5 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors">
           <Settings className="size-5 text-foreground" />
         </button>
+      </div>
+
+      {/* Partner Section */}
+      <div className="bg-card rounded-2xl p-4 border border-border">
+        {partner ? (
+          /* Already connected */
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="size-9 rounded-full bg-sage/20 flex items-center justify-center">
+                <Link className="size-4 text-sage" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground capitalize">{partner.name}</p>
+                <p className="text-xs text-muted-foreground">{isPl ? "Połączony partner" : "Connected partner"}</p>
+              </div>
+            </div>
+            <button
+              onClick={unlinkPartner}
+              className="p-2 rounded-lg hover:bg-secondary transition-colors"
+              title={isPl ? "Rozłącz" : "Unlink"}
+            >
+              <LinkOff className="size-4 text-muted-foreground" />
+            </button>
+          </div>
+        ) : (
+          /* Not connected — show own code + input to enter partner's code */
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-2">
+              <UserPlus className="size-4 text-muted-foreground" />
+              <p className="text-sm font-medium text-foreground">
+                {isPl ? "Połącz z partnerem" : "Connect partner"}
+              </p>
+            </div>
+
+            {/* Your own invite code */}
+            {profile?.partner_invite_code && (
+              <div className="flex flex-col gap-1">
+                <p className="text-xs text-muted-foreground">{isPl ? "Twój kod — udostępnij partnerowi:" : "Your code — share with your partner:"}</p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 px-3 py-2 bg-secondary rounded-lg text-sm font-mono tracking-widest text-foreground">
+                    {profile.partner_invite_code}
+                  </code>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(profile.partner_invite_code!)
+                      setCopiedCode(true)
+                      setTimeout(() => setCopiedCode(false), 2000)
+                    }}
+                    className="p-2 rounded-lg bg-secondary hover:bg-secondary/60 transition-colors"
+                  >
+                    {copiedCode ? <Check className="size-4 text-sage" /> : <Copy className="size-4 text-muted-foreground" />}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Enter partner's code */}
+            <div className="flex flex-col gap-1">
+              <p className="text-xs text-muted-foreground">{isPl ? "Wpisz kod partnera:" : "Enter partner's code:"}</p>
+              <div className="flex gap-2">
+                <input
+                  value={partnerCodeInput}
+                  onChange={e => { setPartnerCodeInput(e.target.value.trim()); setPartnerLinkError(null) }}
+                  placeholder={isPl ? "np. ABC123" : "e.g. ABC123"}
+                  className="flex-1 px-3 py-2 bg-secondary rounded-lg text-sm font-mono tracking-widest text-foreground placeholder:text-muted-foreground border border-transparent focus:border-border outline-none"
+                  maxLength={20}
+                />
+                <button
+                  disabled={!partnerCodeInput || partnerLinkLoading}
+                  onClick={async () => {
+                    setPartnerLinkLoading(true)
+                    setPartnerLinkError(null)
+                    const result = await linkPartner(partnerCodeInput)
+                    setPartnerLinkLoading(false)
+                    if (result.success) {
+                      setPartnerLinkSuccess(true)
+                      setPartnerCodeInput("")
+                    } else {
+                      setPartnerLinkError(isPl ? "Nieprawidłowy kod. Spróbuj ponownie." : "Invalid code. Please try again.")
+                    }
+                  }}
+                  className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-40 transition-opacity"
+                >
+                  {partnerLinkLoading ? "..." : (isPl ? "Połącz" : "Link")}
+                </button>
+              </div>
+              {partnerLinkError && <p className="text-xs text-destructive">{partnerLinkError}</p>}
+              {partnerLinkSuccess && <p className="text-xs text-sage">{isPl ? "Połączono!" : "Connected!"}</p>}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Tab Navigation */}
