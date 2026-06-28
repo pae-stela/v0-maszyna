@@ -6,7 +6,7 @@ import { useLanguage } from "@/lib/i18n/context"
 import { 
   TrendingUp, TrendingDown, Minus, Ruler, Scale, Utensils, Dumbbell, 
   ChevronRight, Clock, Flame, Plus, X, Trophy, Zap,
-  Calendar, Settings, Copy, Check, Link, LinkOff, UserPlus
+  Calendar, Settings, Copy, Check, Link, Unlink, UserPlus
 } from "lucide-react"
 import { SettingsModal, WhiteCat, BlackCat } from "@/components/top-bar"
 
@@ -158,7 +158,7 @@ export function ProfileScreen() {
               className="p-2 rounded-lg hover:bg-secondary transition-colors"
               title={isPl ? "Rozłącz" : "Unlink"}
             >
-              <LinkOff className="size-4 text-muted-foreground" />
+              <Unlink className="size-4 text-muted-foreground" />
             </button>
           </div>
         ) : (
