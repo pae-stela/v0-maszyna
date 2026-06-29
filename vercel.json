@@ -1,0 +1,5 @@
+{
+  "buildCommand": "cd artifacts/maszyna && pnpm build",
+  "outputDirectory": "artifacts/maszyna/dist/public",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}
