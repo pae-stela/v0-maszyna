@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useUser } from "@/lib/user-context"
 import { useAuth } from "@/lib/auth-context"
-import { Settings, X, Users, User, Calculator, Sparkles, Footprints, Globe, LogOut, Sun, Moon, Monitor } from "lucide-react"
+import { Settings, X, Users, User, Calculator, Sparkles, Footprints, Globe, LogOut, Sun, Moon, Monitor, Copy, Check, Link, Unlink } from "lucide-react"
 import { useLanguage } from "@/lib/i18n/context"
 import { usePartnerColors, PARTNER_COLORS } from "@/lib/partner-colors-context"
 
@@ -53,7 +53,7 @@ interface SettingsModalProps {
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const { activeUser, getWeeklyAvgSteps } = useUser()
-  const { signOut, profile, partner, settings, updateSettings } = useAuth()
+  const { signOut, profile, partner, settings, updateSettings, linkPartner, unlinkPartner } = useAuth()
   const { language, setLanguage, t } = useLanguage()
   const { myColor, partnerColor, setMyColor, setPartnerColor } = usePartnerColors()
   const [settingsTab, setSettingsTab] = useState<"couple" | "profile">("profile")
@@ -77,6 +77,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   }
   const [showMacroCalculator, setShowMacroCalculator] = useState(false)
   const [isSavingGoals, setIsSavingGoals] = useState(false)
+  const [partnerCodeInput, setPartnerCodeInput] = useState("")
+  const [partnerLinkLoading, setPartnerLinkLoading] = useState(false)
+  const [partnerLinkError, setPartnerLinkError] = useState<string | null>(null)
+  const [partnerLinkSuccess, setPartnerLinkSuccess] = useState(false)
+  const [copiedCode, setCopiedCode] = useState(false)
   
   // Macro goals state — seeded from Supabase settings when they load
   const [macroGoals, setMacroGoals] = useState({
@@ -232,6 +237,91 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             <div className="p-4 overflow-y-auto flex-1">
               {settingsTab === "couple" ? (
                 <div className="flex flex-col gap-5">
+
+                  {/* Partner Pairing */}
+                  <div className="bg-secondary/50 rounded-xl p-4">
+                    {partner ? (
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="size-9 rounded-full bg-sage/20 flex items-center justify-center">
+                            <Link className="size-4 text-sage" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-foreground capitalize">{partner.name}</p>
+                            <p className="text-xs text-muted-foreground">{t('connectedPartner') || "Connected partner"}</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={unlinkPartner}
+                          className="p-2 rounded-lg hover:bg-secondary transition-colors"
+                          title="Unlink"
+                        >
+                          <Unlink className="size-4 text-muted-foreground" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-3">
+                        <h4 className="text-sm font-semibold text-foreground">{t('connectPartner') || "Connect partner"}</h4>
+
+                        {/* Your invite code */}
+                        {profile?.partner_invite_code && (
+                          <div className="flex flex-col gap-1">
+                            <p className="text-xs text-muted-foreground">{t('yourCode') || "Your code — share with your partner:"}</p>
+                            <div className="flex items-center gap-2">
+                              <code className="flex-1 px-3 py-2 bg-background rounded-lg text-sm font-mono tracking-widest text-foreground">
+                                {profile.partner_invite_code}
+                              </code>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(profile!.partner_invite_code!)
+                                  setCopiedCode(true)
+                                  setTimeout(() => setCopiedCode(false), 2000)
+                                }}
+                                className="p-2 rounded-lg bg-background hover:bg-secondary transition-colors"
+                              >
+                                {copiedCode ? <Check className="size-4 text-sage" /> : <Copy className="size-4 text-muted-foreground" />}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Enter partner's code */}
+                        <div className="flex flex-col gap-1">
+                          <p className="text-xs text-muted-foreground">{t('enterPartnerCode') || "Enter partner's code:"}</p>
+                          <div className="flex gap-2">
+                            <input
+                              value={partnerCodeInput}
+                              onChange={e => { setPartnerCodeInput(e.target.value.trim()); setPartnerLinkError(null) }}
+                              placeholder="e.g. ABC123"
+                              className="flex-1 px-3 py-2 bg-background rounded-lg text-sm font-mono tracking-widest text-foreground placeholder:text-muted-foreground border border-transparent focus:border-border outline-none"
+                              maxLength={20}
+                            />
+                            <button
+                              disabled={!partnerCodeInput || partnerLinkLoading}
+                              onClick={async () => {
+                                setPartnerLinkLoading(true)
+                                setPartnerLinkError(null)
+                                const result = await linkPartner(partnerCodeInput)
+                                setPartnerLinkLoading(false)
+                                if (result.success) {
+                                  setPartnerLinkSuccess(true)
+                                  setPartnerCodeInput("")
+                                } else {
+                                  setPartnerLinkError(t('invalidCode') || "Invalid code. Please try again.")
+                                }
+                              }}
+                              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-40 transition-opacity"
+                            >
+                              {partnerLinkLoading ? "..." : (t('link') || "Link")}
+                            </button>
+                          </div>
+                          {partnerLinkError && <p className="text-xs text-destructive">{partnerLinkError}</p>}
+                          {partnerLinkSuccess && <p className="text-xs text-sage">{t('connected') || "Connected!"}</p>}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Smart Splitter Ratio */}
                   <div className="bg-secondary/50 rounded-xl p-4">
                     <h4 className="text-sm font-semibold text-foreground mb-1">Smart Splitter Ratio</h4>
