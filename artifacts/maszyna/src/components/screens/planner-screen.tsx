@@ -405,12 +405,12 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
 
   // Set meal owner to current user when component mounts or user changes
   useEffect(() => {
-    if (user?.id === profile?.user_id || profile?.name?.toLowerCase() === "patrycja") {
+    if (profile?.name?.toLowerCase() === "patrycja") {
       setMealOwner("patrycja")
-    } else {
+    } else if (profile?.name?.toLowerCase() === "marcin") {
       setMealOwner("marcin")
     }
-  }, [user?.id, profile?.user_id])
+  }, [profile?.id, profile?.name])
 
   const dates = getDateRange(baseDate, viewMode)
   const today = new Date()

@@ -595,7 +595,7 @@ export function ProfileScreen() {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-card rounded-xl p-3 border border-border text-center">
-              <UtensilsCrossed className="size-5 text-wheat mx-auto mb-1" />
+              <Utensils className="size-5 text-wheat mx-auto mb-1" />
               <p className="text-2xl font-bold text-foreground">{userMealLogs.length}</p>
               <p className="text-[10px] text-muted-foreground">Meals Logged</p>
             </div>
