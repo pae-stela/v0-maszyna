@@ -21,6 +21,7 @@ interface TimelineItem {
   type: "meal" | "training" | "supplements"
   details?: string
   logged: boolean
+  owner?: "marcin" | "patrycja"
   macros?: { calories: number; protein: number; carbs: number; fats: number }
 }
 
@@ -66,6 +67,9 @@ export function Timeline({ dateStr, activeUser, loggedOverrides: externalOverrid
 
   // Local override map used only when no external overrides are provided
   const [localLoggedOverrides, setLocalLoggedOverrides] = useState<Record<string, boolean>>({})
+  
+  // Filter state for meal ownership (marcin/patrycja/both)
+  const [mealOwnerFilter, setMealOwnerFilter] = useState<"all" | "marcin" | "patrycja" | "both">("all")
   const loggedOverrides = externalOverrides ?? localLoggedOverrides
 
   const timelineItems = useMemo(() => {
@@ -74,11 +78,13 @@ export function Timeline({ dateStr, activeUser, loggedOverrides: externalOverrid
     meals
       .filter((m) => getOwnerFromRecord(m, user?.id, profile?.name, partner?.name) === activeUser)
       .forEach((m) => {
+        const mealOwner = getOwnerFromRecord(m, user?.id, profile?.name, partner?.name)
         items.push({
           id: m.id,
           time: m.time || "00:00",
           name: m.name,
           type: "meal",
+          owner: mealOwner,
           logged: loggedOverrides[m.id] !== undefined ? loggedOverrides[m.id] : (m.logged || false),
           macros: {
             calories: m.calories || 0,
@@ -122,6 +128,7 @@ export function Timeline({ dateStr, activeUser, loggedOverrides: externalOverrid
             }
           } catch { }
         }
+        const eventOwner = getOwnerFromRecord(e, user?.id, profile?.name, partner?.name)
         items.push({
           id: e.id,
           time: e.time || "00:00",
@@ -129,6 +136,7 @@ export function Timeline({ dateStr, activeUser, loggedOverrides: externalOverrid
           type: (e.type === "meal" || e.type === "training" || e.type === "supplements")
             ? e.type
             : "training",
+          owner: eventOwner,
           details: parseDisplayDetails(e.details),
           logged: loggedOverrides[e.id] !== undefined ? loggedOverrides[e.id] : (e.logged || false),
           macros: eventMacros,
@@ -170,7 +178,33 @@ export function Timeline({ dateStr, activeUser, loggedOverrides: externalOverrid
     }
   }
 
-  if (timelineItems.length === 0) {
+  // Filter timeline items by meal owner
+  const filteredItems = useMemo(() => {
+    if (mealOwnerFilter === "all") return timelineItems
+    return timelineItems.filter(item => {
+      if (item.type !== "meal") return true // Keep non-meal items always visible
+      if (mealOwnerFilter === "marcin" || mealOwnerFilter === "patrycja") {
+        return item.owner === mealOwnerFilter
+      }
+      if (mealOwnerFilter === "both") {
+        // Extract "both" status from details if available
+        try {
+          const meal = meals.find(m => m.id === item.id)
+          if (meal?.details) {
+            const parsed = JSON.parse(meal.details)
+            return parsed.mealOwner === "both"
+          }
+        } catch { }
+      }
+      return true
+    })
+  }, [timelineItems, mealOwnerFilter, meals])
+
+  const mealOnlyItems = filteredItems.filter(i => i.type === "meal")
+  const hasMarcin = mealOnlyItems.some(i => i.owner === "marcin")
+  const hasPatrycja = mealOnlyItems.some(i => i.owner === "patrycja")
+
+  if (filteredItems.length === 0) {
     return (
       <div className="text-center py-6 text-sm text-muted-foreground bg-card rounded-2xl border border-border">
         Brak zaplanowanych pozycji na dziś.
@@ -179,8 +213,50 @@ export function Timeline({ dateStr, activeUser, loggedOverrides: externalOverrid
   }
 
   return (
-    <div className="relative border-l border-muted-foreground/20 ml-3 pl-6 space-y-6 py-2">
-      {timelineItems.map((item) => {
+    <div className="space-y-4">
+      {/* Filter chips */}
+      {(hasMarcin || hasPatrycja) && (
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => setMealOwnerFilter("all")}
+            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+              mealOwnerFilter === "all"
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-foreground hover:bg-secondary/80"
+            }`}
+          >
+            Wszyscy
+          </button>
+          {hasMarcin && (
+            <button
+              onClick={() => setMealOwnerFilter("marcin")}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all capitalize ${
+                mealOwnerFilter === "marcin"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-foreground hover:bg-secondary/80"
+              }`}
+            >
+              Marcin
+            </button>
+          )}
+          {hasPatrycja && (
+            <button
+              onClick={() => setMealOwnerFilter("patrycja")}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all capitalize ${
+                mealOwnerFilter === "patrycja"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-foreground hover:bg-secondary/80"
+              }`}
+            >
+              Patrycja
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Timeline */}
+      <div className="relative border-l border-muted-foreground/20 ml-3 pl-6 space-y-6 py-2">
+      {filteredItems.map((item) => {
         const isMeal = item.type === "meal"
         const isSupp = item.type === "supplements"
 
@@ -217,9 +293,16 @@ export function Timeline({ dateStr, activeUser, loggedOverrides: externalOverrid
                 <span className="text-xs font-mono font-semibold text-muted-foreground">
                   {item.time}
                 </span>
-                <span className={`p-1.5 rounded-lg ${iconBg}`}>
-                  <Icon className="size-3.5" />
-                </span>
+                <div className="flex items-center gap-1.5">
+                  {isMeal && item.owner && (
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/15 text-primary/80 capitalize">
+                      {item.owner}
+                    </span>
+                  )}
+                  <span className={`p-1.5 rounded-lg ${iconBg}`}>
+                    <Icon className="size-3.5" />
+                  </span>
+                </div>
               </div>
 
               <h4 className="text-sm font-medium text-foreground">{item.name}</h4>
@@ -240,6 +323,7 @@ export function Timeline({ dateStr, activeUser, loggedOverrides: externalOverrid
           </div>
         )
       })}
+      </div>
     </div>
   )
 }

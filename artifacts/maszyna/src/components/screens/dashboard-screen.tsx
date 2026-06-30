@@ -203,9 +203,9 @@ export function DashboardScreen() {
           <div className="h-full bg-navy/70 rounded-full transition-all duration-500" style={{ width: `${Math.min((water / targets.water) * 100, 100)}%` }} />
         </div>
         <div className="flex gap-2">
-          <button onClick={() => addWater(300)} className="flex-1 py-2.5 rounded-xl bg-navy/10 text-navy/70 text-sm font-medium active:scale-[0.98] transition-transform">+300ml</button>
-          <button onClick={() => addWater(500)} className="flex-1 py-2.5 rounded-xl bg-navy/10 text-navy/70 text-sm font-medium active:scale-[0.98] transition-transform">+500ml</button>
-          <button onClick={() => addWater(1000)} className="flex-1 py-2.5 rounded-xl bg-navy/10 text-navy/70 text-sm font-medium active:scale-[0.98] transition-transform">+1L</button>
+          <button onClick={() => addWater(300)} className="flex-1 py-2.5 rounded-xl bg-primary/10 text-primary text-sm font-medium active:scale-[0.98] transition-transform">+300ml</button>
+          <button onClick={() => addWater(500)} className="flex-1 py-2.5 rounded-xl bg-primary/10 text-primary text-sm font-medium active:scale-[0.98] transition-transform">+500ml</button>
+          <button onClick={() => addWater(1000)} className="flex-1 py-2.5 rounded-xl bg-primary/10 text-primary text-sm font-medium active:scale-[0.98] transition-transform">+1L</button>
           {lastWaterAdd !== null && (
             <button onClick={undoWater} className="px-3 py-2.5 rounded-xl bg-destructive/10 text-destructive text-sm font-medium active:scale-[0.98] transition-transform flex items-center gap-1 shrink-0" title={`Cofnij +${lastWaterAdd}ml`}>↩</button>
           )}
