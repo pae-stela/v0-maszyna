@@ -4,7 +4,7 @@ import { MaszynaIcon } from '@/components/logo'
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" style={{ background: 'linear-gradient(170deg, var(--color-olive-subtle) 0%, var(--background) 40%)' }}>
       <div className="px-6 py-12 flex flex-col items-center text-center">
         {/* Zwiększony kontener z ikoną (w-24 h-24) */}
         <div className="mb-4">

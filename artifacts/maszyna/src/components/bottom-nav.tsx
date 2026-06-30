@@ -39,9 +39,10 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
                 <div
                   className={`relative flex items-center justify-center size-12 rounded-2xl shadow-lg transition-all duration-300 ${
                     isActive
-                      ? "bg-primary text-primary-foreground scale-105"
+                      ? "text-white scale-105"
                       : "bg-secondary text-muted-foreground hover:bg-secondary/70"
                   }`}
+                  style={isActive ? { background: 'linear-gradient(135deg, var(--color-olive-light), var(--color-olive-dark))' } : undefined}
                 >
                   <Icon className="size-6" strokeWidth={isActive ? 2.5 : 2} />
                 </div>

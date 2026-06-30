@@ -169,7 +169,8 @@ export function DashboardScreen() {
     <div className="flex flex-col gap-5 pb-24">
 
       {/* MACROS */}
-      <div className="bg-card rounded-2xl p-4 border border-border">
+      <div className="rounded-2xl border border-border overflow-hidden" style={{ background: 'linear-gradient(160deg, var(--color-olive-subtle) 0%, var(--color-card) 55%)' }}>
+        <div className="p-4">
         <div className="flex justify-center pb-4 mb-4 border-b border-border">
           <ProgressRing
             value={currentMacros.calories}
@@ -187,6 +188,7 @@ export function DashboardScreen() {
           <ProgressRing value={currentMacros.carbs}   max={targets.carbs}   color="var(--color-sand, #D4A373)" label="Węgle"  unit="g" size={60} strokeWidth={4.5} textSize="text-[10px]" />
           <ProgressRing value={currentMacros.fats}    max={targets.fats}    color="var(--color-terracotta, #CD7F67)" label="Tłuszcze" unit="g" size={60} strokeWidth={4.5} textSize="text-[10px]" />
           <ProgressRing value={currentMacros.fiber}   max={targets.fiber}   color="var(--color-sage, #8A9A86)" label="Błonnik" unit="g" size={60} strokeWidth={4.5} textSize="text-[10px]" />
+        </div>
         </div>
       </div>
 
