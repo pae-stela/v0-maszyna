@@ -249,7 +249,7 @@ export function DashboardScreen() {
               />
               <div className="flex gap-2">
                 <button onClick={() => setShowStepInput(false)} className="flex-1 py-2.5 rounded-xl bg-secondary text-muted-foreground font-medium">Anuluj</button>
-                <button onClick={() => { updateSteps(todayDateStr, parseInt(stepInput) || 0); setShowStepInput(false) }} className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground font-medium">Zapisz</button>
+                <button onClick={() => { updateSteps(todayDateStr, parseInt(stepInput) || 0); setShowStepInput(false) }} className="flex-1 py-2.5 rounded-xl btn-dashboard font-medium">Zapisz</button>
               </div>
             </div>
           </div>

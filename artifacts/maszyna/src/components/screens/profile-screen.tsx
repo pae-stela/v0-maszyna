@@ -6,7 +6,7 @@ import { useLanguage } from "@/lib/i18n/context"
 import { 
   TrendingUp, TrendingDown, Minus, Ruler, Scale, Utensils, Dumbbell, 
   ChevronRight, Clock, Flame, Plus, X, Trophy, Zap,
-  Calendar, Settings
+  Calendar, Settings, UtensilsCrossed
 } from "lucide-react"
 import { SettingsModal, WhiteCat, BlackCat } from "@/components/top-bar"
 
@@ -233,7 +233,7 @@ export function ProfileScreen() {
                   className="flex-1 bg-secondary rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
                 <span className="flex items-center text-sm text-muted-foreground shrink-0">kg</span>
-                <button onClick={logWeight} className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:scale-[0.98] transition-transform">
+                <button onClick={logWeight} className="px-4 py-2.5 rounded-xl btn-profile text-sm font-medium active:scale-[0.98] transition-transform">
                   Save
                 </button>
                 <button onClick={() => { setShowWeightForm(false); setWeightInput("") }} className="p-2.5 rounded-xl bg-secondary text-muted-foreground">
@@ -243,7 +243,7 @@ export function ProfileScreen() {
             ) : (
               <button
                 onClick={() => setShowWeightForm(true)}
-                className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:scale-[0.98] transition-transform"
+                className="w-full py-2.5 rounded-xl btn-profile text-sm font-medium active:scale-[0.98] transition-transform"
               >
                 {isPl ? "Zapisz" : "Save"}
               </button>
@@ -554,7 +554,7 @@ export function ProfileScreen() {
               <button onClick={() => setShowMeasurementModal(false)} className="flex-1 py-2.5 rounded-xl border border-border bg-background text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors">
                 Cancel
               </button>
-              <button onClick={saveMeasurementInputs} className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:scale-[0.98] transition-transform">
+              <button onClick={saveMeasurementInputs} className="flex-1 py-2.5 rounded-xl btn-profile text-sm font-medium active:scale-[0.98] transition-transform">
                 Save
               </button>
             </div>

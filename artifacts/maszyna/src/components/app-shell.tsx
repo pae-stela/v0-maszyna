@@ -82,7 +82,7 @@ export function AppShell() {
   }
 
   return (
-    <div className="min-h-screen bg-background" style={{ background: 'linear-gradient(170deg, var(--color-olive-subtle) 0%, var(--background) 38%)' }}>
+    <div className="min-h-screen bg-background" style={{ background: 'linear-gradient(170deg, var(--color-olive-subtle) 0%, var(--background) 30%)' }}>
       <main className="pt-6 pb-[100px] px-4 overflow-y-auto h-[100dvh]">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-foreground">{getScreenTitle()}</h1>

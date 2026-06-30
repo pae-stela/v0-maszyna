@@ -112,7 +112,7 @@ export function KitchenScreen({ initialEditMode, onEditSaveComplete }: { initial
           onClick={() => handleTabChange("calculator")}
           className={`flex-[2] flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
             subTab === "calculator"
-              ? "bg-foreground text-background shadow-sm"
+              ? "btn-kitchen shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
@@ -499,7 +499,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
       {/* Step 1: Add Ingredients */}
       <div className="bg-card rounded-2xl border border-border">
         <div className="bg-primary/10 px-5 py-3 border-b border-border flex items-center gap-3">
-          <div className="size-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">1</div>
+          <div className="size-7 rounded-full btn-kitchen flex items-center justify-center text-sm font-bold">1</div>
           <div>
             <h3 className="text-sm font-semibold text-foreground">{t('build')}</h3>
             <p className="text-xs text-muted-foreground">{t('buildDesc')}</p>
@@ -531,7 +531,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
                 <button
                   onClick={addIngredientToRecipe}
                   disabled={!selectedIngredient}
-                  className="size-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-transform"
+                  className="size-10 rounded-xl btn-kitchen flex items-center justify-center shrink-0 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-transform"
                 >
                   <Plus className="size-5" />
                 </button>
@@ -545,7 +545,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
                   onClick={() => setUseUnits(false)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                     !useUnits
-                      ? "bg-primary text-primary-foreground"
+                      ? "btn-kitchen"
                       : "bg-secondary text-muted-foreground"
                   }`}
                 >
@@ -555,7 +555,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
                   onClick={() => setUseUnits(true)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                     useUnits
-                      ? "bg-primary text-primary-foreground"
+                      ? "btn-kitchen"
                       : "bg-secondary text-muted-foreground"
                   }`}
                 >
@@ -744,7 +744,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
               onClick={() => setDishOwner("both")}
               className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
                 dishOwner === "both"
-                  ? "bg-primary text-primary-foreground"
+                  ? "btn-kitchen"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -754,7 +754,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
               onClick={() => setDishOwner("marcin")}
               className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
                 dishOwner === "marcin"
-                  ? "bg-primary text-primary-foreground"
+                  ? "btn-kitchen"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -764,7 +764,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
               onClick={() => setDishOwner("patrycja")}
               className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
                 dishOwner === "patrycja"
-                  ? "bg-primary text-primary-foreground"
+                  ? "btn-kitchen"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -1174,7 +1174,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
                   }
                 }}
                 disabled={ingredients.length === 0 || !saveName.trim()}
-                className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-40 disabled:active:scale-100 mt-2"
+                className="w-full py-2.5 rounded-lg btn-kitchen text-sm font-medium flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-40 disabled:active:scale-100 mt-2"
               >
                 {editMode ? "Zapisz zmiany…" : t('saveEntireRecipe')}
               </button>
@@ -1432,7 +1432,7 @@ function IngredientsView({ onEditComponent }: { onEditComponent: (mode: EditMode
         </div>
         <button
           onClick={() => setShowAddForm(!showAddForm)}
-          className="size-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center active:scale-95 transition-transform"
+          className="size-12 rounded-xl btn-kitchen flex items-center justify-center active:scale-95 transition-transform"
         >
           <Plus className="size-5" />
         </button>
@@ -1446,7 +1446,7 @@ function IngredientsView({ onEditComponent }: { onEditComponent: (mode: EditMode
             onClick={() => setCategoryFilter(cat)}
             className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
               categoryFilter === cat
-                ? "bg-primary text-primary-foreground"
+                ? "btn-kitchen"
                 : "bg-card border border-border text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -1534,7 +1534,7 @@ function IngredientsView({ onEditComponent }: { onEditComponent: (mode: EditMode
             <button
               onClick={handleAddIngredient}
               disabled={!newIngredient.name.trim()}
-              className="mt-2 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-50"
+              className="mt-2 py-3 rounded-xl btn-kitchen text-sm font-medium flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-50"
             >
               <Plus className="size-4" />
               Dodaj składnik
@@ -1683,7 +1683,7 @@ function IngredientsView({ onEditComponent }: { onEditComponent: (mode: EditMode
                         </div>
                       </div>
                       <div className="flex gap-2 mt-1">
-                        <button onClick={(e) => { e.stopPropagation(); handleSaveEdit(ingredient.id) }} className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:scale-[0.98] transition-transform">Zapisz</button>
+                        <button onClick={(e) => { e.stopPropagation(); handleSaveEdit(ingredient.id) }} className="flex-1 py-2.5 rounded-xl btn-kitchen text-sm font-medium active:scale-[0.98] transition-transform">Zapisz</button>
                         <button onClick={(e) => { e.stopPropagation(); cancelEdit() }} className="flex-1 py-2.5 rounded-xl bg-secondary text-foreground text-sm font-medium active:scale-[0.98] transition-transform">Anuluj</button>
                       </div>
                     </div>
@@ -1797,7 +1797,7 @@ function DishesView({ onEditDish }: { onEditDish: (mode: EditMode) => void }) {
             }}
             className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
               mainCategoryFilter === cat
-                ? "bg-primary text-primary-foreground"
+                ? "btn-kitchen"
                 : "bg-card border border-border text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -2008,7 +2008,7 @@ function DishesView({ onEditDish }: { onEditDish: (mode: EditMode) => void }) {
                       <Trash2 className="size-4" />
                       Delete
                     </button>
-                    <button className="flex-[1.5] py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium active:scale-[0.98] transition-transform">
+                    <button className="flex-[1.5] py-2.5 rounded-xl btn-kitchen text-sm font-medium active:scale-[0.98] transition-transform">
                       Quick Log
                     </button>
                   </div>

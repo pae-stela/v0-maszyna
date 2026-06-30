@@ -9,8 +9,14 @@
   --olive: #7A8C3A;
   --olive-dark: #5A6A28;
   --olive-light: #B8C85A;
-  --olive-muted: #DDE5B4;
-  --olive-subtle: #EFF3D6;
+  --olive-muted: #E4EDD8;
+  --olive-subtle: #F4F7EC;
+
+  --gradient-kitchen:  linear-gradient(135deg, #1E2E22 0%, #4A7A50 100%);
+  --gradient-workout:  linear-gradient(135deg, #4A1E0A 0%, #96502A 100%);
+  --gradient-dashboard: linear-gradient(135deg, #262E12 0%, #6B7C3A 100%);
+  --gradient-planner:  linear-gradient(135deg, #0F1E2A 0%, #3D5A6C 100%);
+  --gradient-profile:  linear-gradient(135deg, #1E2E20 0%, #5E7A61 100%);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.153 0.006 107.1);
   --popover: oklch(1 0 0);
@@ -156,4 +162,12 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
   }
+}
+
+@layer utilities {
+  .btn-kitchen  { background: var(--gradient-kitchen);  color: white; }
+  .btn-workout  { background: var(--gradient-workout);  color: white; }
+  .btn-dashboard { background: var(--gradient-dashboard); color: white; }
+  .btn-planner  { background: var(--gradient-planner);  color: white; }
+  .btn-profile  { background: var(--gradient-profile);  color: white; }
 }

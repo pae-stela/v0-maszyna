@@ -774,7 +774,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
               onClick={() => setViewMode(mode)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                 viewMode === mode
-                  ? "bg-primary text-primary-foreground"
+                  ? "btn-planner"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -804,7 +804,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
           <button
             onClick={() => { setShowBothCalendars(true); setOwnerFilter("both") }}
             className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              showBothCalendars ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              showBothCalendars ? "btn-planner" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {t('both')}
@@ -1052,7 +1052,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
               googleConnected
                 ? "bg-sage/20 text-sage"
-                : "bg-primary text-primary-foreground"
+                : "btn-planner"
             }`}
           >
             {googleConnected ? "Connected" : "Connect"}
@@ -1417,7 +1417,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                     type="button"
                     onClick={() => setMealOwner("both")}
                     className={`px-2 h-8 rounded-lg text-[10px] font-medium transition-all ${
-                      mealOwner === "both" ? "bg-primary text-primary-foreground shadow-sm" : "bg-secondary text-muted-foreground"
+                      mealOwner === "both" ? "btn-planner shadow-sm" : "bg-secondary text-muted-foreground"
                     }`}
                   >
                     Oboje
@@ -1634,7 +1634,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                               }}
                               className={`w-9 h-9 rounded-lg text-xs font-semibold border transition-all ${
                                 isSelected
-                                  ? "bg-primary text-primary-foreground border-primary"
+                                  ? "btn-planner border-primary"
                                   : "bg-background border-border text-muted-foreground hover:border-muted"
                               }`}
                             >
@@ -1677,7 +1677,7 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
               <button
                 type="button"
                 onClick={handleAddEvent}
-                className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+                className="flex-1 py-2.5 rounded-xl btn-planner text-sm font-medium hover:opacity-90 transition-opacity"
               >
                 Zapisz
               </button>

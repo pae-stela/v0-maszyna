@@ -87,7 +87,7 @@ export function WorkoutScreen() {
           onClick={() => setSubTab("journal")}
           className={`flex-[2] flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
             subTab === "journal"
-              ? "bg-foreground text-background shadow-sm"
+              ? "btn-workout shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
@@ -407,7 +407,7 @@ function JournalView() {
                   {isWorkoutPaused ? (
                     <button
                       onClick={resumeWorkout}
-                      className="p-1.5 bg-primary rounded-lg text-primary-foreground active:scale-95 transition-transform"
+                      className="p-1.5 btn-workout rounded-lg active:scale-95 transition-transform"
                     >
                       <Play className="size-3.5" />
                     </button>
@@ -430,7 +430,7 @@ function JournalView() {
             ) : (
               <button
                 onClick={startWorkout}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary rounded-lg text-primary-foreground text-xs font-medium active:scale-95 transition-transform"
+                className="flex items-center gap-1.5 px-3 py-1.5 btn-workout rounded-lg text-xs font-medium active:scale-95 transition-transform"
               >
                 <Play className="size-3.5" />
                 Start
@@ -519,7 +519,7 @@ function JournalView() {
                       onClick={() => toggleSet(exercise.id, setIndex)}
                       className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all flex flex-col items-center ${
                         set.completed
-                          ? "bg-primary text-primary-foreground"
+                          ? "btn-workout"
                           : "bg-secondary text-muted-foreground"
                       }`}
                     >
@@ -698,7 +698,7 @@ function JournalView() {
             <div className="p-4 border-t border-border flex flex-col gap-2">
               <button
                 onClick={() => finishWorkout(true, true)}
-                className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium active:scale-[0.98] transition-transform"
+                className="w-full py-3 rounded-xl btn-workout font-medium active:scale-[0.98] transition-transform"
               >
                 Log & Check Off Plan
               </button>
@@ -1023,7 +1023,7 @@ function PlansView() {
                                 <button
                                   onClick={() => startPairing(pe.exerciseId)}
                                   className={`p-1.5 rounded-lg transition-colors ${
-                                    isPairing ? "bg-primary text-primary-foreground" : "hover:bg-secondary text-muted-foreground"
+                                    isPairing ? "btn-workout" : "hover:bg-secondary text-muted-foreground"
                                   }`}
                                   title="Pair with antagonist"
                                 >
@@ -1156,7 +1156,7 @@ function PlansView() {
               <button
                 onClick={savePlan}
                 disabled={saving || !planName.trim() || planExercises.length === 0}
-                className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform"
+                className="w-full py-3 rounded-xl btn-workout font-medium disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform"
               >
                 {saving ? 'Zapisywanie...' : 'Zapisz plan'}
               </button>
@@ -1191,7 +1191,7 @@ function PlansView() {
                 <button
                   onClick={() => setSelectedMuscleGroup(null)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                    !selectedMuscleGroup ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
+                    !selectedMuscleGroup ? "btn-workout" : "bg-secondary text-muted-foreground"
                   }`}
                 >
                   All
@@ -1201,7 +1201,7 @@ function PlansView() {
                     key={group}
                     onClick={() => setSelectedMuscleGroup(group)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                      selectedMuscleGroup === group ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
+                      selectedMuscleGroup === group ? "btn-workout" : "bg-secondary text-muted-foreground"
                     }`}
                   >
                     {group}
@@ -1295,7 +1295,7 @@ function ExercisesView() {
           <button
             onClick={() => setSelectedMuscleGroup(null)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              !selectedMuscleGroup ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
+              !selectedMuscleGroup ? "btn-workout" : "bg-secondary text-muted-foreground"
             }`}
           >
             All
@@ -1305,7 +1305,7 @@ function ExercisesView() {
               key={group}
               onClick={() => setSelectedMuscleGroup(group)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                selectedMuscleGroup === group ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
+                selectedMuscleGroup === group ? "btn-workout" : "bg-secondary text-muted-foreground"
               }`}
             >
               {group}
@@ -1415,7 +1415,7 @@ function ExercisesView() {
                       onClick={() => setNewExercise({ ...newExercise, muscleGroup: group })}
                       className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                         newExercise.muscleGroup === group 
-                          ? "bg-primary text-primary-foreground" 
+                          ? "btn-workout" 
                           : "bg-secondary text-muted-foreground"
                       }`}
                     >
@@ -1434,7 +1434,7 @@ function ExercisesView() {
                       onClick={() => setNewExercise({ ...newExercise, equipment: eq })}
                       className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                         newExercise.equipment === eq 
-                          ? "bg-primary text-primary-foreground" 
+                          ? "btn-workout" 
                           : "bg-secondary text-muted-foreground"
                       }`}
                     >
@@ -1495,7 +1495,7 @@ function ExercisesView() {
               <button
                 onClick={handleAddExercise}
                 disabled={!newExercise.name || !newExercise.muscleGroup || !newExercise.equipment}
-                className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform"
+                className="w-full py-3 rounded-xl btn-workout font-medium disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform"
               >
                 Dodaj ćwiczenie
               </button>
