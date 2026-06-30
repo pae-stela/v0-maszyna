@@ -285,7 +285,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       {/* My colour */}
                       <div>
                         <p className="text-xs font-medium text-muted-foreground mb-2">{t('myColor')} ({profile?.name?.split(' ')[0] || "You"})</p>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                           {PARTNER_COLORS.map(c => (
                             <button
                               key={c.hex}
@@ -300,7 +300,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       {/* Partner's colour */}
                       <div>
                         <p className="text-xs font-medium text-muted-foreground mb-2">{t('partnerColorLabel')} ({partner?.name?.split(' ')[0] || "Partner"})</p>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                           {PARTNER_COLORS.map(c => (
                             <button
                               key={c.hex}
@@ -323,7 +323,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     </p>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-foreground">Enabled</span>
-                      <div className="w-11 h-6 bg-primary rounded-full relative cursor-pointer">
+                      <div className="w-11 h-6 rounded-full relative cursor-pointer" style={{ background: 'var(--gradient-dashboard)' }}>
                         <div className="absolute right-0.5 top-0.5 size-5 bg-background rounded-full shadow-sm" />
                       </div>
                     </div>

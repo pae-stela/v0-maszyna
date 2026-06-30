@@ -1327,23 +1327,23 @@ function ExercisesView() {
                   cardio: "bg-terracotta/20 text-terracotta",
                   flexibility: "bg-sand/20 text-sand"
                 }
-                const iconBg = exercise.type === "cardio" 
-                  ? "bg-terracotta/10" 
-                  : exercise.type === "flexibility" 
-                    ? "bg-sand/10" 
-                    : "bg-primary/10"
-                const iconColor = exercise.type === "cardio" 
-                  ? "text-terracotta" 
-                  : exercise.type === "flexibility" 
-                    ? "text-sand" 
-                    : "text-primary"
+                const iconStyles = {
+                  cardio:      { background: 'linear-gradient(135deg, rgba(74,30,10,0.18) 0%, rgba(196,120,74,0.18) 100%)' },
+                  flexibility: { background: 'linear-gradient(135deg, rgba(140,110,70,0.15) 0%, rgba(212,197,169,0.22) 100%)' },
+                  compound:    { background: 'linear-gradient(135deg, rgba(100,85,55,0.15) 0%, rgba(184,156,88,0.20) 100%)' },
+                  isolation:   { background: 'linear-gradient(135deg, rgba(15,30,42,0.15) 0%, rgba(61,90,108,0.20) 100%)' },
+                }
+                const iconColorMap: Record<string, string> = {
+                  cardio: 'text-terracotta', flexibility: 'text-sand', compound: 'text-wheat', isolation: 'text-navy'
+                }
+                const iconColor = iconColorMap[exercise.type] || 'text-primary'
 
                 return (
                   <div
                     key={exercise.id}
                     className="bg-card rounded-xl p-3 border border-border flex items-center gap-3"
                   >
-                    <div className={`size-10 rounded-lg ${iconBg} flex items-center justify-center`}>
+                    <div className="size-10 rounded-lg flex items-center justify-center" style={iconStyles[exercise.type] || iconStyles.isolation}>
                       {exercise.type === 'cardio' ? <Footprints className={`size-5 ${iconColor}`} /> : exercise.type === 'flexibility' ? <Wind className={`size-5 ${iconColor}`} /> : <Dumbbell className={`size-5 ${iconColor}`} />}
                     </div>
                     <div className="flex-1">

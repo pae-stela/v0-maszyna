@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react"
 import { useUser } from "@/lib/user-context"
 import { useAuth } from "@/lib/auth-context"
 import { useIngredients, useDishes, type DbIngredient } from "@/lib/realtime-hooks"
-import { usePartnerColors } from "@/lib/partner-colors-context"
+import { usePartnerColors, makeGradient } from "@/lib/partner-colors-context"
 import { Calculator, Search, Plus, Trash2, Apple, ChefHat, UtensilsCrossed, FileText, ChevronDown, X, Pencil, Check, Link, ImagePlus, Camera, ExternalLink } from "lucide-react"
 
 function hexToRgba(hex: string, alpha: number) {
@@ -188,7 +188,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
   const { profile, partner } = useAuth()
   const { ingredients: dbIngredients, loading: dbLoading, addIngredient } = useIngredients()
   const { addDish, updateDish } = useDishes()
-  const { myColor, partnerColor } = usePartnerColors()
+  const { myColor, partnerColor, myGradient, partnerGradient } = usePartnerColors()
 
   // Initialize calculator from editMode
   useEffect(() => {
@@ -498,7 +498,7 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
     <div className="flex flex-col gap-6">
       {/* Step 1: Add Ingredients */}
       <div className="bg-card rounded-2xl border border-border">
-        <div className="bg-primary/10 px-5 py-3 border-b border-border flex items-center gap-3">
+        <div className="px-5 py-3 border-b border-border flex items-center gap-3" style={{ background: 'linear-gradient(90deg, rgba(30,46,34,0.12) 0%, rgba(74,122,80,0.05) 100%)' }}>
           <div className="size-7 rounded-full btn-kitchen flex items-center justify-center text-sm font-bold">1</div>
           <div>
             <h3 className="text-sm font-semibold text-foreground">{t('build')}</h3>
@@ -722,8 +722,8 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
 
       {/* Step 2: Smart Splitter */}
       <div className="bg-card rounded-2xl border border-border overflow-hidden">
-        <div className="bg-secondary/50 px-5 py-3 border-b border-border flex items-center gap-3">
-          <div className="size-7 rounded-full bg-foreground text-background flex items-center justify-center text-sm font-bold">2</div>
+        <div className="px-5 py-3 border-b border-border flex items-center gap-3" style={{ background: `linear-gradient(90deg, ${hexToRgba(partnerColor, 0.14)} 0%, ${hexToRgba(myColor, 0.10)} 100%)` }}>
+          <div className="size-7 rounded-full text-white flex items-center justify-center text-sm font-bold" style={{ background: makeGradient(partnerColor) }}>2</div>
           <div>
             <h3 className="text-sm font-semibold text-foreground">Podziel</h3>
             <p className="text-xs text-muted-foreground">
@@ -753,20 +753,18 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
             <button
               onClick={() => setDishOwner("marcin")}
               className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
-                dishOwner === "marcin"
-                  ? "btn-kitchen"
-                  : "text-muted-foreground hover:text-foreground"
+                dishOwner === "marcin" ? "text-white" : "text-muted-foreground hover:text-foreground"
               }`}
+              style={dishOwner === "marcin" ? { background: partnerGradient } : undefined}
             >
               {partner?.name || "Marcin"}
             </button>
             <button
               onClick={() => setDishOwner("patrycja")}
               className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
-                dishOwner === "patrycja"
-                  ? "btn-kitchen"
-                  : "text-muted-foreground hover:text-foreground"
+                dishOwner === "patrycja" ? "text-white" : "text-muted-foreground hover:text-foreground"
               }`}
+              style={dishOwner === "patrycja" ? { background: myGradient } : undefined}
             >
               {profile?.name || "Patrycja"}
             </button>
@@ -824,10 +822,10 @@ function CalculatorView({ activeUser, editMode, onClearEdit, onEditSaveComplete 
               </div>
               <div className="h-2.5 rounded-full overflow-hidden flex bg-secondary">
                 {marcinServings > 0 && (
-                  <div className="h-full transition-all duration-300" style={{ width: `${(marcinServings * 2 / totalParts) * 100}%`, backgroundColor: partnerColor }} />
+                  <div className="h-full transition-all duration-300" style={{ width: `${(marcinServings * 2 / totalParts) * 100}%`, background: makeGradient(partnerColor, 90) }} />
                 )}
                 {patrycjaServings > 0 && (
-                  <div className="h-full transition-all duration-300" style={{ width: `${(patrycjaServings * 1 / totalParts) * 100}%`, backgroundColor: myColor }} />
+                  <div className="h-full transition-all duration-300" style={{ width: `${(patrycjaServings * 1 / totalParts) * 100}%`, background: makeGradient(myColor, 90) }} />
                 )}
               </div>
             </div>
@@ -1280,6 +1278,7 @@ const ingredientCategoryLabels: Record<string, string> = {
 
 function IngredientsView({ onEditComponent }: { onEditComponent: (mode: EditMode) => void }) {
   const { ingredients: dbIngredients, loading, addIngredient, deleteIngredient, updateIngredient } = useIngredients()
+  const { myColor } = usePartnerColors()
   const [searchTerm, setSearchTerm] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("All")
   const [showAddForm, setShowAddForm] = useState(false)
@@ -1558,13 +1557,14 @@ function IngredientsView({ onEditComponent }: { onEditComponent: (mode: EditMode
             >
               {/* Main row */}
               <div className="p-4 flex items-center gap-3 active:bg-secondary/50">
-                <div className={`size-10 rounded-xl flex items-center justify-center shrink-0 ${
-                  ingredient.isComponent 
-                    ? "bg-primary/20" 
-                    : "bg-secondary"
-                }`}>
+                <div
+                  className="size-10 rounded-xl flex items-center justify-center shrink-0"
+                  style={ingredient.isComponent
+                    ? { background: `linear-gradient(135deg, ${hexToRgba(myColor, 0.22)} 0%, ${hexToRgba(myColor, 0.10)} 100%)` }
+                    : undefined}
+                >
                   {ingredient.isComponent ? (
-                    <ChefHat className="size-5 text-primary" />
+                    <ChefHat className="size-5" style={{ color: myColor }} />
                   ) : (
                     <Apple className="size-5 text-muted-foreground" />
                   )}

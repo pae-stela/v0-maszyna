@@ -1,6 +1,6 @@
 import { useLanguage } from "@/lib/i18n/context"
-import { useState, useMemo, useEffect } from "react"
-import { usePartnerColors } from "@/lib/partner-colors-context"
+import React, { useState, useMemo, useEffect } from "react"
+import { usePartnerColors, makeGradient } from "@/lib/partner-colors-context"
 import { ShoppingListScreen } from "@/components/screens/shopping-list-screen"
 import { useAuth } from "@/lib/auth-context"
 import { useDishes, useWorkoutPlans, usePlannerEvents, useMealLogs } from "@/lib/realtime-hooks"
@@ -164,7 +164,7 @@ function MacroProgressBar({
       <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
         <div
           className="h-full rounded-full"
-          style={{ width: `${pct}%`, transition: 'width 0.5s ease-out', backgroundColor: color }}
+          style={{ width: `${pct}%`, transition: 'width 0.5s ease-out', background: makeGradient(color, 90) }}
         />
       </div>
     </div>
@@ -731,23 +731,15 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
       })
   }
 
-  const getEventColor = (type: EventType, owner: "marcin" | "patrycja"): string => {
-    if (owner === "marcin") {
-      switch (type) {
-        case "training": return "bg-[#1A2E26]"
-        case "meal": return "bg-[#1A2E26]/70"
-        case "supplements": return "bg-[#1A2E26]/50"
-        case "google": return "bg-[#1A2E26]"
-      }
-    } else {
-      switch (type) {
-        case "training": return "bg-[#8A9A86]"
-        case "meal": return "bg-[#8A9A86]/70"
-        case "supplements": return "bg-[#8A9A86]/50"
-        case "google": return "bg-emerald-900"
-      }
-    }
-    return "bg-muted"
+  const getEventStyle = (type: EventType, owner: "marcin" | "patrycja"): React.CSSProperties => {
+    const hex = owner === "marcin" ? partnerColor : myColor
+    const r = parseInt(hex.slice(1, 3), 16)
+    const g = parseInt(hex.slice(3, 5), 16)
+    const b = parseInt(hex.slice(5, 7), 16)
+    const alphaMap: Record<EventType, number> = { training: 1, meal: 0.80, supplements: 0.60, google: 1 }
+    const a = alphaMap[type]
+    const dr = Math.round(r * 0.38), dg = Math.round(g * 0.38), db = Math.round(b * 0.38)
+    return { background: `linear-gradient(135deg, rgba(${dr},${dg},${db},${a}) 0%, rgba(${r},${g},${b},${a}) 100%)` }
   }
 
   const getEventIcon = (type: EventType) => {
@@ -903,7 +895,8 @@ function CalendarView({ onNavigateToKitchen }: { onNavigateToKitchen?: (dish: Ed
                                         setMenuPosition({ x: 0, y: 0 })
                                         setShowEventMenu(true)
                                       }}
-                                      className={`rounded-lg p-2 text-white cursor-pointer active:scale-[0.98] transition-transform overflow-hidden ${isMulti ? 'flex-1 min-w-0' : 'w-full'} ${getEventColor(event.type, event.owner)}`}
+                                      className={`rounded-lg p-2 text-white cursor-pointer active:scale-[0.98] transition-transform overflow-hidden ${isMulti ? 'flex-1 min-w-0' : 'w-full'}`}
+                                      style={getEventStyle(event.type, event.owner)}
                                     >
                                       <div className="flex items-center gap-1.5 min-w-0">
                                         <span className="shrink-0">{getEventIcon(event.type)}</span>
